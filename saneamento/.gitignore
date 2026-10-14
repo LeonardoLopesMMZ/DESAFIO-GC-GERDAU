@@ -1,0 +1,5 @@
+dados/
+saida/
+dados_teste/
+__pycache__/
+*.xlsx
