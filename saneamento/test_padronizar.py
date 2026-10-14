@@ -26,6 +26,19 @@ def test_numeros_nunca_somem():
     assert a != b and "25" in a and "32" in b
 
 
+def test_numeros_da_base_batem_com_o_documento():
+    if not BASE.exists():
+        print("  (pulado: base não encontrada em dados/)")
+        return
+    from diagnostico import diagnosticar
+    r = diagnosticar(str(BASE))
+    esperado = {"linhas": 9795, "codigos": 7937, "fornecedores": 111, "reuso": 1234, "tst_he_domfer": 28,
+                "len40": 1328, "mesmo_texto_mesmo_forn": 746, "horas": 2519, "horas_sv": 884,
+                "mo_sem_tipo": 378, "he_sem_dia": 468, "dois_significados": 1, "gemeos_outro_grupo": 215}
+    diferentes = {k: (r[k], v) for k, v in esperado.items() if r[k] != v}
+    assert not diferentes, f"mudou (obtido, esperado): {diferentes}"
+
+
 if __name__ == "__main__":
     for nome, f in list(globals().items()):
         if nome.startswith("test_"):
