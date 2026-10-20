@@ -54,6 +54,25 @@ def test_planilha_limpa():
     assert noite != dia, "turno da noite e do dia não podem ser o mesmo grupo"
 
 
+def test_regua_armadilhas():
+    from regua import classificar
+    n = lambda s: normalizar(s)["n5"]
+    casos = [
+        ("MECÂNICO DE MANUTENÇÃO- HE (dom/fer)", "H", "MECÂNICO DE MANUT. (HORA EXTRA DOM/FER)", "H", "DUPLICADO"),
+        ("SV-TÊ 90 E DE REDUÇÃO SOLDÁVEL E COM ROS", "ST", "SV-TÊ 90 E DE REDUÇÃO SOLDÁVEL E CO ROSC", "ST", "DUPLICADO"),
+        ("SV-CURVA E JOELHO SOLDÁVEL 25 MM", "ST", "SV-CURVA E JOELHO SOLDÁVEL 32 MM", "ST", "DIFERENTE"),
+        ("Sv Caldeireiro H Adm HE 50%", "SV", "Sv Caldeireiro H Adm HE 100%", "SV", "DIFERENTE"),
+        ("MONTADOR LIDER(HE NOT SEG A SAB)", "H", "MONTADOR LIDER (HE SEG A SAB)", "H", "DIFERENTE"),
+        ("SV TRECHO TRILHO 36M c/linha de vida", "M", "SV TRECHO TRILHO 36M s/linha de vida", "M", "DIFERENTE"),
+        ("SV-VIDRO TEMPERADO 6MM", "M2", "SV-VIDRO TEMPERADO DE 6MM", "SV", "REVISAR"),
+        ("SV VIGILANTE 18H00 AS 06H00 12 X 36 SEG.", "SV", "SV VIGILANTE 06H00 AS 18H00 12X 36 SEG.", "SV", "DIFERENTE"),
+        ("SV ARGAMASSA ACII PARA REPAROS EM PAREDE", "M2", "SV ARGAMASSA ACIII PARA REPARO EM PAREDE", "M2", "DIFERENTE"),
+        ("H - Encarregado Mecânica -HE (dom/fer)", "H", "ENCARREGADO DE ELÉTRICA (HE DOM/FER)", "H", "DIFERENTE"),
+    ]
+    for a, ua, b, ub, certo in casos:
+        assert classificar(n(a), ua, n(b), ub)[0] == certo, (a, b, certo)
+
+
 if __name__ == "__main__":
     for nome, f in list(globals().items()):
         if nome.startswith("test_"):
