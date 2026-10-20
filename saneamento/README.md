@@ -23,6 +23,7 @@ A base da Gerdau não é versionada. Coloque a planilha em `saneamento/dados/` e
 | Tratamento dos dados V1 | [05-tratamento-dados-v1.md](docs/05-tratamento-dados-v1.md) | limpar.py |
 | Hipótese de similaridade | [04-hipotese-similaridade.md](docs/04-hipotese-similaridade.md) | regua.py |
 | Catálogo saneado V1 | [06-catalogo-saneado-v1.md](docs/06-catalogo-saneado-v1.md) | deduplicar.py |
+| Base de dados com saneamento feito | [base-dados-saneada.md](docs/base-dados-saneada.md) | exportar.py, schema.sql |
 
 ## Testes
 
