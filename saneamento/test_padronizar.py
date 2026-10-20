@@ -39,6 +39,21 @@ def test_numeros_da_base_batem_com_o_documento():
     assert not diferentes, f"mudou (obtido, esperado): {diferentes}"
 
 
+def test_planilha_limpa():
+    if not BASE.exists():
+        print("  (pulado: base não encontrada em dados/)")
+        return
+    from limpar import limpar
+    base, dup, c = limpar(BASE)
+    assert len(base) == 9795, "a planilha limpa precisa manter todas as linhas da original"
+    assert (c.nome.str.len() <= 40).all(), "nome padrão passou de 40 caracteres"
+    furo = c[c.desc == "SV - FURAÇÃO EM CONCRETO COM COROA DIAM"]
+    assert (furo.confianca == "conferir: pode ser texto cortado").all(), "texto cortado não pode ter confiança alta"
+    noite = c[c.desc == "SV VIGILANTE CONDUTOR 18H AS 06H 12X36."].grupo_id.iloc[0]
+    dia = c[c.desc == "SV VIGILANTE CONDUTOR 06H AS 18H 12X36."].grupo_id.iloc[0]
+    assert noite != dia, "turno da noite e do dia não podem ser o mesmo grupo"
+
+
 if __name__ == "__main__":
     for nome, f in list(globals().items()):
         if nome.startswith("test_"):
