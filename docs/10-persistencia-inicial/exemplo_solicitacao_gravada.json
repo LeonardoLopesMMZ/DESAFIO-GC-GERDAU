@@ -1,0 +1,14 @@
+{
+    "id": 5,
+    "descricao_digitada": "VIGILANTE 12X36 NOTURNO",
+    "unidade": "SV",
+    "grupo": "Facilities",
+    "solicitante": "Mentor",
+    "resultado": "BLOQUEAR",
+    "codigo_sugerido": "4122123",
+    "codigo_escolhido": "4122123",
+    "candidatos": "4122123,4060635,4092891,4069132,4067961,4060567,4071145,4017896,4092892,4123108",
+    "justificativa": null,
+    "status": "USOU_EXISTENTE",
+    "criada_em": "2026-10-13T21:40:52.838791"
+}

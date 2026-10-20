@@ -1,0 +1,29 @@
+{
+    "codigo": {
+        "codigo": "4071563",
+        "descricao": "SV ENCARREGADO HE (SEG À SEX)",
+        "descricao_limpa": "ENCARREGADO HORA EXTRA SEGUNDA SEXTA",
+        "descricao_padrao": "ENCARREGADO - HE SEG-SAB",
+        "unidade": "H",
+        "grupo": "Eletromecânica",
+        "categoria": "MAO DE OBRA",
+        "status": "BLOQUEADO",
+        "codigo_canonico": "4076413",
+        "motivo": "mão de obra: mesmo cargo, tipo de hora e detalhes"
+    },
+    "fornecedores": [
+        "201665700"
+    ],
+    "oficial": {
+        "codigo": "4076413",
+        "descricao": "ENCARREGADO ( HORA EXTRA SEG A SAB)",
+        "descricao_limpa": "ENCARREGADO HORA EXTRA SEGUNDA SABADO",
+        "descricao_padrao": "ENCARREGADO - HE SEG-SAB",
+        "unidade": "H",
+        "grupo": "Eletromecânica",
+        "categoria": "MAO DE OBRA",
+        "status": "ATIVO",
+        "codigo_canonico": null,
+        "motivo": "oficial"
+    }
+}
