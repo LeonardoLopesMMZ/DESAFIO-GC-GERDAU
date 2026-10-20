@@ -73,6 +73,26 @@ def test_regua_armadilhas():
         assert classificar(n(a), ua, n(b), ub)[0] == certo, (a, b, certo)
 
 
+def test_deduplicacao_nunca_junta_errado():
+    if not BASE.exists() or not Path("dados_teste/pares_rotulados.csv").exists():
+        print("  (pulado: base ou pares rotulados não encontrados)")
+        return
+    import pandas as pd
+    import deduplicar as dd
+    dp, cat, dec = dd.deduplicar(dd.ler(BASE), log=lambda *a: None)
+    oficial = dict(zip(dp.codigo.astype(str), dp.codigo_oficial.astype(str)))
+    junto = lambda a, b: oficial[str(a)] == oficial[str(b)]
+    lab = pd.read_csv("dados_teste/pares_rotulados.csv", keep_default_na=False)
+    errados = [(da, db) for a, b, da, db, r in zip(lab.cod_a, lab.cod_b, lab.desc_a, lab.desc_b, lab.rotulo)
+               if r == "N" and junto(a, b)]
+    assert not errados, f"juntou serviços diferentes: {errados[:5]}"
+    furos = dp[dp.descricao == "SV - FURAÇÃO EM CONCRETO COM COROA DIAM"]
+    assert (furos.codigo == furos.codigo_oficial).all(), "texto cortado não pode ser juntado"
+    assert len(set(dp[dp.descricao.isin(["SV BACIA PARA CAIXA ACOPLADA", "SV CAIXA ACOPLADA PARA BACIA"])].codigo_oficial)) == 2
+    tst = dp[dp.descricao.isin(["TEC SEG Valor HE (R$) Feriados e Dom", "TÉCNICO DE SEGURANÇA (HE DOM/FER)"])]
+    assert tst.codigo_oficial.nunique() == 1, "variações do mesmo serviço deveriam virar um código só"
+
+
 if __name__ == "__main__":
     for nome, f in list(globals().items()):
         if nome.startswith("test_"):
