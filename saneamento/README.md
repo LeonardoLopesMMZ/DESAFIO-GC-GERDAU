@@ -21,6 +21,7 @@ A base da Gerdau não é versionada. Coloque a planilha em `saneamento/dados/` e
 | Diagnóstico de qualidade | [01-diagnostico-qualidade.md](docs/01-diagnostico-qualidade.md) | diagnostico.py |
 | EDA inicial | [02-eda-inicial.md](docs/02-eda-inicial.md) | diagnostico.py |
 | Tratamento dos dados V1 | [05-tratamento-dados-v1.md](docs/05-tratamento-dados-v1.md) | limpar.py |
+| Hipótese de similaridade | [04-hipotese-similaridade.md](docs/04-hipotese-similaridade.md) | regua.py |
 
 ## Testes
 
