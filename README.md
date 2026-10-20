@@ -129,4 +129,4 @@ Os testes que precisam da planilha são pulados quando ela não está em `dados/
 
 ## Equipe
 
-Grupo 17, Desafio GC 2026: Leonardo Lopes, Thales, Thirza Midiã Matos de Oliveira, Bárbara Teixeira Baumgardt, Lukas Leimann e o time Java.
+Grupo 17, Desafio GC 2026: Leonardo Lopes, Thales, Thirza Midiã Matos de Oliveira, Bárbara Teixeira Baumgardt, Lukas Leimann.
