@@ -1,0 +1,68 @@
+              List of relations
+ Schema |       Name        | Type  |  Owner  
+--------+-------------------+-------+---------
+ public | base_original     | table | codigos
+ public | codigo_fornecedor | table | codigos
+ public | codigo_servico    | table | codigos
+ public | dicionario        | table | codigos
+ public | solicitacao       | table | codigos
+(5 rows)
+
+      tabela       | linhas 
+-------------------+--------
+ base_original     |   9795
+ codigo_servico    |   7937
+ codigo_fornecedor |   9795
+ dicionario        |    118
+ solicitacao       |      5
+(5 rows)
+
+  status   | count 
+-----------+-------
+ ATIVO     |  7056
+ BLOQUEADO |   881
+(2 rows)
+
+ codigo_fornecedor | codigo_servico |            descricao_item            |  status   | codigo_oficial 
+-------------------+----------------+--------------------------------------+-----------+----------------
+ 300034784         | 4076413        | ENCARREGADO ( HORA EXTRA SEG A SAB)  | ATIVO     | 4076413
+ 200488284         | 4076413        | ENCARREGADO ( HORA EXTRA SEG A SAB)  | ATIVO     | 4076413
+ 300745236         | 4076413        | ENCARREGADO ( HORA EXTRA SEG A SAB)  | ATIVO     | 4076413
+ 201788980         | 4076413        | ENCARREGADO ( HORA EXTRA SEG A SAB)  | ATIVO     | 4076413
+ 200484440         | 4053845        | SV ENC HE SAB                        | BLOQUEADO | 4076413
+ 201665700         | 4071563        | SV ENCARREGADO HE (SEG À SEX)        | BLOQUEADO | 4076413
+ 201665700         | 4071564        | SV ENCARREGADO HE (SÁBADO)           | BLOQUEADO | 4076413
+ 201665700         | 4071573        | SV ENCARREGADO HE (SEG À SEX)        | BLOQUEADO | 4076413
+ 201665700         | 4071574        | SV ENCARREGADO HE (SÁBADO)           | BLOQUEADO | 4076413
+ 200775708         | 4073356        | SV - Encarregado HE Segunda a Sabado | BLOQUEADO | 4076413
+ 300745236         | 4089075        | ENCARREGADO ( HORA EXTRA SEG A SAB)  | BLOQUEADO | 4076413
+ 200488812         | 4101790        | ENCARREGADO(A) ( HE SEG A SAB)       | BLOQUEADO | 4076413
+(12 rows)
+
+          categoria           | codigos_oficiais 
+------------------------------+------------------
+ MAO DE OBRA                  |             3385
+ OBRA CIVIL                   |              925
+ MATERIAL HIDRAULICO          |              524
+ OUTROS                       |              450
+ ALIMENTACAO E EVENTOS        |              390
+ EQUIPAMENTO E LOCACAO        |              352
+ MOBILIZACAO E DESMOBILIZACAO |              246
+ MANUTENCAO E FABRICACAO      |              215
+ MATERIAL ELETRICO            |              206
+ TRANSPORTE                   |              105
+ LIMPEZA E CONSERVACAO        |               74
+ VERBAS E REEMBOLSOS          |               70
+ VIGILANCIA E PORTARIA        |               58
+ MATERIAIS EM GERAL           |               56
+(14 rows)
+
+ id |    descricao_digitada     | resultado | codigo_sugerido | codigo_escolhido |       status       |                 justificativa                 
+----+---------------------------+-----------+-----------------+------------------+--------------------+-----------------------------------------------
+  1 | MEC.MANUT.NORM            | BLOQUEAR  | 4083559         | 4083559          | USOU_EXISTENTE     | 
+  2 | SOLDADOR HE 50% SEG A SAB | REVISAR   | 4051912         |                  | CRIADO             | Soldador com certificação 6G, valor diferente
+  3 | PINTURA EPOXI PISO        | LIBERAR   | 4033516         |                  | CRIADO             | 
+  4 | tec seg trab HE 100% dom  | BLOQUEAR  | 4096236         |                  | AGUARDANDO_CURADOR | Equipe para trabalho em altura
+  5 | VIGILANTE 12X36 NOTURNO   | BLOQUEAR  | 4122123         | 4122123          | USOU_EXISTENTE     | 
+(5 rows)
+

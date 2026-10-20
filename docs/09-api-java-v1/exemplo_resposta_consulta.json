@@ -1,0 +1,56 @@
+{
+  "solicitacao_id": 5,
+  "resultado": "BLOQUEAR",
+  "motivo": "Já existe: 4122123 VIGILANTE NOTURNO 12X36",
+  "candidatos": [
+    {
+      "codigo": "4122123",
+      "descricao": "VIGILANTE NOTURNO 12X36",
+      "nome_padrao": "VIGILANTE - ADIC NOTURNO",
+      "unidade": "SV",
+      "categoria": "MAO DE OBRA",
+      "aderencia": 100,
+      "classe": "DUPLICADO",
+      "diferencas": [],
+      "encontrado_por": {
+        "codigo": "4122123",
+        "descricao": "VIGILANTE NOTURNO 12X36"
+      }
+    },
+    {
+      "codigo": "4060635",
+      "descricao": "POSTO VIGILANTE NOTURNO P2 - 12X36",
+      "nome_padrao": "",
+      "unidade": "SV",
+      "categoria": "MAO DE OBRA",
+      "aderencia": 88,
+      "classe": "DIFERENTE",
+      "diferencas": [
+        "2",
+        "mensal + noturno",
+        "noturno"
+      ],
+      "encontrado_por": {
+        "codigo": "4060635",
+        "descricao": "POSTO VIGILANTE NOTURNO P2 - 12X36"
+      }
+    },
+    {
+      "codigo": "4092891",
+      "descricao": "VIG ARMADO 12x36 NOTURNO 12h",
+      "nome_padrao": "VIGILANTE - ADIC NOTURNO",
+      "unidade": "SV",
+      "categoria": "MAO DE OBRA",
+      "aderencia": 87,
+      "classe": "DIFERENTE",
+      "diferencas": [
+        "12",
+        "armado"
+      ],
+      "encontrado_por": {
+        "codigo": "4092891",
+        "descricao": "VIG ARMADO 12x36 NOTURNO 12h"
+      }
+    }
+  ]
+}

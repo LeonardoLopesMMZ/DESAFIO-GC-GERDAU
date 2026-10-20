@@ -1,0 +1,50 @@
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+
+similaridade:
+  url: ${SIMILARIDADE_URL:http://127.0.0.1:8000}
+
+spring:
+  application:
+    name: codigos-api
+  datasource:
+    url: jdbc:h2:mem:codigos;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    username: sa
+    password:
+  sql:
+    init:
+      mode: always
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+  h2:
+    console:
+      enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+---
+spring:
+  config:
+    activate:
+      on-profile: postgres
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/codigos}
+    username: ${DB_USER:codigos}
+    password: ${DB_PASSWORD:codigos}
+  sql:
+    init:
+      mode: never
+  h2:
+    console:
+      enabled: false
