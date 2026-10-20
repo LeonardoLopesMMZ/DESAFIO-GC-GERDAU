@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS codigo_servico (
     motivo           VARCHAR(80)
 );
 
+CREATE SEQUENCE IF NOT EXISTS codigo_novo START WITH 9000001;
+
 CREATE TABLE IF NOT EXISTS codigo_fornecedor (
     codigo     VARCHAR(10) NOT NULL REFERENCES codigo_servico (codigo),
     fornecedor VARCHAR(12) NOT NULL,

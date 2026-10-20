@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Códigos de serviço</title>
+<style>
+  :root { --borda: #d0d5dd; --texto: #1d2939; --fraco: #667085; --azul: #1d4ed8; --vermelho: #b42318; --amarelo: #b54708; --verde: #067647; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.45 system-ui, sans-serif; color: var(--texto); background: #f8fafc; }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 28px 0 8px; }
+  p.sub { margin: 0 0 20px; color: var(--fraco); }
+  form { display: grid; grid-template-columns: 2fr 0.6fr 1fr 1fr auto; gap: 12px; align-items: end; background: #fff; border: 1px solid var(--borda); border-radius: 10px; padding: 16px; }
+  label { display: grid; gap: 4px; font-size: 13px; color: var(--fraco); }
+  input, select, textarea { font: inherit; color: var(--texto); padding: 8px 10px; border: 1px solid var(--borda); border-radius: 6px; background: #fff; }
+  button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--borda); background: #fff; cursor: pointer; }
+  button.principal { background: var(--azul); border-color: var(--azul); color: #fff; }
+  button:disabled { opacity: .5; cursor: default; }
+  .conta { font-size: 12px; color: var(--fraco); }
+  #aviso { margin-top: 16px; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--borda); background: #fff; display: none; }
+  #aviso.BLOQUEAR { border-color: var(--vermelho); background: #fef3f2; }
+  #aviso.REVISAR { border-color: var(--amarelo); background: #fffaeb; }
+  #aviso.LIBERAR { border-color: var(--verde); background: #ecfdf3; }
+  #aviso.erro { border-color: var(--vermelho); background: #fef3f2; display: block; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--borda); border-radius: 10px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eaecf0; vertical-align: top; font-size: 14px; }
+  th { background: #f2f4f7; font-size: 12px; color: var(--fraco); text-transform: uppercase; letter-spacing: .03em; }
+  .classe { font-size: 12px; font-weight: 600; }
+  .DUPLICADO { color: var(--vermelho); } .REVISAR { color: var(--amarelo); } .DIFERENTE { color: var(--fraco); }
+  #novo { margin-top: 16px; background: #fff; border: 1px solid var(--borda); border-radius: 10px; padding: 16px; display: none; gap: 8px; }
+  #novo textarea { width: 100%; min-height: 60px; }
+  .oculto { display: none; }
+  .rolagem { overflow-x: auto; }
+  nav { display: flex; gap: 8px; margin: 0 0 20px; border-bottom: 1px solid var(--borda); }
+  nav button { border: none; border-bottom: 3px solid transparent; border-radius: 0; background: none; padding: 10px 4px; margin-right: 16px; color: var(--fraco); font-weight: 600; }
+  nav button.ativa { color: var(--azul); border-bottom-color: var(--azul); }
+  .busca { display: flex; gap: 12px; background: #fff; border: 1px solid var(--borda); border-radius: 10px; padding: 16px; }
+  .busca input { flex: 1; }
+  .selo { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 99px; background: #eef4ff; color: var(--azul); }
+  .selo.repetido { background: #fef3f2; color: var(--vermelho); }
+  .acoes { display: flex; gap: 6px; flex-wrap: wrap; }
+  .vazio { color: var(--fraco); padding: 16px 0; }
+  .erro-texto { color: var(--vermelho); }
+  .aviso-unidade { font-size: 12px; color: var(--amarelo); margin-top: 4px; }
+  .exemplo { font-size: 13px; color: var(--fraco); }
+  .numeros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+  .numeros div { background: #fff; border: 1px solid var(--borda); border-radius: 10px; padding: 14px; }
+  .numeros b { display: block; font-size: 24px; }
+  .numeros span { font-size: 13px; color: var(--fraco); }
+  .grupo { background: #fff; border: 1px solid var(--borda); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+  .grupo .oficial { font-weight: 600; }
+  .grupo .repetido { font-size: 13px; color: var(--fraco); padding-left: 16px; }
+  @media (max-width: 760px) { .numeros { grid-template-columns: 1fr 1fr; } }
+  .rolagem table { min-width: 760px; }
+  form > *, input, select { min-width: 0; }
+  @media (max-width: 760px) { form { grid-template-columns: 1fr 1fr; } form label:first-child { grid-column: 1 / -1; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Códigos de serviço</h1>
+  <p class="sub">Antes de criar um código, veja se ele já existe.</p>
+  <nav>
+    <button type="button" data-aba="aba-consulta" class="ativa">Consultar e criar</button>
+    <button type="button" data-aba="aba-unidades">Unidades</button>
+    <button type="button" data-aba="aba-catalogo">Catálogo</button>
+    <button type="button" data-aba="aba-curador" id="botao-curador">Curador</button>
+  </nav>
+
+  <div id="aviso" role="status" aria-live="polite"></div>
+
+  <section id="aba-consulta">
+  <form id="consulta">
+    <label>Descrição do serviço
+      <input id="descricao" maxlength="40" required placeholder="ex.: SOLDADOR HE 50% SEG A SAB" autocomplete="off">
+      <span class="conta" id="conta">0/40</span>
+    </label>
+    <label>Unidade
+      <input id="unidade" maxlength="30" required list="unidades" value="H" placeholder="ex.: hora" autocomplete="off">
+      <datalist id="unidades"></datalist>
+      <span class="conta" id="unidade-dica"></span>
+    </label>
+    <label>Grupo
+      <select id="grupo"><option>Civil</option><option>Facilities</option><option>Eletromecânica</option></select>
+    </label>
+    <label>Comprador
+      <input id="solicitante" maxlength="60" required placeholder="seu nome">
+    </label>
+    <button class="principal" type="submit">Consultar</button>
+  </form>
+
+  <section id="resultado" class="oculto">
+    <h2>Códigos parecidos</h2>
+    <div class="rolagem"><table>
+      <thead><tr><th>Código</th><th>Descrição</th><th>Nome padrão</th><th>Un.</th><th>Categoria</th><th>Aderência</th><th>O que muda</th><th></th></tr></thead>
+      <tbody id="candidatos"></tbody>
+    </table></div>
+    <div id="novo">
+      <label for="justificativa">Nenhum serve? Explique por que o serviço é diferente e crie um código novo.</label>
+      <textarea id="justificativa" maxlength="200"></textarea>
+      <div><button id="criar" type="button">Criar código novo</button></div>
+    </div>
+  </section>
+
+  <h2>Solicitações recentes</h2>
+  <div class="rolagem"><table>
+    <thead><tr><th>#</th><th>Descrição</th><th>Comprador</th><th>Resultado</th><th>Sugerido</th><th>Código final</th><th>Situação</th><th>Justificativa</th></tr></thead>
+    <tbody id="historico"></tbody>
+  </table></div>
+  </section>
+
+  <section id="aba-unidades" class="oculto">
+    <h2>Como escrever a unidade</h2>
+    <p class="sub">Na consulta dá para escrever a unidade do jeito normal, como "hora" ou "metro quadrado": a tela troca pelo código do SAP. Clique em Usar para levar a unidade para a consulta.</p>
+    <div class="rolagem"><table>
+      <thead><tr><th>Código SAP</th><th>O que é</th><th>Pode escrever</th><th>Exemplos na base</th><th>Códigos ativos</th><th></th></tr></thead>
+      <tbody id="lista-unidades"></tbody>
+    </table></div>
+  </section>
+
+  <section id="aba-catalogo" class="oculto">
+    <form class="busca" id="form-catalogo">
+      <input id="busca" maxlength="40" placeholder="Descrição ou número do código, ex.: SOLDADOR ou 4096272" autocomplete="off">
+      <button class="principal" type="submit">Buscar</button>
+    </form>
+    <div id="visao-geral">
+      <div class="numeros" id="numeros"></div>
+      <h2>Códigos padronizados</h2>
+      <p class="sub">Cada código oficial com os repetidos que agora apontam para ele. Os repetidos ficam bloqueados: quem procurar por eles é mandado para o oficial.</p>
+      <div id="grupos"></div>
+    </div>
+    <h2 id="titulo-catalogo">Códigos criados agora</h2>
+    <div class="rolagem"><table>
+      <thead><tr><th>Código</th><th>Descrição</th><th>Nome padrão</th><th>Un.</th><th>Grupo</th><th>Categoria</th><th>Situação</th></tr></thead>
+      <tbody id="lista-catalogo"></tbody>
+    </table></div>
+    <p class="vazio oculto" id="catalogo-vazio">Nada encontrado.</p>
+  </section>
+
+  <section id="aba-curador" class="oculto">
+    <h2>Pedidos esperando o curador</h2>
+    <p class="sub">O comprador quis criar um código mesmo existindo um igual. Aprovar cria o código; recusar manda usar o existente.</p>
+    <div class="rolagem"><table>
+      <thead><tr><th>#</th><th>Descrição</th><th>Un.</th><th>Comprador</th><th>Já existe</th><th>Justificativa</th><th></th></tr></thead>
+      <tbody id="lista-curador"></tbody>
+    </table></div>
+    <p class="vazio oculto" id="curador-vazio">Nenhum pedido esperando.</p>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+let atual = null;
+
+function celula(tr, texto, classe) {
+  const td = document.createElement("td");
+  td.textContent = texto ?? "";
+  if (classe) td.className = classe;
+  tr.appendChild(td);
+  return td;
+}
+
+function aviso(texto, classe) {
+  const a = $("aviso");
+  a.textContent = texto;
+  a.className = classe;
+  a.style.display = "block";
+}
+
+async function chamar(url, corpo) {
+  const r = await fetch(url, corpo ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) } : {});
+  const dados = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(dados.errors?.[0]?.default_message || dados.message || "Erro " + r.status);
+  return dados;
+}
+
+async function decidir(acao, codigo) {
+  try {
+    const s = await chamar(`/api/solicitacoes/${atual.solicitacao_id}/decisao`, { acao, codigo, justificativa: $("justificativa").value });
+    const texto = { USOU_EXISTENTE: `Pronto: use o código ${s.codigo_escolhido}. Nenhum código novo foi criado.`,
+                    CRIADO: `Código ${s.codigo_escolhido} criado e já está no catálogo. Se alguém consultar o mesmo serviço, ele aparece.`,
+                    AGUARDANDO_CURADOR: "Pedido enviado ao curador do grupo: já existe um código igual, então a criação precisa de aprovação." }[s.status];
+    aviso(texto, s.status === "AGUARDANDO_CURADOR" ? "REVISAR" : "LIBERAR");
+    document.querySelectorAll("#resultado button").forEach(b => b.disabled = true);
+    historico();
+    pendentes();
+  } catch (e) { aviso(e.message, "erro"); }
+}
+
+function abrir(id) {
+  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("ativa", b.dataset.aba === id));
+  ["aba-consulta", "aba-unidades", "aba-catalogo", "aba-curador"].forEach(a => $(a).classList.toggle("oculto", a !== id));
+  $("aviso").style.display = "none";
+  if (id === "aba-catalogo" && !$("busca").value.trim()) catalogo();
+  if (id === "aba-curador") pendentes();
+}
+
+let unidades = [];
+const limpar = t => t.normalize("NFKD").replace(/\p{M}/gu, "").replace(/\./g, "").trim().replace(/\s+/g, " ").toUpperCase();
+
+function conferirUnidade() {
+  const campo = $("unidade"), dica = $("unidade-dica"), texto = limpar(campo.value);
+  if (!texto) { dica.textContent = ""; return; }
+  const u = unidades.find(x => [x.codigo, ...x.pode_escrever].some(t => limpar(t) === texto));
+  if (u) { campo.value = u.codigo; dica.textContent = u.nome; dica.className = "conta"; }
+  else if (unidades.length) { dica.textContent = "Não conheço essa unidade. Veja a aba Unidades."; dica.className = "conta erro-texto"; }
+}
+
+async function carregarUnidades() {
+  try {
+    unidades = await chamar("/api/unidades");
+    $("unidades").replaceChildren(...unidades.map(u => { const o = document.createElement("option"); o.value = u.codigo; o.label = u.nome; return o; }));
+    const corpo = $("lista-unidades");
+    corpo.replaceChildren();
+    unidades.forEach(u => {
+      const tr = document.createElement("tr");
+      celula(tr, u.codigo).style.fontWeight = "600";
+      const nome = celula(tr, u.nome);
+      if (u.aviso) { const a = document.createElement("div"); a.className = "aviso-unidade"; a.textContent = u.aviso; nome.appendChild(a); }
+      celula(tr, u.pode_escrever.join(", "));
+      const ex = celula(tr, "");
+      u.exemplos.forEach(e => { const d = document.createElement("div"); d.className = "exemplo"; d.textContent = e; ex.appendChild(d); });
+      celula(tr, u.codigos_ativos.toLocaleString("pt-BR"));
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = "Usar";
+      b.onclick = () => { $("unidade").value = u.codigo; conferirUnidade(); abrir("aba-consulta"); $("descricao").focus(); };
+      celula(tr, "").appendChild(b);
+      corpo.appendChild(tr);
+    });
+    conferirUnidade();
+  } catch (e) {}
+}
+
+function situacao(c) {
+  const s = document.createElement("span");
+  s.className = "selo";
+  if (c.status === "BLOQUEADO") { s.className += " repetido"; s.textContent = "Repetido, use " + c.codigo_canonico; }
+  else s.textContent = (c.motivo || "").startsWith("criado") ? "Novo" : "Ativo";
+  return s;
+}
+
+async function visaoGeral() {
+  try {
+    const [r, grupos] = await Promise.all([chamar("/api/codigos/resumo"), chamar("/api/codigos/padronizados")]);
+    $("numeros").replaceChildren(...[[r.na_base, "códigos na base da Gerdau"], [r.oficiais, "códigos oficiais depois da limpeza"],
+      [r.repetidos, "repetidos apontando para o oficial"], [r.criados, "criados agora no protótipo"]].map(([n, t]) => {
+      const d = document.createElement("div"), b = document.createElement("b"), s = document.createElement("span");
+      b.textContent = n.toLocaleString("pt-BR"); s.textContent = t; d.append(b, s); return d; }));
+    $("grupos").replaceChildren(...grupos.map(g => {
+      const d = document.createElement("div"), o = document.createElement("div");
+      d.className = "grupo"; o.className = "oficial";
+      o.textContent = `${g.oficial.codigo} · ${g.oficial.descricao} [${g.oficial.unidade}]` + (g.oficial.descricao_padrao ? ` · nome padrão: ${g.oficial.descricao_padrao}` : "");
+      d.appendChild(o);
+      g.repetidos.forEach(x => { const l = document.createElement("div"); l.className = "repetido"; l.textContent = `${x.codigo} · ${x.descricao} [${x.unidade}] → use ${g.oficial.codigo}`; d.appendChild(l); });
+      return d; }));
+  } catch (e) {}
+}
+
+async function catalogo(busca) {
+  $("visao-geral").classList.toggle("oculto", !!busca);
+  if (!busca) visaoGeral();
+  try {
+    const lista = await chamar(busca ? "/api/codigos?busca=" + encodeURIComponent(busca) : "/api/codigos/novos");
+    $("titulo-catalogo").textContent = busca ? `Resultado para "${busca}"` : "Códigos criados agora";
+    const corpo = $("lista-catalogo");
+    corpo.replaceChildren();
+    lista.forEach(c => {
+      const tr = document.createElement("tr");
+      [c.codigo, c.descricao, c.descricao_padrao, c.unidade, c.grupo, c.categoria].forEach(v => celula(tr, v));
+      celula(tr, "").appendChild(situacao(c));
+      corpo.appendChild(tr);
+    });
+    $("catalogo-vazio").textContent = busca ? "Nada encontrado." : "Nenhum código criado ainda.";
+    $("catalogo-vazio").classList.toggle("oculto", lista.length > 0);
+  } catch (e) { aviso(e.message, "erro"); }
+}
+
+async function pendentes() {
+  try {
+    const lista = await chamar("/api/solicitacoes?status=AGUARDANDO_CURADOR");
+    $("botao-curador").textContent = lista.length ? `Curador (${lista.length})` : "Curador";
+    const corpo = $("lista-curador");
+    corpo.replaceChildren();
+    lista.forEach(s => {
+      const tr = document.createElement("tr");
+      [s.id, s.descricao_digitada, s.unidade, s.solicitante, s.codigo_sugerido, s.justificativa].forEach(v => celula(tr, v));
+      const acoes = document.createElement("div");
+      acoes.className = "acoes";
+      [["Aprovar", true, "principal"], ["Recusar", false, ""]].forEach(([nome, aprovar, classe]) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = nome;
+        b.className = classe;
+        b.onclick = () => curadoria(s.id, aprovar);
+        acoes.appendChild(b);
+      });
+      celula(tr, "").appendChild(acoes);
+      corpo.appendChild(tr);
+    });
+    $("curador-vazio").classList.toggle("oculto", lista.length > 0);
+  } catch (e) {}
+}
+
+async function curadoria(id, aprovar) {
+  try {
+    const s = await chamar(`/api/solicitacoes/${id}/curadoria`, { aprovar });
+    aviso(aprovar ? `Aprovado: código ${s.codigo_escolhido} criado e já está no catálogo.`
+                  : `Recusado: o comprador deve usar o código ${s.codigo_escolhido}.`, aprovar ? "LIBERAR" : "REVISAR");
+    pendentes();
+    historico();
+  } catch (e) { aviso(e.message, "erro"); }
+}
+
+function mostrar(r) {
+  atual = r;
+  aviso(r.motivo, r.resultado);
+  const corpo = $("candidatos");
+  corpo.replaceChildren();
+  r.candidatos.forEach((c, i) => {
+    const tr = document.createElement("tr");
+    celula(tr, c.codigo);
+    celula(tr, c.descricao);
+    celula(tr, c.nome_padrao);
+    celula(tr, c.unidade);
+    celula(tr, c.categoria);
+    celula(tr, c.aderencia + "%");
+    const muda = celula(tr, "");
+    const classe = document.createElement("div");
+    classe.className = "classe " + c.classe;
+    classe.textContent = { DUPLICADO: "Igual", REVISAR: "Quase igual", DIFERENTE: "Diferente" }[c.classe];
+    muda.append(classe, c.diferencas.join(", "));
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = "Usar este";
+    if (i === 0 && r.resultado !== "LIBERAR") b.className = "principal";
+    b.onclick = () => decidir("USAR_EXISTENTE", c.codigo);
+    celula(tr, "").appendChild(b);
+    corpo.appendChild(tr);
+  });
+  $("resultado").classList.remove("oculto");
+  $("novo").style.display = "grid";
+  $("justificativa").value = "";
+  $("justificativa").required = r.resultado !== "LIBERAR";
+  $("criar").className = r.resultado === "LIBERAR" ? "principal" : "";
+  $("criar").disabled = false;
+}
+
+async function historico() {
+  try {
+    const lista = await chamar("/api/solicitacoes");
+    const corpo = $("historico");
+    corpo.replaceChildren();
+    lista.forEach(s => {
+      const tr = document.createElement("tr");
+      [s.id, s.descricao_digitada, s.solicitante, s.resultado, s.codigo_sugerido, s.codigo_escolhido, s.status, s.justificativa].forEach(v => celula(tr, v));
+      corpo.appendChild(tr);
+    });
+  } catch (e) {}
+}
+
+document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => abrir(b.dataset.aba)));
+
+$("form-catalogo").addEventListener("submit", e => {
+  e.preventDefault();
+  const busca = $("busca").value.trim();
+  if (busca.length < 2) { aviso("Digite pelo menos 2 letras ou números.", "erro"); return; }
+  $("aviso").style.display = "none";
+  catalogo(busca);
+});
+
+$("unidade").addEventListener("change", conferirUnidade);
+
+$("descricao").addEventListener("input", e => $("conta").textContent = e.target.value.length + "/40");
+
+$("consulta").addEventListener("submit", async e => {
+  e.preventDefault();
+  conferirUnidade();
+  try {
+    mostrar(await chamar("/api/consultas", { descricao: $("descricao").value, unidade: $("unidade").value, grupo: $("grupo").value, solicitante: $("solicitante").value }));
+    historico();
+  } catch (err) { aviso(err.message, "erro"); }
+});
+
+$("criar").addEventListener("click", () => {
+  if ($("justificativa").required && !$("justificativa").value.trim()) {
+    aviso("Escreva a justificativa: já existe código igual ou parecido.", "erro");
+    $("justificativa").focus();
+    return;
+  }
+  decidir("CRIAR_NOVO");
+});
+
+historico();
+pendentes();
+carregarUnidades();
+if (location.hash === "#catalogo") abrir("aba-catalogo");
+</script>
+</body>
+</html>

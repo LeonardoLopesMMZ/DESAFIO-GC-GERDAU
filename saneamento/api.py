@@ -38,6 +38,18 @@ class Handler(BaseHTTPRequestHandler):
             pass
         return b"".join(partes)
 
+    def _novo(self, p):
+        codigo, descricao, unidade, grupo = p.get("codigo"), p.get("descricao"), p.get("unidade"), p.get("grupo") or ""
+        textos = (codigo, descricao, unidade, grupo)
+        if not all(isinstance(v, str) for v in textos) or not all(v.strip() for v in textos[:3]):
+            return self._responder(400, {"erro": "codigo, descricao e unidade são obrigatórios"})
+        if len(codigo) > 10 or len(descricao) > 60 or len(unidade) > 5 or len(grupo) > 40:
+            return self._responder(400, {"erro": "texto grande demais"})
+        if codigo.strip() in self.buscador.oficial.index:
+            return self._responder(409, {"erro": "esse código já existe"})
+        novo = self.buscador.adicionar(codigo.strip(), descricao.strip().upper(), unidade.strip().upper(), grupo.strip())
+        self._responder(201, novo)
+
     def do_OPTIONS(self):
         self._responder(204, {})
 
@@ -47,7 +59,7 @@ class Handler(BaseHTTPRequestHandler):
         self._responder(404, {"erro": "caminho não existe"})
 
     def do_POST(self):
-        if self.path != "/similares":
+        if self.path not in ("/similares", "/codigos"):
             return self._responder(404, {"erro": "caminho não existe"})
         try:
             corpo = self._corpo()
@@ -61,6 +73,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._responder(400, {"erro": "JSON inválido"})
         if not isinstance(pedido, dict):
             return self._responder(400, {"erro": "JSON inválido"})
+        if self.path == "/codigos":
+            return self._novo(pedido)
         descricao, unidade, limite = pedido.get("descricao"), pedido.get("unidade") or "", pedido.get("limite", 10)
         if not isinstance(descricao, str) or not descricao.strip() or len(descricao) > 200:
             return self._responder(400, {"erro": "descricao é obrigatória (até 200 caracteres)"})

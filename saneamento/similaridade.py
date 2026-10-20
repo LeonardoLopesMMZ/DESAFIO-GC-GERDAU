@@ -1,12 +1,16 @@
 import sys
+import threading
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
+from scipy.sparse import vstack
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from deduplicar import deduplicar, forma_canonica, ler
-from padronizar import normalizar
+from limpar import nome_padrao
+from padronizar import categorizar, ler_atributos, normalizar
 from regua import comparar, preparar
 
 ORDEM = {"DUPLICADO": 0, "REVISAR": 1, "DIFERENTE": 2}
@@ -43,6 +47,23 @@ class Buscador:
         self.X = self.vec.fit_transform(self.c.descricao_limpa)
         self.prep = [preparar(forma_canonica(t, u)[0]) for t, u in zip(self.c.descricao_limpa, self.c.unidade)]
         self.oficial = self.c.drop_duplicates("codigo").set_index("codigo")
+        self.trava = threading.Lock()
+
+    def adicionar(self, codigo, descricao, unidade, grupo=""):
+        n5 = normalizar(descricao)["n5"]
+        a = ler_atributos(n5, unidade)
+        try:
+            nome = nome_padrao(SimpleNamespace(estruturado=a["mao_obra"] and bool(a["cargo"]), **a))
+        except KeyError:
+            nome = ""
+        novo = {"codigo": codigo, "descricao": descricao, "descricao_limpa": n5, "unidade": unidade, "grupo": grupo,
+                "categoria": categorizar(n5, a["mao_obra"]), "codigo_oficial": codigo, "nome_padrao_sugerido": nome}
+        with self.trava:
+            self.c = pd.concat([self.c, pd.DataFrame([novo])], ignore_index=True)
+            self.prep.append(preparar(forma_canonica(n5, unidade)[0]))
+            self.oficial = self.c.drop_duplicates("codigo").set_index("codigo")
+            self.X = vstack([self.X, self.vec.transform([n5])]).tocsr()
+        return {"codigo": codigo, "descricao_limpa": n5, "categoria": novo["categoria"], "nome_padrao": nome}
 
     def buscar(self, descricao, unidade="", limite=10):
         n5 = normalizar(descricao)["n5"]
