@@ -1,0 +1,300 @@
+CÓDIGOS DE SERVIÇO GERDAU - PARTE JAVA
+Guia para rodar, entender e continuar o projeto codigos-api
+Desafio GC 2026 - Entrega 2
+=====================================================================
+
+
+1. O QUE A PARTE JAVA PRECISA ENTREGAR NA ENTREGA 2
+---------------------------------------------------------------------
+    API Java V1            endpoint que recebe a descrição e devolve os
+                           códigos parecidos
+    Integração V1          o Java chama a lógica de similaridade do
+                           Python sem ninguém copiar nada à mão
+    Persistência inicial   cada consulta e a decisão do comprador ficam
+                           gravadas no banco
+    Fluxo de consulta V1   uma tela em que o mentor digita um serviço e
+                           vê os candidatos
+    Modelagem do banco     base original + base analisada num banco
+                           criado de verdade
+
+A pasta codigos-api já faz tudo isso e foi testada de ponta a ponta,
+com H2 e com PostgreSQL 16. Vocês podem usar como base do projeto de
+vocês ou só como referência para copiar partes.
+Se o projeto de vocês já existe, os arquivos mais importantes para
+copiar são: SimilaridadeClient.java, ConsultaController.java,
+SolicitacaoController.java, Solicitacao.java e o schema.sql novo.
+
+
+2. O QUE PRECISA ESTAR INSTALADO
+---------------------------------------------------------------------
+    Java 17 ou mais novo  java -version deve mostrar 17 ou mais
+    Python 3.9 ou mais   para a API de similaridade (saneamento)
+    Maven                NÃO precisa: o projeto traz o mvnw.cmd, que
+                         baixa o Maven sozinho na primeira vez
+    Docker               só se forem usar PostgreSQL (opcional)
+
+Na primeira vez, o mvnw.cmd precisa de internet para baixar o Maven e
+as bibliotecas do Spring.
+
+
+3. COMO RODAR (2 TERMINAIS)
+---------------------------------------------------------------------
+Terminal 1 - API de similaridade (Python):
+
+    cd "C:\caminho\DESAFIO-GC-GERDAU\saneamento"
+    python -m pip install -r requirements.txt
+    python api.py dados\base_codigos_servico.xlsx
+
+    (troque pelo nome da planilha de vocês, se for outro)
+    Espere aparecer: ok: 7937 códigos carregados; API em http://127.0.0.1:8000
+    Deixe esse terminal aberto.
+
+Terminal 2 - Spring Boot:
+
+    cd "C:\caminho\DESAFIO-GC-GERDAU\codigos-api"
+    .\mvnw.cmd spring-boot:run
+
+    Espere aparecer: Started CodigosApplication
+
+Abra no navegador:
+
+    http://localhost:8080            a tela de consulta
+    http://localhost:8080/h2-console o banco em memória
+                                     (JDBC URL: jdbc:h2:mem:codigos,
+                                      usuário: sa, senha em branco)
+
+Sem nenhuma configuração, o Spring usa H2 em memória (modo
+PostgreSQL), cria as tabelas com o schema.sql e carrega 45 códigos de
+amostra do data.sql. Ao fechar, os dados somem.
+
+
+4. RODAR COM POSTGRESQL (BANCO DE VERDADE)
+---------------------------------------------------------------------
+    cd "C:\caminho\DESAFIO-GC-GERDAU\codigos-api"
+    docker compose up -d
+
+O docker-compose sobe o PostgreSQL 16 com banco, usuário e senha
+"codigos" e já cria as tabelas com o schema.sql.
+
+Carregue a base completa (9.795 linhas originais e 7.937 códigos)
+pelo Python, no terminal 1 (pare a API com Ctrl+C antes, ou use outro
+terminal):
+
+    cd "C:\caminho\DESAFIO-GC-GERDAU\saneamento"
+    python exportar.py dados\base_codigos_servico.xlsx --db postgresql+psycopg://codigos:codigos@localhost:5432/codigos
+
+Suba o Spring com o perfil postgres:
+
+    $env:SPRING_PROFILES_ACTIVE="postgres"
+    .\mvnw.cmd spring-boot:run
+
+Para outro servidor de banco, defina DB_URL, DB_USER e DB_PASSWORD
+antes de rodar. Exemplo:
+    $env:DB_URL="jdbc:postgresql://servidor:5432/codigos"
+
+
+5. ESTRUTURA DO PROJETO
+---------------------------------------------------------------------
+src\main\java\br\com\squad\codigos\
+    CodigosApplication.java          inicia o Spring
+    catalogo\
+        CodigoServico.java           tabela codigo_servico (catálogo)
+        CodigoServicoRepository.java consultas no catálogo
+        CatalogoController.java      GET /api/codigos e /api/codigos/{codigo}
+    consulta\
+        SimilaridadeClient.java      chama o Python (POST /similares)
+        ConsultaController.java      POST /api/consultas
+    solicitacao\
+        Solicitacao.java             tabela solicitacao + regra de decisão
+        SolicitacaoRepository.java   consultas nas solicitações
+        SolicitacaoController.java   decisão do comprador e fila do curador
+src\main\resources\
+    application.yml                  configuração (H2 e perfil postgres)
+    schema.sql                       tabelas (mesmo arquivo da pasta 14)
+    data.sql                         45 códigos de amostra para o H2
+    static\index.html                a tela de consulta
+docker-compose.yml                   PostgreSQL 16
+mvnw / mvnw.cmd                      Maven embutido
+
+Não há comentários nos arquivos de código: as explicações estão aqui.
+O JSON usa nomes com sublinhado (solicitacao_id, nome_padrao), igual
+ao Python. Isso está em application.yml (property-naming-strategy).
+
+
+6. ENDPOINTS
+---------------------------------------------------------------------
+GET  /actuator/health
+     {"status":"UP"}
+
+GET  /api/codigos?busca=soldador
+     Até 20 códigos cujo texto limpo contém o trecho (sem acento,
+     maiúsculo). Busca simples no banco, sem similaridade.
+
+GET  /api/codigos/4050521
+     {"codigo": {...}, "fornecedores": ["200772986"], "oficial": {...}}
+     Se o código está BLOQUEADO, "oficial" traz o código que vale.
+
+POST /api/consultas
+     corpo:
+       {"descricao": "MEC.MANUT.NORM", "unidade": "H",
+        "grupo": "Eletromecânica", "solicitante": "Ana"}
+       descricao   obrigatória, até 40 caracteres
+       unidade     obrigatória, até 5 caracteres
+       grupo       opcional, até 40
+       solicitante obrigatório, até 60
+     O Java chama o Python, grava uma linha em solicitacao com
+     status PENDENTE e devolve:
+       {"solicitacao_id": 1,
+        "resultado": "BLOQUEAR",
+        "motivo": "Já existe: 4083559 MECÂNICO DE MANUTENÇÃO (HORA NORMAL)",
+        "candidatos": [ {"codigo": "4083559", "descricao": "...",
+                         "nome_padrao": "MECANICO - HORA NORMAL",
+                         "unidade": "H", "categoria": "MAO DE OBRA",
+                         "aderencia": 98, "classe": "DUPLICADO",
+                         "diferencas": [], "encontrado_por": {...}}, ... ]}
+
+POST /api/solicitacoes/{id}/decisao
+     O comprador escolhe o que fazer com a consulta.
+       {"acao": "USAR_EXISTENTE", "codigo": "4083559"}
+       {"acao": "CRIAR_NOVO", "justificativa": "serviço em altura"}
+
+GET  /api/solicitacoes
+GET  /api/solicitacoes?status=AGUARDANDO_CURADOR
+     As 50 últimas solicitações (a segunda é a fila do curador).
+
+Erros: o corpo traz "message" com o texto em português.
+    400  campo inválido, justificativa faltando, ação desconhecida
+    404  código ou solicitação não existe
+    409  a solicitação já foi decidida
+    502  o Python respondeu com erro
+    503  o Python está fora do ar (rode python api.py)
+
+
+7. REGRA DE DECISÃO (governança)
+---------------------------------------------------------------------
+Está em SolicitacaoController.decidir e Solicitacao.criarNovo.
+
+    resultado  ação            justificativa  status final
+    ---------  --------------  -------------  ------------------
+    qualquer   USAR_EXISTENTE  não precisa    USOU_EXISTENTE
+    LIBERAR    CRIAR_NOVO      não precisa    CRIADO
+    REVISAR    CRIAR_NOVO      obrigatória    CRIADO
+    BLOQUEAR   CRIAR_NOVO      obrigatória    AGUARDANDO_CURADOR
+
+    PENDENTE é o status logo depois da consulta.
+    CRIADO de um REVISAR entra na revisão semanal do curador.
+    AGUARDANDO_CURADOR precisa de aprovação (tela do curador = V2).
+
+Por que assim: a Gerdau disse que o comprador decide e que um segundo
+aprovador não pode travar o processo. Então só o caso "já existe
+igual" vai para o curador; o resto é criado na hora.
+
+O resultado é gravado pelo servidor no momento da consulta. A decisão
+usa esse valor, não o que a tela mandar, então ninguém consegue pular
+a justificativa mexendo no navegador.
+
+A coluna candidatos guarda os códigos mostrados, na ordem. Com ela
+dá para medir depois quantas vezes o comprador reaproveitou um código
+e em que posição ele estava.
+
+
+8. COMO O JAVA CONVERSA COM O PYTHON
+---------------------------------------------------------------------
+SimilaridadeClient usa o RestClient do Spring:
+
+    POST {similaridade.url}/similares
+    corpo: {"descricao": ..., "unidade": ..., "limite": 10}
+
+O endereço vem de application.yml (similaridade.url), com padrão
+http://127.0.0.1:8000. Se o Python estiver em outra máquina:
+
+    $env:SIMILARIDADE_URL="http://192.168.0.10:8000"
+
+e no Python: python api.py dados\base.xlsx --host 0.0.0.0
+
+A resposta do Python vira os records Resposta, Candidato e Origem,
+que também documentam o contrato. Se o Python mudar algum campo,
+é só mudar esses records.
+
+
+9. TESTAR SEM A TELA (PowerShell)
+---------------------------------------------------------------------
+    $c = Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/consultas `
+      -ContentType "application/json; charset=utf-8" `
+      -Body '{"descricao":"MEC.MANUT.NORM","unidade":"H","solicitante":"Ana"}'
+    $c.resultado
+    $c.candidatos | Format-Table codigo, descricao, classe, aderencia
+
+    Invoke-RestMethod -Method Post `
+      -Uri "http://localhost:8080/api/solicitacoes/$($c.solicitacao_id)/decisao" `
+      -ContentType "application/json" `
+      -Body '{"acao":"USAR_EXISTENTE","codigo":"4083559"}'
+
+    Invoke-RestMethod "http://localhost:8080/api/solicitacoes?status=AGUARDANDO_CURADOR"
+
+
+10. ROTEIRO DA DEMONSTRAÇÃO (5 MINUTOS)
+---------------------------------------------------------------------
+Na tela http://localhost:8080, comprador "Mentor":
+
+    1. MEC.MANUT.NORM, unidade H
+       -> vermelho "Já existe: 4083559". Clique "Usar este".
+          Nenhum código novo criado.
+    2. SOLDADOR HE 50% SEG A SAB, unidade H
+       -> amarelo, "muda só: UNIDADE H/SV, adm". Mostra que o sistema
+          explica a diferença em vez de só dar uma nota.
+    3. tec seg trab HE 100% dom, unidade H
+       -> mostra que abreviação e minúscula não enganam o sistema.
+          Clique "Criar código novo" sem justificativa: a tela não
+          deixa. Escreva uma e crie: vai para AGUARDANDO_CURADOR.
+    4. PINTURA EPOXI PISO, unidade M2
+       -> verde, nada igual; cria sem justificativa.
+    5. Role até "Solicitações recentes": tudo ficou gravado, com o que
+       foi sugerido e o que o comprador escolheu.
+
+Se o mentor quiser ver o banco: /h2-console, tabela SOLICITACAO.
+
+
+11. PRÓXIMOS PASSOS (V2, DEPOIS DA ENTREGA 2)
+---------------------------------------------------------------------
+Em ordem de valor, segundo a pesquisa (13 - Documentação\pesquisa):
+
+  - Busca enquanto digita: um endpoint que chama o Python sem gravar
+    solicitação, com espera de 200 ms depois da última tecla e busca
+    imediata quando o comprador cola o texto do fornecedor.
+  - Montador do nome padrão: cargo e tipo de hora escolhidos em
+    listas, e o nome de até 40 caracteres montado pelo sistema.
+    Junto, uma restrição UNIQUE no banco para (cargo, tipo de hora,
+    unidade), que torna impossível duplicar mão de obra.
+  - Tela do curador: aprovar ou recusar o que está em
+    AGUARDANDO_CURADOR, com prazo de 24 h; sem resposta no prazo, o
+    código é liberado com marcação e entra na revisão (regra de
+    silêncio, para não travar o comprador).
+  - Login de verdade no lugar do nome digitado.
+  - Lista fechada de motivos para criar código novo, além do texto.
+  - Gravar o tempo entre a consulta e a decisão (indicador de
+    "tempo para criar um código").
+
+
+12. PROBLEMAS COMUNS
+---------------------------------------------------------------------
+  "Serviço de similaridade fora do ar"
+      O terminal do Python não está rodando, ou ainda está carregando.
+      Rode python api.py e espere o "ok:".
+
+  "mvnw.cmd não é reconhecido"
+      Use .\mvnw.cmd (com .\ na frente) e confira se está dentro da
+      pasta codigos-api.
+
+  "JAVA_HOME not found" ou versão errada
+      Instale o JDK 17 (ou mais novo) e defina JAVA_HOME para a pasta dele.
+
+  Porta 8080 ocupada
+      .\mvnw.cmd spring-boot:run "-Dspring-boot.run.arguments=--server.port=8081"
+
+  Acentos estranhos no PowerShell
+      Use -ContentType "application/json; charset=utf-8".
+
+  Erro ao conectar no PostgreSQL
+      Confira se o docker compose up -d terminou (docker ps) e se o
+      perfil postgres está ativo ($env:SPRING_PROFILES_ACTIVE).

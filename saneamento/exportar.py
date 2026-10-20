@@ -60,17 +60,20 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("planilha", nargs="?", default="dados/base_codigos_servico.xlsx")
     ap.add_argument("--db")
+    ap.add_argument("--tudo", action="store_true")
     a = ap.parse_args()
     if not Path(a.planilha).exists():
         raise SystemExit(f"Planilha não encontrada: {a.planilha}")
     base_original, cs, cf, dic, amostra = montar_tabelas(a.planilha)
+    if a.tudo:
+        amostra = set(cs.codigo)
     SAIDA.mkdir(exist_ok=True)
     for nome, df in [("base_original", base_original), ("codigo_servico", cs), ("codigo_fornecedor", cf), ("dicionario", dic)]:
         df.to_csv(SAIDA / f"{nome}.csv", sep=";", index=False, encoding="utf-8-sig")
     (SAIDA / "data.sql").write_text(gerar_data_sql(cs, cf, amostra), encoding="utf-8")
     print(f"ok: {len(base_original)} linhas originais, {len(cs)} códigos ({(cs.status == 'ATIVO').sum()} oficiais), "
           f"{len(cf)} pares código x fornecedor, {len(dic)} termos -> saida/")
-    print(f"ok: data.sql com {len(amostra)} códigos de amostra -> src/main/resources/ do projeto Java")
+    print(f"ok: data.sql com {len(amostra)} códigos -> saida/data.sql")
     if a.db:
         carregar_no_banco(a.db, base_original, cs, cf, dic)
         print("ok: tudo carregado no PostgreSQL")

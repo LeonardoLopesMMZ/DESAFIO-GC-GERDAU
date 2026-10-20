@@ -115,6 +115,12 @@ def test_api_devolve_candidatos():
     pedido = urllib.request.Request(url, data=iter([b'{"descricao": "MEC.MANUT', b'.NORM", "unidade": "H"}']))
     r = json.loads(abrir(pedido).read())
     assert r["resultado"] == "BLOQUEAR", r
+    novo = urllib.request.Request(url.replace("/similares", "/codigos"), data=json.dumps(
+        {"codigo": "9000001", "descricao": "OPERADOR DE DRONE P/ INSPECAO", "unidade": "H"}).encode())
+    assert json.loads(abrir(novo).read())["codigo"] == "9000001"
+    pedido = urllib.request.Request(url, data=json.dumps({"descricao": "operador drone inspecao", "unidade": "H"}).encode())
+    r = json.loads(abrir(pedido).read())
+    assert r["resultado"] == "BLOQUEAR" and r["candidatos"][0]["codigo"] == "9000001", r
     servidor.shutdown()
 
 

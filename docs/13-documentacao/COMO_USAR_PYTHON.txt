@@ -1,0 +1,467 @@
+CÓDIGOS DE SERVIÇO GERDAU - PARTE PYTHON
+Guia de uso: o que cada arquivo faz, como rodar e por que foi feito assim
+Desafio GC 2026 - Entrega 2
+=====================================================================
+
+
+1. O QUE É ISSO
+---------------------------------------------------------------------
+São scripts em Python que resolvem a parte de dados do desafio:
+
+  - limpam e padronizam as descrições dos códigos de serviço;
+  - acham automaticamente os códigos repetidos que já existem na base
+    e dizem qual deve ser o código oficial de cada grupo;
+  - classificam cada código por categoria (mão de obra, material,
+    equipamento, mobilização...);
+  - recebem uma descrição nova e devolvem os códigos parecidos que já
+    existem (o "buscador de similares");
+  - expõem esse buscador numa API que o sistema Java chama;
+  - montam e carregam o banco de dados com a base original intacta
+    e a base nova analisada lado a lado.
+
+Nenhum arquivo .py tem comentário: todas as explicações estão aqui.
+
+
+2. POR QUE FIZEMOS ASSIM
+---------------------------------------------------------------------
+O que a Gerdau respondeu em 12/10:
+
+  - Cerca de 20 compradores criam códigos depois de fechar a
+    negociação, sem consultar o que já existe. Por isso o problema
+    acontece na hora do cadastro, e é aí que o buscador entra.
+  - A prioridade é a mão de obra (posto, hora normal, hora extra...).
+    Os outros itens (material, equipamento, locação, mobilização)
+    precisam pelo menos ser identificáveis para somar valores. Por
+    isso a mão de obra tem regra própria e mais fina, e todo código
+    recebe uma Categoria.
+  - Quem decide é o comprador; um segundo aprovador pode existir, mas
+    não pode travar o processo. Por isso o sistema só sugere, com
+    três resultados: BLOQUEAR, REVISAR ou LIBERAR (seção 7).
+
+Os princípios que seguimos:
+
+  a) "Na dúvida, não junta."
+     Juntar dois serviços diferentes é muito pior que deixar dois
+     iguais separados. Um código errado vira pedido errado, preço
+     errado e relatório errado. Por isso o deduplicador só junta
+     quando a diferença entre os textos é comprovadamente irrelevante.
+     Resultado: 0 junções erradas nos 430 pares que conferimos à mão.
+
+  b) Pessoas decidem regras, não casos.
+     Não dá para alguém revisar milhões de pares. Então o sistema
+     agrupa as dúvidas por tipo de diferença ("EVENTUAL", "ADM",
+     "unidade H x SV"...) e conta quantos códigos cada decisão
+     juntaria. A área de negócio responde umas 10 perguntas
+     ("EVENTUAL muda o serviço? sim/não") e o sistema aplica a
+     resposta em toda a base de uma vez.
+
+  c) A base original nunca é alterada.
+     Tudo que o sistema faz é um de-para: código antigo -> código
+     oficial, com o motivo. Dá para auditar e desfazer qualquer junção.
+
+  d) Explicável.
+     Cada junção e cada sugestão diz em português o porquê ("mesmo
+     cargo, tipo de hora e detalhes", "muda só: unidade H/SV").
+     Não usamos modelo de IA "caixa preta" nem serviço pago na nuvem:
+     roda num notebook comum, sem internet, sem custo.
+
+  e) Escala.
+     Testamos com 1 milhão de linhas sintéticas: cerca de 1 minuto.
+     A busca de similares responde em cerca de 16 ms por consulta.
+
+
+3. INSTALAÇÃO (UMA VEZ SÓ)
+---------------------------------------------------------------------
+Precisa de Python 3.9 ou mais novo.
+
+No Windows, abra o terminal do VS Code (menu Terminal > New Terminal)
+ou o PowerShell, vá até a pasta saneamento (troque o começo do caminho
+pelo lugar onde você salvou a pasta "Entrega 2"; as aspas são
+necessárias por causa do espaço no nome) e instale as bibliotecas:
+
+    cd "C:\...\DESAFIO-GC-GERDAU\saneamento"
+    python -m pip install -r requirements.txt
+
+Se "python" não for reconhecido, troque por "py" em todos os comandos
+deste guia (exemplo: py limpar.py ggbruto.xlsx).
+
+O que é instalado:
+    pandas, openpyxl  -> ler e gravar planilhas
+    numpy, scikit-learn -> busca de textos parecidos
+    sqlalchemy, psycopg -> carregar no PostgreSQL (só se for usar banco)
+
+
+4. PASTAS E ARQUIVOS (dentro de saneamento)
+---------------------------------------------------------------------
+    padronizar.py      motor de limpeza do texto e leitura de atributos
+    regua.py           compara dois textos e diz se são o mesmo serviço
+    deduplicar.py      acha os repetidos na base inteira (de-para)
+    limpar.py          gera a planilha limpa para abrir no Excel
+    diagnostico.py     relatório de qualidade + análise exploratória
+    similaridade.py    buscador: descrição nova -> códigos parecidos
+    api.py             servidor HTTP do buscador (para o Java)
+    exportar.py        monta as tabelas do banco e o data.sql
+    (pasta 14 - Modelagem de banco de dados: schema.sql e data.sql)
+    test_padronizar.py testes automáticos
+    requirements.txt   lista de bibliotecas
+    dados\             coloque aqui as planilhas de entrada
+    dados_teste\       430 pares conferidos à mão (usado nos testes)
+    saida\             tudo que os scripts geram cai aqui
+
+A planilha de entrada pode ser .xlsx, .csv ou .txt e precisa ter as
+5 colunas da base da Gerdau, nesta ordem:
+    Grupo de serviço | Código fornecedor | Código serviço |
+    Descrição do item | Unidade de medida
+(o nome das colunas não importa, a ordem sim).
+
+Em todos os comandos você passa o caminho da planilha. Se não passar
+nada, o script procura dados\base_codigos_servico.xlsx.
+Exemplo com a planilha na raiz do projeto:
+    python limpar.py ggbruto.xlsx
+Exemplo com a planilha dentro de dados:
+    python limpar.py dados\ggbruto.xlsx
+
+
+5. CADA SCRIPT, PASSO A PASSO
+---------------------------------------------------------------------
+
+5.1 diagnostico.py - entender a base
+    python diagnostico.py dados\base_codigos_servico.xlsx
+
+    Gera:
+      saida\diagnostico.md
+        1. Perfil por grupo
+        2. Onde surgem as duplicidades (5 tipos)
+        3. Ruído que atrapalha a busca
+        4. Potencial de padronização
+        5. Qualidade por coluna (tipo, preenchidos, faltantes,
+           distintos, exemplo), linhas duplicadas, inconsistências,
+           limitações e decisões tomadas
+        6. Análise exploratória (tamanho dos textos, categorias,
+           palavras mais comuns, códigos por fornecedor)
+        7. Regras de padronização textual, com exemplos
+      saida\tipo1_mesmo_servico.csv ... tipo5_dois_significados.csv
+        exemplos reais de cada tipo de problema
+      saida\codigos_padronizados.csv
+        cada código com o texto limpo e os atributos lidos
+      saida\exemplos_padronizacao.csv
+        15 exemplos de antes e depois da limpeza
+
+    Serve para: Diagnóstico de qualidade, EDA e Padronização textual
+    da Entrega 2. O .md abre bonito no VS Code (Ctrl+Shift+V).
+
+5.2 limpar.py - planilha limpa para o Excel
+    python limpar.py dados\base_codigos_servico.xlsx
+
+    Gera saida\<nome>_limpa.xlsx com duas abas:
+      Base limpa: todas as linhas originais + Descrição limpa,
+        Categoria, Família (cargo e tipo de hora), Nome padrão
+        sugerido (até 40 caracteres), Situação (único / referência /
+        duplicata), Código de referência e Confiança.
+      Duplicatas: só os códigos que repetem outro, lado a lado.
+
+    Esta é a visão simples: junta só textos que ficam IGUAIS depois
+    da limpeza. Para a junção completa, use o deduplicar.py.
+    Se der erro de permissão, feche a planilha no Excel e rode de novo.
+
+5.3 deduplicar.py - de-para automático da base inteira
+    python deduplicar.py dados\base_codigos_servico.xlsx
+
+    Gera três arquivos em saida\ (abrem no Excel, separador ";"):
+      <nome>_depara.csv
+        um código por linha: codigo, descricao, descricao_limpa,
+        unidade, grupo, categoria, fornecedores, codigo_oficial,
+        descricao_oficial, nome_padrao_sugerido, motivo.
+        Se codigo = codigo_oficial, ele é o oficial do grupo.
+      <nome>_catalogo.csv
+        o catálogo saneado: só os códigos oficiais, com quantos e
+        quais códigos cada um substitui.
+      <nome>_decisoes.csv
+        as dúvidas que o sistema NÃO resolveu sozinho, agrupadas por
+        diferença, com quantos códigos juntariam se a resposta for
+        "não muda o serviço" e um exemplo de par.
+
+    Como o sistema decide (resumo):
+      1. Limpa o texto (seção 6).
+      2. Se for mão de obra, monta uma "forma canônica": cargo + tipo
+         de hora (normal, extra, noturno, dom/fer, seg-sáb,
+         periculosidade, insalubridade, mensal, mobilização...) +
+         percentual + o que sobrou do texto.
+      3. Só compara códigos que têm os mesmos números e palavras
+         parecidas (isso deixa rápido sem perder nenhum par).
+      4. A régua (regua.py) compara o que sobra de diferente:
+         nada de diferente ou só abreviação/corte -> mesmo serviço;
+         palavra importante diferente -> serviços diferentes.
+      5. Cada grupo tem um centro; não existe "A parece B, B parece C,
+         então A = C" (isso evitaria junções em cadeia erradas).
+      6. Proteções: texto com 38+ caracteres que pode ter sido cortado
+         pelo SAP não junta; palavra principal diferente não junta.
+      7. O código oficial é o usado por mais fornecedores; empate,
+         o menor número.
+
+    Motivos que aparecem na coluna "motivo":
+      oficial
+      mesmo texto depois de limpar
+      mão de obra: mesmo cargo, tipo de hora e detalhes
+      mesmo texto com abreviação ou corte diferente
+      mantido separado: texto pode ter sido cortado pelo SAP
+
+5.4 similaridade.py - testar o buscador no terminal
+    python similaridade.py "MEC.MANUT.NORM" H
+    python similaridade.py dados\outra_base.xlsx "soldador he 50%" H
+
+    Sem texto, roda 10 exemplos prontos e grava
+    saida\exemplos_similaridade.csv.
+
+    Como funciona: acha os 60 textos mais parecidos por pedaços de
+    letras (TF-IDF de 2 a 4 caracteres, aguenta abreviação e erro de
+    digitação), passa cada um pela régua e ordena:
+    primeiro DUPLICADO, depois REVISAR, depois DIFERENTE; dentro de
+    cada um, pela aderência (%); empate, pelo menor código. A ordem é
+    sempre a mesma para a mesma entrada (reprodutível). Candidatos que
+    apontam para o mesmo código oficial aparecem uma vez só.
+
+5.5 api.py - o buscador como serviço para o Java
+    python api.py dados\base_codigos_servico.xlsx
+    (opções: --host 0.0.0.0 para outras máquinas acessarem,
+     --porta 8000 para mudar a porta)
+
+    Deixe esse terminal aberto. A API fica em http://127.0.0.1:8000
+    Veja seção 7 para o contrato.
+
+5.6 exportar.py - banco de dados
+    python exportar.py dados\base_codigos_servico.xlsx
+    python exportar.py dados\base_codigos_servico.xlsx --db postgresql+psycopg://usuario:senha@localhost:5432/gerdau
+
+    Sem --db, só gera os CSVs das tabelas e o saida\data.sql (amostra
+    de 45 códigos para o projeto Java testar com o H2). Se gerar um
+    data.sql novo, copie para a pasta 14 - Modelagem de banco de dados
+    e para codigos-api\src\main\resources\.
+    Com --db, carrega tudo no PostgreSQL. Antes, crie as tabelas
+    rodando o schema.sql no banco (o docker-compose do
+    projeto Java já faz isso sozinho). Pode rodar quantas vezes quiser:
+    ele esvazia e recarrega tudo numa única transação.
+
+5.7 test_padronizar.py - testes
+    python test_padronizar.py
+
+    8 testes. Todos devem mostrar "ok". O mais importante é
+    test_deduplicacao_nunca_junta_errado: confere os 430 pares de
+    dados_teste\pares_rotulados.csv e falha se o sistema juntar
+    qualquer par que um humano marcou como diferente.
+    Rode sempre que mudar alguma regra.
+
+
+6. PADRONIZAÇÃO TEXTUAL (padronizar.py)
+---------------------------------------------------------------------
+Seis níveis, cada um mais agressivo que o anterior:
+    n1  tira espaços extras e espaços invisíveis
+    n2  tudo maiúsculo
+    n3  tira acentos (MANUTENÇÃO -> MANUTENCAO)
+    n4  tira pontuação e separa letra de número (HE50% -> HE 50 %)
+    n5  troca abreviações pelo termo padrão (dicionário com 118
+        termos: MEC -> MECANICO, HN -> HORA NORMAL, TEC SEG ->
+        TECNICO SEGURANCA...) e tira palavras vazias (DE, DA, DO...)
+    n6  ignora a ordem das palavras
+
+Depois lê os atributos do texto: cargo, tipo de hora/custo,
+especialidade, nível, qualificação, percentual, unidade.
+
+Categoria: cada código cai em uma destas, pela primeira palavra-chave
+que aparece no texto (mobilização vem antes de tudo, depois mão de
+obra):
+    MOBILIZACAO E DESMOBILIZACAO, MAO DE OBRA, ALIMENTACAO E EVENTOS,
+    TRANSPORTE, EQUIPAMENTO E LOCACAO, MATERIAL HIDRAULICO,
+    MATERIAL ELETRICO, OBRA CIVIL, LIMPEZA E CONSERVACAO,
+    MANUTENCAO E FABRICACAO, VIGILANCIA E PORTARIA,
+    VERBAS E REEMBOLSOS, MATERIAIS EM GERAL, OUTROS
+Hoje só 5,9% caem em OUTROS.
+
+Para ensinar uma abreviação nova: abra padronizar.py e acrescente no
+dicionário ABREV (exemplo: "ELETR": "ELETRICISTA"). Para um cargo novo,
+acrescente na lista CARGOS. Para uma categoria, na lista CATEGORIAS.
+Depois rode os testes.
+
+
+7. INTEGRAÇÃO COM O JAVA (contrato da API)
+---------------------------------------------------------------------
+O Java NÃO precisa copiar nada do Python. Ele só faz uma chamada HTTP.
+
+Verificar se está no ar:
+    GET http://127.0.0.1:8000/saude
+    resposta: {"status": "ok", "codigos": 7937}
+
+Buscar similares:
+    POST http://127.0.0.1:8000/similares
+    Content-Type: application/json
+    corpo:
+      {"descricao": "MEC.MANUT.NORM", "unidade": "H", "limite": 5}
+
+      descricao  obrigatória, até 200 caracteres
+      unidade    opcional, até 5 caracteres
+      limite     opcional, de 1 a 50 (padrão 10)
+    Se algo vier errado, responde 400 com {"erro": "..."}.
+
+    resposta:
+      {
+        "resultado": "BLOQUEAR",
+        "motivo": "Já existe: 4083559 MECÂNICO DE MANUTENÇÃO (HORA NORMAL)",
+        "candidatos": [
+          {
+            "codigo": "4083559",
+            "descricao": "MECÂNICO DE MANUTENÇÃO (HORA NORMAL)",
+            "nome_padrao": "MECANICO - HORA NORMAL",
+            "unidade": "H",
+            "categoria": "MAO DE OBRA",
+            "aderencia": 98,
+            "classe": "DUPLICADO",
+            "diferencas": [],
+            "encontrado_por": {"codigo": "4083559",
+                               "descricao": "MECÂNICO DE MANUTENÇÃO (HORA NORMAL)"}
+          }
+        ]
+      }
+
+    resultado:
+      BLOQUEAR  já existe código igual -> a tela mostra o código e não
+                deixa criar (só com aprovação do curador)
+      REVISAR   existe um quase igual -> a tela mostra o que muda
+                ("diferencas") e o comprador escolhe usar o existente
+                ou criar com justificativa
+      LIBERAR   nada igual -> pode criar
+
+    "codigo" é sempre o código OFICIAL; "encontrado_por" mostra qual
+    código antigo levou até ele.
+
+Exemplo para testar sem Java (PowerShell):
+    Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/similares `
+      -ContentType "application/json" `
+      -Body '{"descricao":"MEC.MANUT.NORM","unidade":"H","limite":3}'
+
+Fluxo completo da Entrega 2:
+    usuário digita na tela -> Java (/api/consultas) -> Python
+    (/similares) -> Java grava na tabela solicitacao e devolve a lista
+    para a tela.
+
+O projeto Java pronto para rodar esse fluxo está em
+codigos-api, e o passo a passo em GUIA_JAVA.txt
+(nesta mesma pasta 13 - Documentação).
+
+
+8. BANCO DE DADOS (schema.sql)
+---------------------------------------------------------------------
+    base_original      as 5 colunas exatamente como vieram da Gerdau,
+                       uma linha por linha da planilha (nunca muda)
+    codigo_servico     um registro por código: texto original, texto
+                       limpo, nome padrão (até 40), unidade, grupo,
+                       categoria, status (ATIVO = oficial,
+                       BLOQUEADO = repetido), codigo_canonico (para
+                       qual oficial ele aponta) e motivo
+    codigo_fornecedor  quais fornecedores usam cada código
+    dicionario         abreviação -> termo padrão
+    solicitacao        cada consulta feita na tela: o que foi digitado,
+                       quem pediu, o resultado, o código sugerido, os
+                       candidatos mostrados, o código escolhido,
+                       justificativa e status
+
+Original e análise ficam lado a lado: dá para comparar sempre.
+O projeto Java usa o mesmo schema.sql e o data.sql (H2 em modo
+PostgreSQL) para rodar sem instalar banco.
+
+
+9. COMO APLICAR AS DECISÕES DO NEGÓCIO
+---------------------------------------------------------------------
+No topo do deduplicar.py existem 4 ajustes:
+
+    IRRELEVANTES = set()
+        palavras que NÃO mudam o serviço.
+        Exemplo: IRRELEVANTES = {"ADM", "ESP", "EVENTUAL"}
+
+    UNIDADES_IGUAIS = []
+        unidades que valem a mesma coisa. A primeira do grupo vence.
+        Exemplo: UNIDADES_IGUAIS = [("H", "SV")]
+
+    PERCENTUAL_NO_NOME = True
+        True: "HE 50%" e "HE 100%" são códigos diferentes.
+        False: o percentual sai do nome (vira campo do pedido).
+
+    LIMITE_CORTE = 38
+        tamanho a partir do qual o texto pode ter sido cortado pelo
+        SAP (limite de 40 caracteres) e por isso não junta sozinho.
+
+Passo a passo:
+    1. Rode o deduplicar.py e abra o <nome>_decisoes.csv.
+    2. Leve as primeiras linhas para a Gerdau (estão ordenadas pelas
+       que mais juntam códigos). Pergunte: "essa diferença muda o
+       serviço?"
+    3. Para cada "não muda", coloque a palavra em IRRELEVANTES (ou a
+       unidade em UNIDADES_IGUAIS).
+    4. Rode de novo o deduplicar.py e os testes.
+
+Exemplo medido: com ADM, ESP e EVENTUAL irrelevantes, H = SV e o %
+fora do nome, a base cai de 7.937 para 6.619 códigos (-16,6%),
+continuando com 0 junções erradas.
+
+
+10. NÚMEROS ATUAIS (base piloto, 9.795 linhas)
+---------------------------------------------------------------------
+    códigos distintos                  7.937
+    fornecedores                       111
+    códigos oficiais (sem decisões)    7.056   (-11,1%)
+    com as decisões de exemplo         6.619   (-16,6%)
+    junções erradas nos 430 pares      0
+    pares "iguais" que juntou          75 de 93 (os outros 18 esperam
+                                       decisão de negócio ou são texto
+                                       cortado, por segurança)
+    códigos em OUTROS                  5,9%
+    mobilização                        259 códigos, 37 fornecedores
+    1 milhão de linhas                 cerca de 1 minuto
+    busca de similares                 cerca de 16 ms por consulta
+    testes                             8 de 8 ok
+
+
+11. LIMITAÇÕES CONHECIDAS
+---------------------------------------------------------------------
+  - Códigos "sigla" sem palavras, como "SV-MEC-01-HN", podem sair como
+    LIBERAR porque o número "01" não existe no código oficial. Número
+    nunca é ignorado de propósito: em medida (25MM x 32MM) ele muda
+    o serviço.
+  - O dicionário de abreviações foi montado olhando a base. Uma
+    abreviação que ainda não está lá não é entendida até alguém
+    acrescentar no ABREV.
+  - Não temos valores nem quantidades de compra, então não dá para
+    medir economia em reais, só em quantidade de códigos.
+  - Texto cortado pelo SAP (40 caracteres) às vezes perde a palavra
+    que diferencia. Nesses casos o sistema prefere não juntar.
+  - O buscador monta o índice na memória toda vez que a API sobe
+    (cerca de 6 segundos na base piloto). Para milhões de códigos,
+    guardar o índice pronto em arquivo é o próximo passo.
+  - A categoria é por palavra-chave: um texto muito genérico ("SERVIÇO
+    CONFORME PROPOSTA") cai em OUTROS.
+
+
+12. PROBLEMAS COMUNS
+---------------------------------------------------------------------
+  "Planilha não encontrada"
+      O caminho está errado. Confira o nome do arquivo e se ele está
+      na raiz ou em dados\. Dica: digite as primeiras letras e
+      aperte Tab para o terminal completar.
+
+  "python não é reconhecido"
+      Use "py" no lugar de "python", ou instale o Python marcando
+      "Add python.exe to PATH".
+
+  "No module named pandas" (ou sklearn, numpy...)
+      Rode de novo: python -m pip install -r requirements.txt
+
+  "Não consegui gravar ... Feche o arquivo no Excel"
+      A planilha de saída está aberta no Excel. Feche e rode de novo.
+
+  Acentos estranhos ao abrir CSV no Excel
+      Os CSVs saem em UTF-8 com separador ";". Se ainda assim vier
+      estranho, use Dados > Obter Dados > De Texto/CSV.
+
+  A API não responde ao Java
+      Confira se o terminal do api.py está aberto e mostrou "ok:".
+      Se o Java estiver em outra máquina, suba com --host 0.0.0.0 e
+      libere a porta 8000 no firewall.
