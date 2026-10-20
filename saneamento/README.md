@@ -25,6 +25,7 @@ A base da Gerdau não é versionada. Coloque a planilha em `saneamento/dados/` e
 | Catálogo saneado V1 | [06-catalogo-saneado-v1.md](docs/06-catalogo-saneado-v1.md) | deduplicar.py |
 | Base de dados com saneamento feito | [base-dados-saneada.md](docs/base-dados-saneada.md) | exportar.py, schema.sql |
 | Similaridade V1 | [07-similaridade-v1.md](docs/07-similaridade-v1.md) | similaridade.py, api.py |
+| Ranking de candidatos V1 | [08-ranking-candidatos-v1.md](docs/08-ranking-candidatos-v1.md) | similaridade.py |
 
 ## Testes
 
