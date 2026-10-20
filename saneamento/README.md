@@ -18,6 +18,7 @@ A base da Gerdau não é versionada. Coloque a planilha em `saneamento/dados/` e
 | Etapa | Documento | Script |
 | --- | --- | --- |
 | Padronização textual | [03-padronizacao-textual.md](docs/03-padronizacao-textual.md) | padronizar.py |
+| Diagnóstico de qualidade | [01-diagnostico-qualidade.md](docs/01-diagnostico-qualidade.md) | diagnostico.py |
 
 ## Testes
 
