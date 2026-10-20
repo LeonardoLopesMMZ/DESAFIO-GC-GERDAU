@@ -93,6 +93,31 @@ def test_deduplicacao_nunca_junta_errado():
     assert tst.codigo_oficial.nunique() == 1, "variações do mesmo serviço deveriam virar um código só"
 
 
+def test_api_devolve_candidatos():
+    if not BASE.exists():
+        print("  (pulado: base não encontrada em dados/)")
+        return
+    import json
+    import threading
+    import urllib.request
+    from api import servir
+    servidor = servir(BASE, porta=0)
+    threading.Thread(target=servidor.serve_forever, daemon=True).start()
+    url = f"http://127.0.0.1:{servidor.server_address[1]}/similares"
+    abrir = urllib.request.build_opener(urllib.request.ProxyHandler({})).open
+    pedido = urllib.request.Request(url, data=json.dumps({"descricao": "MEC.MANUT.NORM", "unidade": "H"}).encode(),
+                                    headers={"Content-Type": "application/json"})
+    r = json.loads(abrir(pedido).read())
+    assert r["resultado"] == "BLOQUEAR" and r["candidatos"][0]["codigo"] == "4083559", r
+    pedido = urllib.request.Request(url, data=json.dumps({"descricao": "CURVA SOLDAVEL 25MM", "unidade": "ST"}).encode())
+    r = json.loads(abrir(pedido).read())
+    assert r["resultado"] == "LIBERAR" and r["candidatos"], r
+    pedido = urllib.request.Request(url, data=iter([b'{"descricao": "MEC.MANUT', b'.NORM", "unidade": "H"}']))
+    r = json.loads(abrir(pedido).read())
+    assert r["resultado"] == "BLOQUEAR", r
+    servidor.shutdown()
+
+
 if __name__ == "__main__":
     for nome, f in list(globals().items()):
         if nome.startswith("test_"):
