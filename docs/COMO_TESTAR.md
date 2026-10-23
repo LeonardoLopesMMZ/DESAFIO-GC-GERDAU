@@ -2,7 +2,7 @@
 
 São uns 15 minutos. Os resultados abaixo valem para a **base de exemplo** que vem no repositório; com a base real da Gerdau os códigos são outros. Antes de começar, ligue o sistema como explicado no [README](../README.md#rodar-do-zero) e abra http://localhost:8080. Em todos os testes, preencha **Comprador** com o seu nome.
 
-Rodar o `iniciar.bat` de novo zera tudo. Faça isso antes de começar, para os números baterem.
+Ligar de novo pelo `MOKKA.bat` (opção 1) zera tudo. Faça isso antes de começar, para os números baterem.
 
 ## 1. O código já existe (BLOQUEAR)
 
@@ -47,14 +47,16 @@ Outros para testar: `ELETRESISTA HORA EXTRA 100%` e `VIGILANTI NOTURNO 12X36`.
 
 ## 7. Busca e criação por voz
 
-Precisa do Chrome ou do Edge (no Brave a voz é bloqueada), aberto em **http://localhost:8080** no computador que está rodando o sistema, e com internet: o navegador usa o reconhecimento de voz do Google ou da Microsoft.
+Precisa do Edge, do Chrome ou do Safari (no Brave a voz é bloqueada), aberto em **http://localhost:8080** no computador que está rodando o sistema, e com internet: o navegador usa o reconhecimento de voz do Google, da Microsoft ou da Apple. A opção 3 do `MOKKA.bat` abre a página de teste do microfone, com as frases para ler.
 
 1. Clique em **Falar** ao lado da descrição. Na primeira vez, permita o microfone.
 2. Fale: *"soldador hora extra cinquenta por cento segunda a sábado, unidade hora"*.
 3. **Esperado:**
    - O campo vira `SOLDADOR HORA EXTRA 50% SEG A SAB`, a unidade vira `H` e a consulta roda sozinha: *Já existe: 7000265*.
-   - Se o navegador ouviu outras versões, elas aparecem embaixo em "Não era isso? Ouvi também" e dá para clicar nelas.
-4. Fale: *"criar lavagem de piso com máquina, unidade metro quadrado"*. **Esperado:** consulta com `M2` e o aviso *Você pediu para criar: confira e clique em Criar código novo*.
+   - Embaixo do formulário aparece **Entendi**, com cada palavra que o sistema ouviu.
+   - Se alguma palavra não existe no catálogo ou o navegador ficou em dúvida, ela ganha borda amarela e uma **sugestão em cima** (por exemplo `SOLDADOR?` em cima de `SOLDA DOR`). Clique na sugestão para trocar; clique na palavra para ver mais opções. A consulta roda de novo sozinha.
+4. Fale uma frase longa: *"técnico de segurança do trabalho hora extra cem por cento domingo e feriado, unidade hora"*. **Esperado:** vira `TST HORA EXTRA 100% DOM/FER` e aparece a nota *abreviei para caber nos 40 caracteres*.
+5. Fale: *"criar lavagem de piso com máquina, unidade metro quadrado"*. **Esperado:** consulta com `M2` e o aviso *Você pediu para criar: confira e clique em Criar código novo*.
 
 O que a voz entende:
 
@@ -69,6 +71,7 @@ O que a voz entende:
 | com | C/ |
 | "unidade hora" no fim | preenche o campo Unidade |
 | "buscar ..." ou "criar ..." no começo | comando |
+| frase com mais de 40 caracteres | abreviada no padrão do SAP: HORA EXTRA vira HE, TÉCNICO DE SEGURANÇA DO TRABALHO vira TST, MANUTENÇÃO vira MANUT |
 
 ## 8. Planilha inteira (lote)
 
@@ -82,11 +85,16 @@ O que a voz entende:
    - *3 códigos criados, 8 linhas usam código existente e 3 não importadas*.
    - As linhas 6 e 7 ficam com o mesmo código, 9000001.
    - Os códigos antigos 8100002 e 8100003 da planilha entram como **repetidos** apontando para o oficial.
-6. Clique em **Baixar Excel organizado**. O arquivo tem três abas:
+6. Clique em **Baixar Excel organizado**. O arquivo tem as abas:
    - **Tratado:** linha a linha, com o código final.
    - **Pronto para o SAP:** um código por linha, com nome padrão de até 40 caracteres.
-   - **Resumo**.
+   - **Resumo** e **Relatório** (o que foi arrumado na planilha).
+   - Uma aba por grupo, quando a planilha tem mais de um grupo.
 7. Na aba **Catálogo**, o número de *criados ou importados agora* deve ser 5.
+
+**Planilha bagunçada de verdade:** na mesma aba, clique em **Baixar exemplo bagunçado** e analise o `exemplo_baguncado.xlsx`. Ele tem título no topo, uma linha vazia, o cabeçalho repetido no meio, uma linha duplicada, "-" e "n/a" no lugar de vazio, duas abas e o grupo escrito de vários jeitos ("civil", "CIVIL ", "Cívil", "facilites", "Eletro mecânica"). **Esperado:** o quadro **O que eu arrumei antes de analisar** lista cada correção, e os grupos viram Civil, Facilities e Eletromecânica. No Excel exportado aparecem também a aba **Relatório** e uma aba por grupo.
+
+**Colar a lista:** abra **Ou cole a lista aqui**, cole uma descrição por linha (ou colunas separadas por `;`) e clique em **Analisar**, sem escolher arquivo.
 
 Para testar volume, mande uma planilha com até 5000 linhas: com a base real, 5000 linhas são analisadas em uns 15 segundos.
 
@@ -112,7 +120,7 @@ Para testar volume, mande uma planilha com até 5000 linhas: com a base real, 50
 
 ## 11. Acesso por outro computador da mesma rede
 
-1. Ao terminar, o `iniciar.bat` mostra os endereços, por exemplo `http://192.168.0.10:8080`.
+1. Ao ligar, o `MOKKA.bat` mostra os endereços, por exemplo `http://192.168.0.10:8080`.
 2. Abra esse endereço em outro computador ou no celular, na mesma rede Wi-Fi.
 3. Se o Windows perguntar sobre o Firewall, marque **Redes privadas** e clique em **Permitir**.
 

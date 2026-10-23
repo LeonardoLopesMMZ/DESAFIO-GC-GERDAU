@@ -1,7 +1,9 @@
 import re
 import sys
+import unicodedata
 import threading
-from difflib import get_close_matches
+from collections import Counter
+from difflib import SequenceMatcher, get_close_matches
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -52,6 +54,7 @@ class Buscador:
         self.trava = threading.Lock()
         self._listas()
         self.vocab = set()
+        self.freq = Counter()
         self._aprender(self.c.descricao_limpa)
 
     def _listas(self):
@@ -62,8 +65,16 @@ class Buscador:
         self._ofi = {r.codigo: r for r in self.oficial.reset_index().itertuples(index=False)}
 
     def _aprender(self, textos):
-        self.vocab |= {t for d in textos for t in str(d).split() if len(t) >= 3 and t.isalpha()}
+        novos = [t for d in textos for t in str(d).split() if len(t) >= 3 and t.isalpha()]
+        self.freq.update(novos)
+        self.vocab |= set(novos)
         self._lista = sorted(self.vocab)
+
+    def _parecidas(self, w):
+        m = get_close_matches(w, self._lista, n=8, cutoff=0.72)
+        m = [c for c in m if not any(o != c and o.startswith(c) and self.freq[c] * 3 < self.freq[o] for o in m)]
+        m.sort(key=lambda c: (-round(SequenceMatcher(None, w, c).ratio(), 1), -self.freq[c]))
+        return m[:3]
 
     def corrigir(self, descricao):
         toks = normalizar(descricao)["n5"].split()
@@ -95,6 +106,26 @@ class Buscador:
                 return " ".join(saida)[:40], correcoes
             texto = novo
         return texto[:40], correcoes
+
+    def palavras(self, texto):
+        brutas = texto.split()
+        limpas = [unicodedata.normalize("NFKD", w).encode("ascii", "ignore").decode().upper().strip(".,;:") for w in brutas]
+        conhecida = [not w.isalpha() or len(w) < 3 or all(t in self.vocab or not t.isalpha() for t in normalizar(w)["n5"].split())
+                     for w in limpas]
+        saida, i = [], 0
+        while i < len(limpas):
+            w = limpas[i]
+            if i + 1 < len(limpas) and w.isalpha() and limpas[i + 1].isalpha() and w + limpas[i + 1] in self.vocab \
+                    and not (conhecida[i] and conhecida[i + 1]):
+                saida.append({"indice": i, "tamanho": 2, "palavra": f"{brutas[i]} {brutas[i + 1]}", "sugestoes": [w + limpas[i + 1]]})
+                i += 2
+                continue
+            if not conhecida[i]:
+                m = self._parecidas(w)
+                if m:
+                    saida.append({"indice": i, "tamanho": 1, "palavra": brutas[i], "sugestoes": m})
+            i += 1
+        return saida
 
     def _sugestao(self, descricao, unidade):
         texto, correcoes = self.corrigir(descricao)
@@ -173,7 +204,7 @@ class Buscador:
                 sug = self._sugestao(descricao, unidade)
                 if sug:
                     trocas = ", ".join(f"{c['de']} → {c['para']}" for c in sug["correcoes"])
-                    r.update(resultado="REVISAR", motivo=f"Corrigindo a escrita ({trocas}) fica igual a {sug['codigo']} {sug['descricao_existente']}",
+                    r.update(resultado="REVISAR", motivo=f"Corrigindo a escrita ({trocas}) fica igual a {sug['codigo']} {str(sug['descricao_existente']).upper()}",
                              candidatos=[{"codigo": sug["codigo"], "descricao": sug["descricao_existente"], "aderencia": None, "diferencas": []}])
         resultado = []
         for (descricao, unidade), n5, r, rep in zip(itens, n5s, saida, repete):
@@ -213,7 +244,7 @@ class Buscador:
             return {"resultado": "LIBERAR", "motivo": "Nenhum código parecido", "candidatos": []}
         top = candidatos[0]
         resultado = RESULTADO[top["classe"]]
-        motivo = {"BLOQUEAR": f"Já existe: {top['codigo']} {top['descricao']}",
+        motivo = {"BLOQUEAR": f"Já existe: {top['codigo']} {str(top['descricao']).upper()}",
                   "REVISAR": f"Parecido com {top['codigo']}; muda só: {', '.join(top['diferencas'])}",
                   "LIBERAR": "Nenhum código igual; os parecidos são diferentes"}[resultado]
         return {"resultado": resultado, "motivo": motivo, "candidatos": candidatos}
