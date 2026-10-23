@@ -1,5 +1,6 @@
 ﻿$ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
 Set-Location $PSScriptRoot
 $site = 'http://localhost:8080'
 $script:ok = 0
@@ -16,6 +17,10 @@ function Teste([string]$nome, [scriptblock]$bloco) {
     Write-Host ("[FALHOU]  " + $nome + "  ->  " + $_.Exception.Message) -ForegroundColor Red
     $script:falhou++
   }
+}
+
+function Texto([string]$s) {
+  [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(28591).GetBytes($s))
 }
 
 function Json([string]$caminho, $corpo) {
@@ -53,7 +58,7 @@ Teste 'Numeros do catalogo' {
 Teste 'Consulta de codigo que ja existe (BLOQUEAR)' {
   $r = Json '/api/consultas' @{ descricao = 'ELETRICISTA HORA EXTRA 100%'; unidade = 'hora'; solicitante = 'Teste automatico' }
   if ($r.resultado -ne 'BLOQUEAR') { throw "veio $($r.resultado)" }
-  $r.motivo
+  Texto $r.motivo
 }
 
 Teste 'Consulta de servico novo (LIBERAR)' {
@@ -69,14 +74,12 @@ Teste 'Correcao de fala ou digitacao (SOLDA DOR)' {
 }
 
 Teste 'Erro em portugues para unidade errada' {
-  try {
-    Json '/api/consultas' @{ descricao = 'PEDREIRO HN'; unidade = 'caixa'; solicitante = 'Teste automatico' } | Out-Null
-    throw 'aceitou a unidade caixa'
-  } catch [System.Net.WebException] {
-    $msg = ($_.ErrorDetails.Message | ConvertFrom-Json).erro
-    if ($msg -notmatch 'Unidade') { throw "mensagem: $msg" }
-    $msg
-  }
+  $corpo = Join-Path $env:TEMP 'mokka_unidade.json'
+  [IO.File]::WriteAllText($corpo, '{"descricao":"PEDREIRO HN","unidade":"caixa","solicitante":"Teste automatico"}')
+  $txt = & curl.exe -s -H "Content-Type: application/json" --data-binary "@$corpo" ($site + '/api/consultas')
+  $msg = ($txt | ConvertFrom-Json).erro
+  if ($msg -notmatch 'Unidade') { throw "resposta: $txt" }
+  $msg
 }
 
 Teste 'Planilha em lote (modelo com 14 linhas)' {
