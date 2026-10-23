@@ -4,7 +4,7 @@ Limpeza, padronização e deduplicação dos códigos de serviço do SAP, e busc
 
 ## Como rodar
 
-Precisa de Python 3.9 ou mais novo.
+Precisa de Python 3.11 a 3.13.
 
 ```
 cd saneamento
@@ -12,6 +12,8 @@ python -m pip install -r requirements.txt
 ```
 
 A base da Gerdau não é versionada. Coloque a planilha em `saneamento/dados/` e passe o caminho para os scripts, por exemplo `python diagnostico.py dados\base_codigos_servico.xlsx`. Os resultados saem em `saneamento/saida/`, que também não é versionada.
+
+Sem a base real, use a base de exemplo fictícia que vem no repositório, por exemplo `python api.py exemplo/base_exemplo.csv`.
 
 ## Etapas
 
@@ -26,6 +28,7 @@ A base da Gerdau não é versionada. Coloque a planilha em `saneamento/dados/` e
 | Base de dados com saneamento feito | [base-dados-saneada.md](docs/base-dados-saneada.md) | exportar.py, schema.sql |
 | Similaridade V1 | [07-similaridade-v1.md](docs/07-similaridade-v1.md) | similaridade.py, api.py |
 | Ranking de candidatos V1 | [08-ranking-candidatos-v1.md](docs/08-ranking-candidatos-v1.md) | similaridade.py |
+| Lote por Excel e correção de escrita | [README principal](../README.md) | lote.py, similaridade.py, api.py |
 | Checkpoint dos squads e planejamento | [checkpoint-e-planejamento.md](docs/checkpoint-e-planejamento.md) | — |
 
 ## Testes
