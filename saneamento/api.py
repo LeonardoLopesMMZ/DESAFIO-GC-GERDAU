@@ -99,7 +99,7 @@ class Handler(BaseHTTPRequestHandler):
         self._responder(404, {"erro": "caminho não existe"})
 
     def do_POST(self):
-        if self.path not in ("/similares", "/codigos", "/codigos/lote", "/lote", "/lote/ler", "/lote/exportar"):
+        if self.path not in ("/similares", "/palavras", "/codigos", "/codigos/lote", "/lote", "/lote/ler", "/lote/exportar"):
             return self._responder(404, {"erro": "caminho não existe"})
         try:
             corpo = self._corpo()
@@ -120,6 +120,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._responder(400, {"erro": "JSON inválido"})
         if self.path == "/codigos":
             return self._novo(pedido)
+        if self.path == "/palavras":
+            texto = pedido.get("texto")
+            if not isinstance(texto, str) or not texto.strip() or len(texto) > 200:
+                return self._responder(400, {"erro": "texto é obrigatório (até 200 caracteres)"})
+            return self._responder(200, {"palavras": self.buscador.palavras(texto)})
         if self.path == "/codigos/lote":
             return self._novos(pedido)
         if self.path == "/lote":
@@ -128,7 +133,9 @@ class Handler(BaseHTTPRequestHandler):
             linhas = pedido.get("linhas")
             if not isinstance(linhas, list) or not all(isinstance(l, dict) for l in linhas):
                 return self._responder(400, {"erro": "envie as linhas para exportar"})
-            return self._arquivo(exportar_planilha(linhas), XLSX)
+            relatorio = pedido.get("relatorio")
+            relatorio = [str(t) for t in relatorio] if isinstance(relatorio, list) else None
+            return self._arquivo(exportar_planilha(linhas, relatorio), XLSX)
         descricao, unidade, limite = pedido.get("descricao"), pedido.get("unidade") or "", pedido.get("limite", 10)
         if not isinstance(descricao, str) or not descricao.strip() or len(descricao) > 200:
             return self._responder(400, {"erro": "descricao é obrigatória (até 200 caracteres)"})

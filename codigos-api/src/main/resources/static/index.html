@@ -131,9 +131,81 @@
   .frases li { margin: 6px 0; }
   .frases q { font-weight: 600; color: var(--marca-escura); }
   .frases span { display: block; font-size: 13px; color: var(--fraco); }
+  .topo { position: relative; overflow: hidden; background: linear-gradient(115deg, var(--marca-escura) 0%, var(--marca) 55%, #12508f 100%); }
+  .topo::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(135deg, rgba(255, 255, 255, .035) 0 2px, transparent 2px 14px); pointer-events: none; }
+  .topo .faixa { position: relative; }
+  .marca .selo-marca { transition: transform .4s cubic-bezier(.2, .8, .2, 1.4); }
+  .marca:hover .selo-marca { transform: rotate(-6deg) scale(1.06); }
+  nav button { position: relative; transition: color .2s, background .2s; }
+  nav button::after { content: ""; position: absolute; left: 14px; right: 14px; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--destaque); transform: scaleX(0); transition: transform .25s ease; }
+  nav button.ativa::after { transform: scaleX(1); }
+
+  #carregando { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: var(--destaque); box-shadow: 0 0 8px rgba(242, 181, 27, .7); z-index: 50; opacity: 0; transition: opacity .2s; }
+  body.carregando #carregando { opacity: 1; animation: carrega 1.4s ease-in-out infinite; }
+  @keyframes carrega { 0% { width: 0; left: 0; } 50% { width: 60%; left: 20%; } 100% { width: 0; left: 100%; } }
+
+  .entrar { animation: surgir .35s cubic-bezier(.2, .8, .2, 1) both; }
+  @keyframes surgir { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  #aviso { animation: descer .3s ease both; }
+  @keyframes descer { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  tbody tr.nova { animation: surgir .35s ease both; animation-delay: calc(var(--i, 0) * 35ms); }
+  button { transition: background .15s, border-color .15s, transform .15s, box-shadow .15s; }
+  button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(11, 58, 110, .12); }
+  button:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
+  button.ocupado { position: relative; color: transparent !important; pointer-events: none; }
+  button.ocupado::after { content: ""; position: absolute; inset: 0; margin: auto; width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .5); border-top-color: #fff; animation: gira .7s linear infinite; }
+  button:not(.principal).ocupado::after { border-color: rgba(11, 58, 110, .25); border-top-color: var(--marca); }
+  @keyframes gira { to { transform: rotate(360deg); } }
+  .numeros div { transition: transform .2s, box-shadow .2s; }
+  .numeros div:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(16, 33, 58, .08); }
+  .grupo { transition: border-color .2s, box-shadow .2s; }
+  .grupo:hover { border-color: #b9c6d6; box-shadow: 0 4px 12px rgba(16, 33, 58, .06); }
+
+  .mic.ouvindo { animation: none; background: var(--vermelho); box-shadow: 0 0 0 0 rgba(180, 35, 24, .45); animation: onda 1.3s ease-out infinite; }
+  @keyframes onda { 0% { box-shadow: 0 0 0 0 rgba(180, 35, 24, .45); } 100% { box-shadow: 0 0 0 14px rgba(180, 35, 24, 0); } }
+
+  #descricao, #busca { text-transform: uppercase; }
+  #descricao::placeholder, #busca::placeholder { text-transform: none; }
+  .falado { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 10px 0 0; padding: 12px 16px; background: var(--cartao); border: 1px dashed #c9d4e2; border-radius: var(--raio); animation: surgir .3s ease both; }
+  .falado-titulo { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--fraco); }
+  .palavras { display: flex; flex-wrap: wrap; gap: 6px; position: relative; }
+  .palavra { position: relative; font-size: 14px; font-weight: 600; padding: 4px 10px; border-radius: 8px; background: var(--marca-clara); color: var(--marca-escura); animation: pop .3s cubic-bezier(.2, .8, .2, 1.3) both; animation-delay: calc(var(--i, 0) * 45ms); }
+  .palavra.duvida { background: #fff8e6; color: #7a4a00; border: 1px solid var(--destaque); border-bottom-width: 3px; cursor: pointer; padding: 3px 10px 2px; }
+  .palavra.duvida::after { content: "▾"; font-size: 10px; margin-left: 5px; }
+  .palavra.duvida:hover { background: #ffefc2; }
+  .palavra.trocada { background: #e7f6ee; color: var(--verde); animation: brilho .9s ease; }
+  @keyframes pop { from { opacity: 0; transform: scale(.85) translateY(4px); } to { opacity: 1; transform: none; } }
+  @keyframes brilho { 0% { box-shadow: 0 0 0 0 rgba(8, 113, 74, .4); } 100% { box-shadow: 0 0 0 10px rgba(8, 113, 74, 0); } }
+  .falado-nota { flex-basis: 100%; font-size: 12px; color: var(--fraco); }
+  .falado-nota:empty { display: none; }
+  .palavras.tem-duvida { padding-top: 34px; }
+  .caixa-duvida { position: relative; display: inline-flex; }
+  .bolha { position: absolute; bottom: calc(100% + 8px); left: -40px; right: -40px; margin: 0 auto; width: max-content; white-space: nowrap; font-size: 12px; font-weight: 700; padding: 4px 11px; border-radius: 99px; border: none; background: var(--marca); color: #fff; box-shadow: 0 4px 12px rgba(11, 58, 110, .25); animation: flutua 2.4s ease-in-out infinite, aparece .35s cubic-bezier(.2, .8, .2, 1.3) both; z-index: 2; }
+  .bolha::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border: 5px solid transparent; border-top-color: var(--marca); }
+  .bolha:hover:not(:disabled) { background: var(--destaque); color: var(--marca-escura); transform: none; }
+  .bolha:hover::after { border-top-color: var(--destaque); }
+  @keyframes flutua { 0%, 100% { translate: 0 0; } 50% { translate: 0 -3px; } }
+  @keyframes aparece { from { opacity: 0; scale: .8; } to { opacity: 1; scale: 1; } }
+  .opcoes { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px; background: #fff; border: 1px solid var(--borda); border-radius: 10px; box-shadow: 0 10px 28px rgba(16, 33, 58, .16); animation: pop .2s ease both; max-width: 420px; }
+  .opcoes span { flex-basis: 100%; font-size: 12px; color: var(--fraco); }
+  .opcoes button { padding: 5px 12px; font-size: 13px; border-radius: 99px; background: var(--marca-clara); border-color: transparent; color: var(--marca); }
+  .opcoes button:hover { background: var(--marca); color: #fff; }
+  .opcoes button.manter { background: none; border-color: var(--borda); color: var(--fraco); }
+
+  .lote-form .colar { grid-column: 1 / -1; }
+  .colar summary { cursor: pointer; color: var(--marca); font-weight: 600; font-size: 14px; }
+  .colar textarea { width: 100%; margin-top: 8px; font-family: inherit; }
+  .relatorio { margin-top: 16px; padding: 12px 16px; background: #f6f9fc; border: 1px solid var(--borda); border-left: 5px solid var(--marca); border-radius: var(--raio); animation: surgir .3s ease both; }
+  .relatorio b { font-size: 13px; color: var(--marca-escura); }
+  .relatorio ul { margin: 6px 0 0; padding-left: 20px; font-size: 13px; color: var(--texto); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  }
 </style>
 </head>
 <body>
+<div id="carregando" aria-hidden="true"></div>
 <div class="topo">
   <div class="faixa">
     <header>
@@ -184,7 +256,6 @@
         <button type="button" class="mic" id="mic-descricao" title="Falar a descrição"></button>
       </span>
       <span class="conta" id="conta">0/40</span>
-      <span class="ouvi oculto" id="ouvi-descricao"></span>
     </label>
     <label>Unidade
       <input id="unidade" maxlength="30" required list="unidades" value="H" placeholder="ex.: hora" autocomplete="off">
@@ -199,6 +270,11 @@
     </label>
     <button class="principal" type="submit">Consultar</button>
   </form>
+  <div id="falado" class="falado oculto" aria-live="polite">
+    <span class="falado-titulo">Entendi</span>
+    <div id="palavras" class="palavras"></div>
+    <span id="falado-nota" class="falado-nota"></span>
+  </div>
 
   <section id="resultado" class="oculto">
     <h2>Códigos parecidos</h2>
@@ -222,10 +298,10 @@
 
   <section id="aba-lote" class="oculto">
     <h2>Muitos códigos de uma vez</h2>
-    <p class="sub">Mande um Excel (.xlsx) ou CSV, mesmo sem tratamento. O sistema lê cada linha, padroniza, diz se o código já existe, se é parecido, se é novo ou se repete outra linha da planilha. Depois você importa no banco e baixa o Excel organizado. <a href="/modelo_lote.xlsx" download>Baixar modelo de planilha</a></p>
+    <p class="sub">Mande um Excel (.xlsx) ou CSV, mesmo sem tratamento. O sistema lê cada linha, padroniza, diz se o código já existe, se é parecido, se é novo ou se repete outra linha da planilha. Depois você importa no banco e baixa o Excel organizado. <a href="/modelo_lote.xlsx" download>Baixar modelo de planilha</a> · <a href="/exemplo_baguncado.xlsx" download>Baixar exemplo bagunçado</a></p>
     <form class="lote-form" id="form-lote">
       <label>Planilha (.xlsx ou .csv, até 5000 linhas)
-        <input type="file" id="arquivo" accept=".xlsx,.xlsm,.csv,.txt" required>
+        <input type="file" id="arquivo" accept=".xlsx,.xlsm,.csv,.txt">
       </label>
       <label>Unidade para linhas sem unidade
         <input id="lote-unidade" list="unidades" placeholder="ex.: SV" autocomplete="off">
@@ -234,8 +310,13 @@
         <select id="lote-grupo"><option value="">(deixar vazio)</option><option>Civil</option><option>Facilities</option><option>Eletromecânica</option></select>
       </label>
       <button class="principal" type="submit" id="analisar">Analisar</button>
+      <details class="colar">
+        <summary>Ou cole a lista aqui</summary>
+        <textarea id="lote-texto" rows="6" placeholder="Uma descrição por linha. Se tiver mais colunas, separe com ; ou tab (ex.: Descrição;Unidade;Grupo)."></textarea>
+      </details>
     </form>
     <div id="lote-resultado" class="oculto">
+      <div class="relatorio" id="lote-relatorio"></div>
       <div class="chips" id="lote-chips"></div>
       <div class="barra-lote">
         <label>Quem está importando
@@ -295,6 +376,7 @@
 <script src="fala.js"></script>
 <script>
 const $ = id => document.getElementById(id);
+const M = t => (t ?? "").toString().toUpperCase();
 let atual = null;
 
 function celula(tr, texto, classe) {
@@ -310,10 +392,37 @@ function aviso(texto, classe) {
   a.textContent = texto;
   a.className = classe;
   a.style.display = "block";
+  a.style.animation = "none";
+  void a.offsetWidth;
+  a.style.animation = "";
+}
+
+function contar(el, alvo) {
+  const ini = performance.now(), dur = 700;
+  const passo = t => {
+    const p = Math.min(1, (t - ini) / dur), v = Math.round(alvo * (1 - Math.pow(1 - p, 3)));
+    el.textContent = v.toLocaleString("pt-BR");
+    if (p < 1) requestAnimationFrame(passo);
+  };
+  requestAnimationFrame(passo);
+}
+
+function animarLinhas(corpo) {
+  [...corpo.children].forEach((tr, i) => { tr.classList.add("nova"); tr.style.setProperty("--i", Math.min(i, 15)); });
+}
+
+let pendentesRede = 0;
+function rede(delta) {
+  pendentesRede = Math.max(0, pendentesRede + delta);
+  document.body.classList.toggle("carregando", pendentesRede > 0);
 }
 
 async function chamar(url, corpo) {
-  const r = await fetch(url, corpo ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) } : {});
+  rede(1);
+  let r;
+  try { r = await fetch(url, corpo ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) } : {}); }
+  catch (e) { rede(-1); throw new Error("Sem resposta do sistema. Ele está ligado? Rode o MOKKA de novo."); }
+  rede(-1);
   const dados = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(dados.erro || dados.message || "Erro " + r.status);
   return dados;
@@ -334,7 +443,12 @@ async function decidir(acao, codigo) {
 
 function abrir(id) {
   document.querySelectorAll("nav button").forEach(b => b.classList.toggle("ativa", b.dataset.aba === id));
-  ["aba-consulta", "aba-lote", "aba-unidades", "aba-catalogo", "aba-curador"].forEach(a => $(a).classList.toggle("oculto", a !== id));
+  ["aba-consulta", "aba-lote", "aba-unidades", "aba-catalogo", "aba-curador"].forEach(a => {
+    $(a).classList.toggle("oculto", a !== id);
+    $(a).classList.remove("entrar");
+  });
+  void $(id).offsetWidth;
+  $(id).classList.add("entrar");
   $("aviso").style.display = "none";
   if (id === "aba-catalogo" && !$("busca").value.trim()) catalogo();
   if (id === "aba-curador") pendentes();
@@ -391,13 +505,13 @@ async function visaoGeral() {
     $("numeros").replaceChildren(...[[r.na_base, "códigos na base"], [r.oficiais, "códigos oficiais depois da limpeza"],
       [r.repetidos, "repetidos apontando para o oficial"], [r.criados, "criados ou importados agora"]].map(([n, t]) => {
       const d = document.createElement("div"), b = document.createElement("b"), s = document.createElement("span");
-      b.textContent = n.toLocaleString("pt-BR"); s.textContent = t; d.append(b, s); return d; }));
+      contar(b, n); s.textContent = t; d.append(b, s); return d; }));
     $("grupos").replaceChildren(...grupos.map(g => {
       const d = document.createElement("div"), o = document.createElement("div");
       d.className = "grupo"; o.className = "oficial";
-      o.textContent = `${g.oficial.codigo} · ${g.oficial.descricao} [${g.oficial.unidade}]` + (g.oficial.descricao_padrao ? ` · nome padrão: ${g.oficial.descricao_padrao}` : "");
+      o.textContent = `${g.oficial.codigo} · ${M(g.oficial.descricao)} [${g.oficial.unidade}]` + (g.oficial.descricao_padrao ? ` · nome padrão: ${g.oficial.descricao_padrao}` : "");
       d.appendChild(o);
-      g.repetidos.forEach(x => { const l = document.createElement("div"); l.className = "repetido"; l.textContent = `${x.codigo} · ${x.descricao} [${x.unidade}] → use ${g.oficial.codigo}`; d.appendChild(l); });
+      g.repetidos.forEach(x => { const l = document.createElement("div"); l.className = "repetido"; l.textContent = `${x.codigo} · ${M(x.descricao)} [${x.unidade}] → use ${g.oficial.codigo}`; d.appendChild(l); });
       return d; }));
   } catch (e) {}
 }
@@ -412,10 +526,11 @@ async function catalogo(busca) {
     corpo.replaceChildren();
     lista.forEach(c => {
       const tr = document.createElement("tr");
-      [c.codigo, c.descricao, c.descricao_padrao, c.unidade, c.grupo, c.categoria].forEach(v => celula(tr, v));
+      [c.codigo, M(c.descricao), c.descricao_padrao, c.unidade, c.grupo, c.categoria].forEach(v => celula(tr, v));
       celula(tr, "").appendChild(situacao(c));
       corpo.appendChild(tr);
     });
+    animarLinhas(corpo);
     $("catalogo-vazio").textContent = busca ? "Nada encontrado." : "Nenhum código criado ainda.";
     $("catalogo-vazio").classList.toggle("oculto", lista.length > 0);
   } catch (e) { aviso(e.message, "erro"); }
@@ -429,7 +544,7 @@ async function pendentes() {
     corpo.replaceChildren();
     lista.forEach(s => {
       const tr = document.createElement("tr");
-      [s.id, s.descricao_digitada, s.unidade, s.solicitante, s.codigo_sugerido, s.justificativa].forEach(v => celula(tr, v));
+      [s.id, M(s.descricao_digitada), s.unidade, s.solicitante, s.codigo_sugerido, s.justificativa].forEach(v => celula(tr, v));
       const acoes = document.createElement("div");
       acoes.className = "acoes";
       [["Aprovar", true, "principal"], ["Recusar", false, ""]].forEach(([nome, aprovar, classe]) => {
@@ -463,7 +578,7 @@ function mostrar(r) {
   if (r.sugestao) {
     const s = r.sugestao, a = $("aviso");
     a.className = "REVISAR";
-    a.textContent = `Não achei igual a "${$("descricao").value}". Você quis dizer "${s.descricao}"? `
+    a.textContent = `Não achei igual a "${M($("descricao").value)}". Você quis dizer "${M(s.descricao)}"? `
       + `(${s.correcoes.map(c => c.de + " → " + c.para).join(", ")}). Assim: ${s.motivo}. `;
     const b = document.createElement("button");
     b.type = "button";
@@ -477,7 +592,7 @@ function mostrar(r) {
   r.candidatos.forEach((c, i) => {
     const tr = document.createElement("tr");
     celula(tr, c.codigo);
-    celula(tr, c.descricao);
+    celula(tr, M(c.descricao));
     celula(tr, c.nome_padrao);
     celula(tr, c.unidade);
     celula(tr, c.categoria);
@@ -495,6 +610,7 @@ function mostrar(r) {
     celula(tr, "").appendChild(b);
     corpo.appendChild(tr);
   });
+  animarLinhas(corpo);
   $("resultado").classList.remove("oculto");
   $("novo").style.display = "grid";
   $("justificativa").value = "";
@@ -517,7 +633,7 @@ async function historico() {
     corpo.replaceChildren();
     lista.forEach(s => {
       const tr = document.createElement("tr");
-      [s.id, s.descricao_digitada, s.solicitante, s.resultado, s.codigo_sugerido, s.codigo_escolhido, s.status, s.justificativa].forEach(v => celula(tr, v));
+      [s.id, M(s.descricao_digitada), s.solicitante, s.resultado, s.codigo_sugerido, s.codigo_escolhido, s.status, s.justificativa].forEach(v => celula(tr, v));
       corpo.appendChild(tr);
     });
   } catch (e) {}
@@ -535,15 +651,29 @@ $("form-catalogo").addEventListener("submit", e => {
 
 $("unidade").addEventListener("change", conferirUnidade);
 
-$("descricao").addEventListener("input", e => $("conta").textContent = e.target.value.length + "/40");
+function maiusculas(campo) {
+  const p = campo.selectionStart;
+  campo.value = campo.value.toUpperCase();
+  campo.setSelectionRange(p, p);
+}
+
+$("descricao").addEventListener("input", e => {
+  maiusculas(e.target);
+  $("conta").textContent = e.target.value.length + "/40";
+  if (falado) { falado = null; desenharPalavras(); }
+});
+$("busca").addEventListener("input", e => maiusculas(e.target));
 
 $("consulta").addEventListener("submit", async e => {
   e.preventDefault();
   conferirUnidade();
+  const botao = $("consulta").querySelector("button.principal");
+  botao.classList.add("ocupado");
   try {
     mostrar(await chamar("/api/consultas", { descricao: $("descricao").value, unidade: $("unidade").value, grupo: $("grupo").value, solicitante: $("solicitante").value }));
     historico();
   } catch (err) { aviso(err.message, "erro"); }
+  botao.classList.remove("ocupado");
 });
 
 $("criar").addEventListener("click", () => {
@@ -575,7 +705,7 @@ function prepararMic(botao, aoOuvir) {
   botao.innerHTML = MIC + "<span>Falar</span>";
   if (!Reconhecedor) {
     botao.disabled = true;
-    botao.title = "Este navegador não tem reconhecimento de voz. Use o Chrome ou o Edge.";
+    botao.title = "Este navegador não tem reconhecimento de voz. Use o Edge, o Chrome ou o Safari.";
     return;
   }
   if (!window.isSecureContext) {
@@ -592,7 +722,8 @@ function prepararMic(botao, aoOuvir) {
     const r = new Reconhecedor();
     r.lang = "pt-BR";
     r.interimResults = true;
-    r.maxAlternatives = 3;
+    r.maxAlternatives = 5;
+    r.continuous = false;
     ouvindo = r;
     botao.classList.add("ouvindo");
     botao.querySelector("span").textContent = "Ouvindo…";
@@ -600,7 +731,7 @@ function prepararMic(botao, aoOuvir) {
     r.onresult = e => {
       const res = e.results[e.results.length - 1];
       const alternativas = Array.from(res).map(a => a.transcript);
-      aoOuvir(alternativas, res.isFinal);
+      aoOuvir(alternativas, res.isFinal, res[0] && res[0].confidence);
     };
     r.onerror = e => {
       const msg = { "not-allowed": "O navegador bloqueou o microfone. Clique no cadeado da barra de endereço e permita o microfone.",
@@ -620,38 +751,173 @@ function prepararMic(botao, aoOuvir) {
   });
 }
 
-function usarFala(falado, consultar) {
-  const f = falaParaTexto(falado);
+function usarFala(f) {
   $("descricao").value = f.texto;
   $("conta").textContent = f.texto.length + "/40";
   if (f.unidade) { $("unidade").value = f.unidade; conferirUnidade(); }
-  if (consultar && f.texto) $("consulta").requestSubmit();
-  return f;
+}
+
+function diffPalavras(a, b) {
+  const n = a.length, m = b.length, L = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) L[i][j] = a[i] === b[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const blocos = [];
+  let i = 0, j = 0, bi = null, bj = null;
+  const fechar = () => { if (bi !== null) { blocos.push([bi, i, bj, j]); bi = bj = null; } };
+  while (i < n || j < m) {
+    if (i < n && j < m && a[i] === b[j]) { fechar(); i++; j++; }
+    else {
+      if (bi === null) { bi = i; bj = j; }
+      if (j < m && (i >= n || L[i][j + 1] >= L[i + 1][j])) j++; else i++;
+    }
+  }
+  fechar();
+  return blocos;
+}
+
+const SEM_ACENTO = t => t.normalize("NFD").replace(/\p{M}/gu, "");
+let falado = null;
+
+function juntarSugestao(mapa, indice, tamanho, sugestoes) {
+  const atual = mapa.get(indice) || { tamanho, sugestoes: [] };
+  if (tamanho > atual.tamanho) atual.tamanho = tamanho;
+  for (const s of sugestoes) if (s && !atual.sugestoes.includes(s)) atual.sugestoes.push(s);
+  mapa.set(indice, atual);
+}
+
+async function palavrasDuvidosas(texto) {
+  try { return (await chamar("/api/consultas/palavras", { texto })).palavras; } catch (e) { return []; }
+}
+
+async function escolherMelhor(alternativas) {
+  const convertidas = alternativas.map(a => falaParaTexto(a)).filter(f => f.texto);
+  if (convertidas.length < 2) return { melhor: convertidas[0], outras: [] };
+  const duvidas = await Promise.all(convertidas.map(f => palavrasDuvidosas(f.texto)));
+  let melhor = 0;
+  duvidas.forEach((d, i) => { if (d.length < duvidas[melhor].length) melhor = i; });
+  return { melhor: convertidas[melhor], duvidas: duvidas[melhor], outras: convertidas.filter((_, i) => i !== melhor) };
+}
+
+function desenharPalavras() {
+  const caixa = $("palavras");
+  caixa.replaceChildren();
+  if (!falado) { $("falado").classList.add("oculto"); return; }
+  const palavras = $("descricao").value.split(" ").filter(Boolean);
+  caixa.classList.toggle("tem-duvida", falado.mapa.size > 0);
+  for (let i = 0; i < palavras.length;) {
+    const s = falado.mapa.get(i);
+    const tam = s ? s.tamanho : 1;
+    const chip = document.createElement(s ? "button" : "span");
+    chip.className = "palavra" + (s ? " duvida" : "");
+    chip.textContent = palavras.slice(i, i + tam).join(" ");
+    chip.style.setProperty("--i", i);
+    if (s) {
+      const indice = i;
+      const envolve = document.createElement("span");
+      envolve.className = "caixa-duvida";
+      const bolha = document.createElement("button");
+      bolha.type = "button";
+      bolha.className = "bolha";
+      bolha.textContent = s.sugestoes[0] + "?";
+      bolha.title = "Trocar por " + s.sugestoes[0];
+      bolha.onclick = e => { e.stopPropagation(); trocarPalavra(indice, s.tamanho, s.sugestoes[0]); };
+      chip.type = "button";
+      chip.title = "Não tenho certeza dessa palavra. Clique para ver mais opções.";
+      chip.onclick = e => { e.stopPropagation(); abrirOpcoes(envolve, indice, s); };
+      envolve.append(bolha, chip);
+      caixa.appendChild(envolve);
+    } else caixa.appendChild(chip);
+    i += tam;
+  }
+  $("falado").classList.remove("oculto");
+}
+
+function fecharOpcoes() {
+  document.querySelectorAll(".opcoes").forEach(o => o.remove());
+}
+
+function abrirOpcoes(envolve, indice, s) {
+  fecharOpcoes();
+  const menu = document.createElement("div");
+  menu.className = "opcoes";
+  const titulo = document.createElement("span");
+  titulo.textContent = "Você quis dizer:";
+  menu.appendChild(titulo);
+  s.sugestoes.slice(0, 4).forEach(sug => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = sug;
+    b.onclick = e => { e.stopPropagation(); trocarPalavra(indice, s.tamanho, sug); };
+    menu.appendChild(b);
+  });
+  const manter = document.createElement("button");
+  manter.type = "button";
+  manter.className = "manter";
+  manter.textContent = "Manter";
+  manter.onclick = e => { e.stopPropagation(); falado.mapa.delete(indice); fecharOpcoes(); desenharPalavras(); };
+  menu.appendChild(manter);
+  envolve.appendChild(menu);
+}
+
+function trocarPalavra(indice, tamanho, nova) {
+  const palavras = $("descricao").value.split(" ").filter(Boolean);
+  palavras.splice(indice, tamanho, nova);
+  const r = caber40(palavras.join(" "));
+  $("descricao").value = r.texto;
+  $("conta").textContent = r.texto.length + "/40";
+  const novo = new Map();
+  for (const [i, v] of falado.mapa) {
+    if (i < indice) novo.set(i, v);
+    else if (i >= indice + tamanho) novo.set(i - tamanho + 1, v);
+  }
+  falado.mapa = novo;
+  fecharOpcoes();
+  desenharPalavras();
+  [...$("palavras").querySelectorAll(".palavra")].find(c => c.textContent === nova)?.classList.add("trocada");
+  if ($("solicitante").value.trim()) $("consulta").requestSubmit();
+}
+
+async function prepararPalavras(f, outras, duvidas, confianca) {
+  const palavras = f.texto.split(" ").filter(Boolean);
+  const mapa = new Map();
+  for (const d of (duvidas || await palavrasDuvidosas(f.texto))) juntarSugestao(mapa, d.indice, d.tamanho, d.sugestoes);
+  for (const o of outras) {
+    const alt = o.texto.split(" ").filter(Boolean);
+    for (const [i0, i1, j0, j1] of diffPalavras(palavras, alt)) {
+      if (i1 === i0 || j1 === j0) continue;
+      const trecho = alt.slice(j0, j1).join(" ");
+      if (i1 - i0 === j1 - j0) for (let k = 0; k < i1 - i0; k++) juntarSugestao(mapa, i0 + k, 1, [alt[j0 + k]]);
+      else juntarSugestao(mapa, i0, i1 - i0, [trecho]);
+    }
+  }
+  for (const [i, v] of mapa) {
+    const atual = palavras.slice(i, i + v.tamanho).join(" ");
+    v.sugestoes = v.sugestoes.filter(x => SEM_ACENTO(x) !== SEM_ACENTO(atual));
+    if (!v.sugestoes.length) mapa.delete(i);
+  }
+  falado = { mapa, confianca };
+  const nota = [];
+  if (f.abreviou) nota.push("abreviei para caber nos 40 caracteres");
+  if (f.cortou) nota.push("passou de 40 caracteres e cortei o final, confira");
+  if (mapa.size) nota.push("as palavras com borda amarela podem estar erradas: clique para trocar");
+  else if (confianca && confianca < 0.6) nota.push("não tenho muita certeza do que ouvi, confira o texto");
+  $("falado-nota").textContent = nota.join(" · ");
+  desenharPalavras();
 }
 
 let pedidoDeCriar = false;
-prepararMic($("mic-descricao"), (alternativas, final) => {
-  const f = usarFala(alternativas[0], false);
-  $("ultimo-ouvido").textContent = "Última coisa que ouvi: \"" + alternativas[0] + "\" → " + f.texto + (f.unidade ? " · unidade " + f.unidade : "");
-  if (!final) return;
-  pedidoDeCriar = f.acao === "criar";
-  const outras = [...new Set(alternativas.slice(1).map(a => falaParaTexto(a).texto))].filter(t => t && t !== f.texto);
-  const caixa = $("ouvi-descricao");
-  caixa.replaceChildren();
-  if (outras.length) {
-    caixa.append("Não era isso? Ouvi também:");
-    outras.forEach((t, i) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.textContent = t;
-      b.onclick = () => usarFala(alternativas[i + 1], true);
-      caixa.appendChild(b);
-    });
-  }
-  caixa.classList.toggle("oculto", !outras.length);
-  if (!$("solicitante").value.trim()) { aviso("Ouvi: " + f.texto + ". Preencha o Comprador e clique em Consultar.", "REVISAR"); $("solicitante").focus(); return; }
+prepararMic($("mic-descricao"), async (alternativas, final, confianca) => {
+  if (!final) { usarFala(falaParaTexto(alternativas[0])); return; }
+  const { melhor, duvidas, outras } = await escolherMelhor(alternativas);
+  if (!melhor) return;
+  usarFala(melhor);
+  $("ultimo-ouvido").textContent = "Última coisa que ouvi: \"" + alternativas[0] + "\" → " + melhor.texto + (melhor.unidade ? " · unidade " + melhor.unidade : "");
+  pedidoDeCriar = melhor.acao === "criar";
+  await prepararPalavras(melhor, outras, duvidas, confianca);
+  if (!$("solicitante").value.trim()) { aviso("Ouvi: " + melhor.texto + ". Preencha o Comprador e clique em Consultar.", "REVISAR"); $("solicitante").focus(); return; }
   $("consulta").requestSubmit();
 });
+
+document.addEventListener("click", fecharOpcoes);
 
 prepararMic($("mic-busca"), (alternativas, final) => {
   const t = falaParaTexto(alternativas[0]).texto;
@@ -693,9 +959,10 @@ function desenharLote() {
   corpo.replaceChildren();
   visiveis.slice(0, 300).forEach(l => {
     const tr = document.createElement("tr");
-    [l.linha, l.codigo_informado, l.descricao, l.unidade, l.nome_padrao].forEach(v => celula(tr, v));
+    celula(tr, l.linha).title = l.origem || "";
+    [l.codigo_informado, M(l.descricao), M(l.unidade), l.nome_padrao].forEach(v => celula(tr, v));
     celula(tr, NOMES[l.resultado] || l.resultado, "res " + l.resultado);
-    celula(tr, l.codigo_existente ? `${l.codigo_existente} · ${l.descricao_existente || ""}` : "");
+    celula(tr, l.codigo_existente ? `${l.codigo_existente} · ${M(l.descricao_existente)}` : "");
     const sel = document.createElement("select");
     (ACOES[l.resultado] || ACOES.ERRO).forEach(([v, t]) => {
       const o = document.createElement("option");
@@ -711,6 +978,7 @@ function desenharLote() {
     celula(tr, l.situacao || l.motivo);
     corpo.appendChild(tr);
   });
+  animarLinhas(corpo);
   const importado = lote.linhas.some(l => l.situacao);
   $("lote-info").textContent = (visiveis.length > 300 ? `Mostrando 300 de ${visiveis.length} linhas; o Excel organizado traz todas. ` : "")
     + (importado ? "Importação feita. Baixe o Excel organizado para ter o código final de cada linha."
@@ -720,7 +988,8 @@ function desenharLote() {
 }
 
 async function baixar(url, corpo, nome) {
-  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) });
+  rede(1);
+  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) }).finally(() => rede(-1));
   if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.erro || "Erro " + r.status); }
   const a = document.createElement("a");
   a.href = URL.createObjectURL(await r.blob());
@@ -731,26 +1000,35 @@ async function baixar(url, corpo, nome) {
 
 $("form-lote").addEventListener("submit", async e => {
   e.preventDefault();
-  const arquivo = $("arquivo").files[0];
-  if (!arquivo) return;
+  const colado = $("lote-texto").value.trim();
+  const arquivo = $("arquivo").files[0] || (colado ? new File([colado], "colado.txt", { type: "text/plain" }) : null);
+  if (!arquivo) { aviso("Escolha uma planilha ou cole a lista.", "erro"); return; }
   const dados = new FormData();
   dados.append("arquivo", arquivo);
   dados.append("unidadePadrao", $("lote-unidade").value.trim());
   dados.append("grupoPadrao", $("lote-grupo").value);
-  $("analisar").disabled = true;
+  $("analisar").classList.add("ocupado");
   aviso(`Analisando ${arquivo.name}… planilhas grandes levam alguns segundos.`, "");
   try {
-    const r = await fetch("/api/lotes/analisar", { method: "POST", body: dados });
+    rede(1);
+    const r = await fetch("/api/lotes/analisar", { method: "POST", body: dados }).finally(() => rede(-1));
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.erro || "Erro " + r.status);
     lote = d;
     filtroLote = null;
+    const rel = $("lote-relatorio");
+    rel.replaceChildren();
+    const t = document.createElement("b");
+    t.textContent = "O que eu arrumei antes de analisar";
+    const ul = document.createElement("ul");
+    (d.relatorio || []).forEach(x => { const li = document.createElement("li"); li.textContent = x; ul.appendChild(li); });
+    rel.append(t, ul);
     const s = d.resumo;
     aviso(`${s.TOTAL} linhas analisadas em ${(d.milissegundos / 1000).toFixed(1)} s: ${s.BLOQUEAR} já existem, ${s.REVISAR} parecidos, ${s.LIBERAR} novos, ${s.REPETIDO} repetidos dentro da planilha e ${s.ERRO} com erro.`, "LIBERAR");
     if (!$("lote-quem").value) $("lote-quem").value = $("solicitante").value;
     desenharLote();
   } catch (err) { aviso(err.message, "erro"); }
-  $("analisar").disabled = false;
+  $("analisar").classList.remove("ocupado");
 });
 
 $("importar").addEventListener("click", async () => {
@@ -771,7 +1049,7 @@ $("importar").addEventListener("click", async () => {
 
 $("exportar").addEventListener("click", async () => {
   if (!lote) return;
-  try { await baixar("/api/lotes/exportar", { linhas: lote.linhas }, "codigos_organizados.xlsx"); }
+  try { await baixar("/api/lotes/exportar", { linhas: lote.linhas, relatorio: lote.relatorio || [] }, "codigos_organizados.xlsx"); }
   catch (err) { aviso(err.message, "erro"); }
 });
 
@@ -782,8 +1060,8 @@ if (location.hash === "#catalogo") abrir("aba-catalogo");
 
 async function checarVoz() {
   const itens = [];
-  const edgeOuChrome = /Edg\/|Chrome\//.test(navigator.userAgent) && !navigator.brave;
-  itens.push([edgeOuChrome ? "Navegador: ok" : "Navegador: use o Edge ou o Chrome", edgeOuChrome]);
+  const serve = !!Reconhecedor && !navigator.brave;
+  itens.push([serve ? "Navegador: ok" : "Navegador: use o Edge, o Chrome ou o Safari", serve]);
   itens.push([window.isSecureContext ? "Endereço: localhost ok" : "Abra por http://localhost:8080", window.isSecureContext]);
   itens.push([navigator.onLine ? "Internet: ok" : "Sem internet: a voz não funciona", navigator.onLine]);
   try {
