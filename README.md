@@ -66,7 +66,9 @@ java -jar target/codigos-api-0.3.0.jar --spring.sql.init.data-locations=file:../
 
 ### 4. Teste
 
-Siga o roteiro [docs/COMO_TESTAR.md](docs/COMO_TESTAR.md): 12 testes curtos, cada um com o resultado esperado.
+No Windows, dê dois cliques em **`TESTAR TUDO.bat`**: ele liga o sistema se precisar, testa consulta, correção de escrita, erros, planilha em lote, Excel, Swagger, testes do Python, microfone e internet, mostra OK ou FALHOU em cada item e abre o teste do microfone no Edge (também em http://localhost:8080/#testar-voz).
+
+Para testar à mão, siga o roteiro [docs/COMO_TESTAR.md](docs/COMO_TESTAR.md): 12 testes curtos, cada um com o resultado esperado.
 
 ### Sobre a base de dados
 
@@ -154,6 +156,7 @@ Depois de mudar o Java, apague a pasta `codigos-api/target` para o `iniciar.bat`
 | Falha ao preparar o Python | sem internet ou Python 3.14+ sem pacotes prontos | Instale o Python 3.12 e apague `saneamento/.venv` |
 | "O serviço de similaridade está fora do ar" | a janela do Python foi fechada | Rode o `iniciar.bat` de novo |
 | O botão Falar está cinza | Firefox, ou página aberta pelo IP | Use o Chrome ou o Edge em `http://localhost:8080` |
+| "O Brave bloqueia o reconhecimento de voz" | o Brave desliga o serviço de voz do Google | Abra no Edge (o `iniciar.bat` já abre nele) ou no Chrome |
 | "O reconhecimento de voz precisa de internet" | sem internet | Digite a descrição |
 | Outro computador não abre | Firewall do Windows | Permita o Java em "Redes privadas" |
 | A tela parece antiga | cache do navegador | Ctrl+F5 |
