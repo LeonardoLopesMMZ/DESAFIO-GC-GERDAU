@@ -53,6 +53,15 @@ public class ConsultaController {
         return new Resposta(s.getId(), r.resultado(), r.motivo(), c, r.sugestao());
     }
 
+    @Operation(summary = "Palavras duvidosas", description = "Para cada palavra que não aparece no catálogo, devolve as mais parecidas que aparecem. Usado na busca por voz.")
+    @PostMapping("/palavras")
+    public SimilaridadeClient.Palavras palavras(@Valid @RequestBody Texto t) {
+        return similaridade.palavras(t.texto().trim());
+    }
+
+    public record Texto(@NotBlank(message = "Informe o texto") @Size(max = 200, message = "O texto deve ter até 200 caracteres") String texto) {
+    }
+
     public record Pedido(@NotBlank(message = "Informe a descrição")
                          @Size(max = 40, message = "A descrição deve ter até 40 caracteres") String descricao,
                          @NotBlank(message = "Informe a unidade")

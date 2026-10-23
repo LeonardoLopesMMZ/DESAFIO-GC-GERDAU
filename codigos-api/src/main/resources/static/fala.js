@@ -14,6 +14,40 @@ const TROCAS = [
   [/\bpara\b/g, "p/"], [/\bcom\b/g, "c/"]
 ];
 
+const ABREVIAR = [
+  ["TECNICO DE SEGURANCA DO TRABALHO", "TST"], ["TECNICO EM SEGURANCA DO TRABALHO", "TST"],
+  ["AUXILIAR DE SERVICOS GERAIS", "ASG"], ["ADICIONAL NOTURNO", "AD NOT"],
+  ["HORA EXTRA", "HE"], ["HORA NORMAL", "HN"], ["SEGUNDA A SABADO", "SEG A SAB"], ["DOMINGO E FERIADO", "DOM/FER"],
+  ["DESMOBILIZACAO", "DESMOB"], ["MOBILIZACAO", "MOB"], ["PERICULOSIDADE", "PERIC"], ["INSALUBRIDADE", "INSAL"],
+  ["MANUTENCAO", "MANUT"], ["INSTALACAO", "INST"], ["DISPOSICAO", "DISP"], ["ENCARREGADO", "ENCARREG"],
+  ["SUPERVISOR", "SUPERV"], ["COORDENADOR", "COORD"], ["PLANEJAMENTO", "PLANEJ"], ["CALDEIREIRO", "CALD"],
+  ["ALMOXARIFE", "ALMOX"], ["ASSISTENTE", "ASSIST"], ["ESPECIALIZADO", "ESPEC"], ["CONSERVACAO", "CONSERV"],
+  ["ENGENHEIRO", "ENG"], ["TRANSPORTE", "TRANSP"], ["GALVANIZADO", "GALV"], ["GALVANIZADA", "GALV"], ["TUBULACAO", "TUBU"],
+  ["RECEPCIONISTA", "RECEP"], ["ALPINISTA", "ALPIN"], ["AUXILIAR", "AUX"], ["AJUDANTE", "AJUD"],
+  ["MECANICO", "MEC"], ["OPERADOR", "OP"], ["OFICIAL", "OF"], ["TECNICO", "TEC"], ["SEGURANCA", "SEGUR"],
+  ["TRABALHO", "TRAB"], ["VIGILANTE", "VIG"], ["LIMPEZA", "LIMP"], ["MAQUINA", "MAQ"], ["SERVICOS", "SERV"],
+  ["CONCRETO", "CONC"], ["DIAMETRO", "DIAM"], ["NOTURNO", "NOT"], ["ADICIONAL", "ADIC"], ["CAIXA", "CX"]
+];
+const MINIMAS = [" DE ", " DA ", " DO ", " DAS ", " DOS ", " E ", " EM "];
+
+function caber40(texto) {
+  let t = texto.toUpperCase().replace(/\s+/g, " ").trim();
+  const original = t;
+  const base = () => semAcento(t);
+  for (const [longo, curto] of ABREVIAR) {
+    if (t.length <= 40) break;
+    const re = new RegExp("\\b" + longo.replace(/ /g, "\\s+") + "\\b");
+    const m = base().match(re);
+    if (m) t = t.slice(0, m.index) + curto + t.slice(m.index + m[0].length);
+  }
+  for (const p of MINIMAS) {
+    while (t.length > 40 && (" " + t + " ").includes(p)) t = (" " + t + " ").replace(p, " ").trim();
+  }
+  const cortou = t.length > 40;
+  if (cortou) t = t.slice(0, 40).trim();
+  return { texto: t, abreviou: t !== original && !cortou, cortou };
+}
+
 const COMANDOS = /^(buscar|busca|procurar|procura|consultar|consulta|pesquisar|pesquisa|criar|cria|cadastrar|novo c[oó]digo( de)?)\s+/;
 
 function semAcento(t) {
@@ -68,7 +102,8 @@ function falaParaTexto(falado) {
   t = numerosPorExtenso(t.replace(/\bpor ?cento\b/g, "%"));
   for (const [de, para] of TROCAS) t = t.replace(de, para);
   t = t.replace(/(\d+)\s+v[ií]rgula\s+(\d+)/g, "$1,$2").replace(/(\d+)\s*(?:x|por|vezes)\s*(\d+)/g, "$1X$2").replace(/(\d)\s+%/g, "$1%").replace(/\s+/g, " ").trim();
-  return { texto: t.toUpperCase().slice(0, 40), acao, unidade };
+  const curto = caber40(t);
+  return { texto: curto.texto, abreviou: curto.abreviou, cortou: curto.cortou, completo: t.toUpperCase(), acao, unidade };
 }
 
-if (typeof module !== "undefined") module.exports = { falaParaTexto };
+if (typeof module !== "undefined") module.exports = { falaParaTexto, caber40 };

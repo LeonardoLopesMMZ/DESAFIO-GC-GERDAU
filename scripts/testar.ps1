@@ -1,11 +1,12 @@
 ﻿$ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
-Set-Location $PSScriptRoot
+$raiz = Split-Path $PSScriptRoot -Parent
+Set-Location $raiz
 $site = 'http://localhost:8080'
 $script:ok = 0
 $script:falhou = 0
-$log = Join-Path $PSScriptRoot 'testar.log'
+$log = Join-Path $raiz 'testar.log'
 Start-Transcript -Path $log -Force | Out-Null
 
 function Teste([string]$nome, [scriptblock]$bloco) {
@@ -83,8 +84,8 @@ Teste 'Erro em portugues para unidade errada' {
 }
 
 Teste 'Planilha em lote (modelo com 14 linhas)' {
-  $modelo = Join-Path $PSScriptRoot 'front\modelo_lote.xlsx'
-  if (-not (Test-Path $modelo)) { $modelo = Join-Path $PSScriptRoot 'codigos-api\src\main\resources\static\modelo_lote.xlsx' }
+  $modelo = Join-Path $raiz 'front\modelo_lote.xlsx'
+  if (-not (Test-Path $modelo)) { $modelo = Join-Path $raiz 'codigos-api\src\main\resources\static\modelo_lote.xlsx' }
   $txt = & curl.exe -s -F "arquivo=@$modelo" ($site + '/api/lotes/analisar')
   $r = $txt | ConvertFrom-Json
   if ($r.resumo.TOTAL -ne 14) { throw "veio $($r.resumo.TOTAL) linhas" }
@@ -108,8 +109,8 @@ Teste 'Swagger (API)' {
 }
 
 Teste 'Testes automaticos do Python' {
-  $py = Join-Path $PSScriptRoot 'saneamento\.venv\Scripts\python.exe'
-  Push-Location (Join-Path $PSScriptRoot 'saneamento')
+  $py = Join-Path $raiz 'saneamento\.venv\Scripts\python.exe'
+  Push-Location (Join-Path $raiz 'saneamento')
   $antes = $ErrorActionPreference
   $ErrorActionPreference = 'Continue'
   try {

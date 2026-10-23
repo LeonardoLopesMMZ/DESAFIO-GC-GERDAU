@@ -91,7 +91,7 @@ public class LoteController {
                     : descricao.length() > 200 ? "Descrição com mais de 200 caracteres"
                     : unidade == null ? (unDigitada.isEmpty() ? "Linha sem unidade (escolha uma unidade padrão)" : "Unidade não conhecida: " + unDigitada)
                     : null;
-            Linha linha = new Linha(((Number) l.get("linha")).intValue(), texto(l.get("codigo")), texto(l.get("fornecedor")),
+            Linha linha = new Linha(((Number) l.get("linha")).intValue(), texto(l.get("origem")), texto(l.get("codigo")), texto(l.get("fornecedor")),
                     descricao, unidade == null ? unDigitada : unidade, grupo, null, null, null,
                     erro == null ? null : "ERRO", null, null, null, null, erro, erro == null ? null : "IGNORAR", null, null);
             if (erro == null) {
@@ -132,12 +132,12 @@ public class LoteController {
                     case "BLOQUEAR", "REVISAR" -> "USAR_EXISTENTE";
                     default -> "CRIAR";
                 };
-                linhas.set(i, new Linha(l.linha(), l.codigoInformado(), l.fornecedor(), l.descricao(), l.unidade(), l.grupo(),
+                linhas.set(i, new Linha(l.linha(), l.origem(), l.codigoInformado(), l.fornecedor(), l.descricao(), l.unidade(), l.grupo(),
                         a.descricaoLimpa(), a.nomePadrao(), a.categoria(), resultado, parecido ? codExistente : null,
                         parecido ? descExistente : null, parecido && existente == null ? a.aderencia() : null, repete, motivo, acao, null, null));
             }
         }
-        return new ResultadoAnalise(arquivo.getOriginalFilename(), p.colunas(), resumo(linhas), System.currentTimeMillis() - inicio, linhas);
+        return new ResultadoAnalise(arquivo.getOriginalFilename(), p.colunas(), p.relatorio(), resumo(linhas), System.currentTimeMillis() - inicio, linhas);
     }
 
     @Operation(summary = "Importar no banco",
@@ -250,7 +250,7 @@ public class LoteController {
                     + "com nome padrão de até 40 caracteres) e Resumo.")
     @PostMapping(value = "/exportar", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     public ResponseEntity<byte[]> exportar(@Valid @RequestBody PedidoExportacao pedido) {
-        byte[] xlsx = similaridade.exportar(pedido.linhas());
+        byte[] xlsx = similaridade.exportar(pedido.linhas(), pedido.relatorio());
         String nome = "codigos_organizados_" + LocalDateTime.now().toString().substring(0, 16).replace(":", "h") + ".xlsx";
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(nome).build().toString())
@@ -287,18 +287,18 @@ public class LoteController {
         return s == null ? null : s.length() <= max ? s : s.substring(0, max);
     }
 
-    public record Linha(int linha, String codigoInformado, String fornecedor, String descricao, String unidade, String grupo,
+    public record Linha(int linha, String origem, String codigoInformado, String fornecedor, String descricao, String unidade, String grupo,
                         String descricaoLimpa, String nomePadrao, String categoria, String resultado, String codigoExistente,
                         String descricaoExistente, Integer aderencia, Integer repeteLinha, String motivo, String acao,
                         String codigoFinal, String situacao) {
 
         Linha com(String codigoFinal, String situacao) {
-            return new Linha(linha, codigoInformado, fornecedor, descricao, unidade, grupo, descricaoLimpa, nomePadrao, categoria,
+            return new Linha(linha, origem, codigoInformado, fornecedor, descricao, unidade, grupo, descricaoLimpa, nomePadrao, categoria,
                     resultado, codigoExistente, descricaoExistente, aderencia, repeteLinha, motivo, acao, codigoFinal, situacao);
         }
     }
 
-    public record ResultadoAnalise(String arquivo, Map<String, String> colunas, Map<String, Long> resumo, long milissegundos, List<Linha> linhas) {
+    public record ResultadoAnalise(String arquivo, Map<String, String> colunas, List<String> relatorio, Map<String, Long> resumo, long milissegundos, List<Linha> linhas) {
     }
 
     public record Importacao(Map<String, Long> resumo, long milissegundos, List<Linha> linhas) {
@@ -311,6 +311,7 @@ public class LoteController {
     }
 
     public record PedidoExportacao(@NotEmpty(message = "Nenhuma linha para exportar")
-                                   @Size(max = 5000, message = "No máximo 5000 linhas por vez") List<Linha> linhas) {
+                                   @Size(max = 5000, message = "No máximo 5000 linhas por vez") List<Linha> linhas,
+                                   @Size(max = 200) List<String> relatorio) {
     }
 }

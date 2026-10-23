@@ -42,6 +42,10 @@ public class SimilaridadeClient {
                 .contentType(MediaType.APPLICATION_OCTET_STREAM).body(arquivo).retrieve().body(Planilha.class));
     }
 
+    public Palavras palavras(String texto) {
+        return enviar("/palavras", Map.of("texto", texto), Palavras.class);
+    }
+
     public Analises analisarLote(List<Map<String, String>> itens) {
         return enviar("/lote", Map.of("itens", itens), Analises.class);
     }
@@ -50,8 +54,8 @@ public class SimilaridadeClient {
         enviar("/codigos/lote", Map.of("itens", itens), Map.class);
     }
 
-    public byte[] exportar(List<?> linhas) {
-        return enviar("/lote/exportar", Map.of("linhas", linhas), byte[].class);
+    public byte[] exportar(List<?> linhas, List<String> relatorio) {
+        return enviar("/lote/exportar", Map.of("linhas", linhas, "relatorio", relatorio == null ? List.of() : relatorio), byte[].class);
     }
 
     private <T> T enviar(String caminho, Map<String, Object> corpo, Class<T> tipo) {
@@ -71,7 +75,13 @@ public class SimilaridadeClient {
         }
     }
 
-    public record Planilha(Map<String, String> colunas, List<Map<String, Object>> linhas) {
+    public record Planilha(Map<String, String> colunas, List<Map<String, Object>> linhas, List<String> relatorio) {
+    }
+
+    public record Palavras(List<Palavra> palavras) {
+    }
+
+    public record Palavra(int indice, int tamanho, String palavra, List<String> sugestoes) {
     }
 
     public record Analises(List<Analise> itens) {

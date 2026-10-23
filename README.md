@@ -38,7 +38,17 @@ Quem não usa Git pode baixar pelo GitHub: botão verde **Code > Download ZIP**,
 
 ### 3. Ligue o sistema
 
-**Windows:** dê dois cliques em **`iniciar.bat`**.
+**Windows:** dê dois cliques em **`MOKKA.bat`**. Abre um menu:
+
+| Opção | O que faz |
+| --- | --- |
+| 1 | Liga o sistema e abre o site no Edge |
+| 2 | Testa tudo (mostra OK ou FALHOU em cada item) e abre o teste do microfone |
+| 3 | Abre o teste do microfone |
+| 4 | Abre o Swagger (API) |
+| 5 | Desliga |
+
+Também dá para usar sem menu: `MOKKA.bat ligar`, `MOKKA.bat testar` ou `MOKKA.bat parar`.
 
 Na primeira vez ele faz três coisas, que levam de 3 a 5 minutos e precisam de internet:
 
@@ -46,27 +56,21 @@ Na primeira vez ele faz três coisas, que levam de 3 a 5 minutos e precisam de i
 - compila o Java;
 - monta o catálogo.
 
-Depois disso o sistema liga em uns 30 segundos, também sem internet. O navegador abre sozinho em **http://localhost:8080**. Para desligar, use o **`parar.bat`**.
+Depois disso o sistema liga em uns 30 segundos, também sem internet.
 
-**Linux ou Mac**, em dois terminais:
-
-```
-cd saneamento
-python3 -m venv .venv && . .venv/bin/activate
-pip install pandas numpy scikit-learn openpyxl
-python exportar.py exemplo/base_exemplo.csv --tudo
-python api.py exemplo/base_exemplo.csv
-```
-
-```
-cd codigos-api
-./mvnw -DskipTests package
-java -jar target/codigos-api-0.3.0.jar --spring.sql.init.data-locations=file:../saneamento/saida/data.sql --spring.sql.init.encoding=UTF-8
-```
+**Mac (Safari) ou Linux:** no Terminal, rode `bash MOKKA.command`. No Mac também dá para dar dois cliques no arquivo; se o Mac bloquear, rode antes `chmod +x MOKKA.command`. Ele faz o mesmo que a opção 1 e abre o Safari; para desligar, feche a janela do Terminal. Precisa de Java 17 e Python 3.11 a 3.13 (`brew install openjdk@17 python@3.12`). Para a voz funcionar no Safari, ative o Ditado em Ajustes do Sistema > Teclado > Ditado.
 
 ### 4. Teste
 
-No Windows, dê dois cliques em **`TESTAR TUDO.bat`**: ele liga o sistema se precisar, testa consulta, correção de escrita, erros, planilha em lote, Excel, Swagger, testes do Python, microfone e internet, mostra OK ou FALHOU em cada item e abre o teste do microfone no Edge (também em http://localhost:8080/#testar-voz).
+Use a opção **2** do `MOKKA.bat`. Ela liga o sistema se precisar e testa:
+
+- consulta e correção de escrita;
+- erros e planilha em lote;
+- Excel e Swagger;
+- testes do Python;
+- microfone e internet.
+
+No fim, abre o teste do microfone (http://localhost:8080/#testar-voz).
 
 Para testar à mão, siga o roteiro [docs/COMO_TESTAR.md](docs/COMO_TESTAR.md): 12 testes curtos, cada um com o resultado esperado.
 
@@ -74,14 +78,14 @@ Para testar à mão, siga o roteiro [docs/COMO_TESTAR.md](docs/COMO_TESTAR.md): 
 
 A planilha da Gerdau é confidencial e **não está no repositório**. Por isso o projeto traz uma **base de exemplo fictícia** (`saneamento/exemplo/base_exemplo.csv`), com 337 códigos inventados no mesmo formato e com os mesmos tipos de bagunça: abreviações, maiúsculas e minúsculas, "SV-" na frente, o mesmo serviço com códigos diferentes. Ela é usada automaticamente.
 
-Quem tem a base real coloca o arquivo em `saneamento/dados/base_codigos_servico.xlsx` e roda o `iniciar.bat` de novo. Ele passa a usar a real; o `.gitignore` impede que ela suba para o GitHub.
+Quem tem a base real coloca o arquivo em `saneamento/dados/base_codigos_servico.xlsx` e liga o `MOKKA.bat` de novo. Ele passa a usar a real; o `.gitignore` impede que ela suba para o GitHub.
 
 ## O que o sistema faz
 
 | Aba | O que dá para fazer |
 | --- | --- |
-| Consultar e criar | Digitar ou **falar** a descrição. Ver os parecidos com a aderência e o que muda em cada um. Usar um existente ou criar um novo. Se houver erro de digitação ou de fala ("SOLDA DOR"), o sistema sugere a correção ("SOLDADOR") e mostra que o código já existe. |
-| Planilha (lote) | Mandar um .xlsx ou .csv bruto. Ver linha a linha: já existe, parecido, novo, repetido dentro da própria planilha ou com erro. Trocar a ação de cada linha. Importar tudo numa transação só. Baixar o Excel organizado com as abas Tratado, Pronto para o SAP e Resumo. |
+| Consultar e criar | Digitar ou **falar** a descrição. A fala vira texto em maiúsculas, números falados viram dígitos ("cinquenta por cento" vira 50%) e, se passar de 40 caracteres, é abreviada no padrão do SAP (HORA EXTRA vira HE, TÉCNICO DE SEGURANÇA DO TRABALHO vira TST). Palavras de que o sistema não tem certeza aparecem com uma sugestão em cima, para trocar com um clique. Ver os parecidos com a aderência e o que muda em cada um. Usar um existente ou criar um novo. Se houver erro de digitação ou de fala ("SOLDA DOR"), o sistema sugere a correção ("SOLDADOR") e mostra que o código já existe. |
+| Planilha (lote) | Mandar um .xlsx ou .csv bruto, ou colar a lista. Antes de analisar, o sistema arruma a planilha: pula títulos, junta abas, divide texto colado em colunas, tira cabeçalhos repetidos e linhas idênticas e unifica grupos escritos de jeitos diferentes, mostrando um relatório do que fez. Ver linha a linha: já existe, parecido, novo, repetido dentro da própria planilha ou com erro. Trocar a ação de cada linha. Importar tudo numa transação só. Baixar o Excel organizado com as abas Tratado, Pronto para o SAP, Resumo, Relatório e uma aba por grupo. |
 | Unidades | Ver como escrever cada unidade. Na consulta dá para escrever "hora" ou "metro quadrado", e a tela troca por H ou M2. |
 | Catálogo | Ver os números da base, os códigos oficiais com os repetidos de cada um e os códigos criados ou importados. Buscar por número ou texto, também por voz. |
 | Curador | Aprovar ou recusar quem quis criar um código que já existe. |
@@ -131,11 +135,11 @@ A documentação completa e testável fica em **http://localhost:8080/swagger** 
 
 ## Apresentar sem susto (Teams ou ao vivo)
 
-- **Ligue 5 minutos antes** com o `iniciar.bat` e deixe a aba aberta. Tudo roda no próprio computador e não depende de internet, menos a voz.
+- **Ligue 5 minutos antes** com o `MOKKA.bat` e deixe a aba aberta. Tudo roda no próprio computador e não depende de internet, menos a voz.
 - **Compartilhe a janela do navegador** no Teams, não a tela inteira: as janelas pretas do Python e do Java ficam fora.
 - **Voz:** use o Chrome ou o Edge em `http://localhost:8080`. Ela precisa de internet; se cair, digite, que todo o resto continua funcionando.
-- **Para começar do zero entre ensaios**, rode o `iniciar.bat` de novo: o banco de demonstração é em memória.
-- **Para o grupo acessar junto**, outros computadores na **mesma rede** abrem o endereço que o `iniciar.bat` mostra no fim (`http://192.168.x.x:8080`). Se o Firewall perguntar, permita em "Redes privadas". Por Teams, de casas diferentes, isso não funciona: aí só quem está ligado compartilha a tela.
+- **Para começar do zero entre ensaios**, ligue de novo pelo `MOKKA.bat` (opção 1): o banco de demonstração é em memória.
+- **Para o grupo acessar junto**, outros computadores na **mesma rede** abrem o endereço que o `MOKKA.bat` mostra ao ligar (`http://192.168.x.x:8080`). Se o Firewall perguntar, permita em "Redes privadas". Por Teams, de casas diferentes, isso não funciona: aí só quem está ligado compartilha a tela.
 
 ## Como mexer no código
 
@@ -143,20 +147,20 @@ A documentação completa e testável fica em **http://localhost:8080/swagger** 
   - No IntelliJ IDEA, faça File > Open, escolha a pasta `codigos-api` e espere o Maven carregar.
   - Para rodar, use a classe `CodigosApplication` com o argumento `--spring.sql.init.data-locations=file:../saneamento/saida/data.sql`.
   - O serviço Python precisa estar ligado.
-- **Python:** no VS Code, abra a pasta `saneamento` e escolha o interpretador `.venv` que o `iniciar.bat` criou.
+- **Python:** no VS Code, abra a pasta `saneamento` e escolha o interpretador `.venv` que o `MOKKA.bat` criou.
 - **Tela:** é um arquivo só, `codigos-api/src/main/resources/static/index.html`, e a conversão de fala em texto fica em `fala.js` na mesma pasta.
 
-Depois de mudar o Java, apague a pasta `codigos-api/target` para o `iniciar.bat` compilar de novo.
+Depois de mudar o Java, apague a pasta `codigos-api/target` para o `MOKKA.bat` compilar de novo.
 
 ## Problemas comuns
 
 | Problema | Causa provável | O que fazer |
 | --- | --- | --- |
-| "Java não encontrado" | JDK não instalado ou fora do PATH | Instale o Temurin 17 e abra o `iniciar.bat` de novo |
+| "Java não encontrado" | JDK não instalado ou fora do PATH | Instale o Temurin 17 e abra o `MOKKA.bat` de novo |
 | Falha ao preparar o Python | sem internet ou Python 3.14+ sem pacotes prontos | Instale o Python 3.12 e apague `saneamento/.venv` |
-| "O serviço de similaridade está fora do ar" | a janela do Python foi fechada | Rode o `iniciar.bat` de novo |
-| O botão Falar está cinza | Firefox, ou página aberta pelo IP | Use o Chrome ou o Edge em `http://localhost:8080` |
-| "O Brave bloqueia o reconhecimento de voz" | o Brave desliga o serviço de voz do Google | Abra no Edge (o `iniciar.bat` já abre nele) ou no Chrome |
+| "O serviço de similaridade está fora do ar" | a janela do Python foi fechada | Ligue de novo pelo `MOKKA.bat` |
+| O botão Falar está cinza | Firefox, ou página aberta pelo IP | Use o Edge, o Chrome ou o Safari em `http://localhost:8080` |
+| "O Brave bloqueia o reconhecimento de voz" | o Brave desliga o serviço de voz do Google | Abra no Edge (o `MOKKA.bat` já abre nele), no Chrome ou no Safari |
 | "O reconhecimento de voz precisa de internet" | sem internet | Digite a descrição |
 | Outro computador não abre | Firewall do Windows | Permita o Java em "Redes privadas" |
 | A tela parece antiga | cache do navegador | Ctrl+F5 |
