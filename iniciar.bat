@@ -54,7 +54,7 @@ if %N% gtr 90 (echo Demorou demais. Abra as janelas minimizadas na barra de tare
 timeout /t 2 /nobreak >nul
 curl -s -o nul http://127.0.0.1:8000/saude || goto esperar
 curl -s -o nul http://127.0.0.1:8080/api/unidades || goto esperar
-start "" "http://localhost:8080/?%RANDOM%"
+if not defined SEM_NAVEGADOR start "" msedge "http://localhost:8080/?%RANDOM%"
 echo.
 echo  PRONTO
 echo  Neste computador ......... http://localhost:8080
@@ -63,7 +63,7 @@ echo  Outros PCs na mesma rede:
 for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /r /c:"IPv4"') do for /f "tokens=* delims= " %%b in ("%%a") do echo                              http://%%b:8080
 echo.
 echo  Se o Windows perguntar sobre o Firewall, marque "Redes privadas" e clique em Permitir.
-echo  O microfone so funciona pelo endereco localhost, no computador que esta rodando.
+echo  A voz funciona no Edge ou no Chrome, pelo endereco localhost. No Brave ela e bloqueada.
 echo  Para desligar, rode o parar.bat ou feche as janelas "Similaridade" e "Aplicacao".
 echo.
 pause
