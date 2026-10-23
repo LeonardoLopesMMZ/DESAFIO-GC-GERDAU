@@ -1,5 +1,8 @@
 package br.com.squad.codigos.catalogo;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import java.text.Normalizer;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +12,7 @@ import java.util.stream.Stream;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "Unidades", description = "Unidades do SAP, o que pode ser escrito no lugar e exemplos")
 @RestController
 public class Unidades {
 
@@ -48,6 +52,7 @@ public class Unidades {
         this.codigos = codigos;
     }
 
+    @Operation(summary = "Listar unidades")
     @GetMapping("/api/unidades")
     public List<Unidade> listar() {
         Map<String, Long> ativos = codigos.ativosPorUnidade().stream()

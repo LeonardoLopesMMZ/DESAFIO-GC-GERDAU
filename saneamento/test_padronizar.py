@@ -124,6 +124,21 @@ def test_api_devolve_candidatos():
     servidor.shutdown()
 
 
+def test_lote_com_base_de_exemplo():
+    from lote import exportar_planilha, ler_planilha
+    from similaridade import carregar_buscador
+    b = carregar_buscador("exemplo/base_exemplo.csv")
+    csv = ("Código;Descrição;Unidade\n;eletricista hora extra 100%;hora\n;OPERADOR DE DRONE P/ INSPECAO;H\n"
+           ";operador drone p/ inspeção;H\n;ELETRESISTA HE 100%;H\n;;\n").encode("utf-8")
+    p = ler_planilha(csv, "teste.csv")
+    assert [l["linha"] for l in p["linhas"]] == [2, 3, 4, 5], p
+    r = b.buscar_lote([(l["descricao"], "H") for l in p["linhas"]])
+    assert [x["resultado"] for x in r] == ["BLOQUEAR", "LIBERAR", "LIBERAR", "REVISAR"], r
+    assert r[2]["repete_item"] == 1 and r[3]["codigo_existente"] == "7000146", r
+    assert b.buscar("SOLDA DOR HORA EXTRA 50%", "H")["sugestao"]["descricao"] == "SOLDADOR HORA EXTRA 50%"
+    assert exportar_planilha([{"linha": 2, "resultado": "BLOQUEAR", "codigo_final": "7000146"}])[:2] == b"PK"
+
+
 if __name__ == "__main__":
     for nome, f in list(globals().items()):
         if nome.startswith("test_"):
