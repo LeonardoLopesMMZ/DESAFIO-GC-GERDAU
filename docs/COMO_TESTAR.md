@@ -47,7 +47,7 @@ Outros para testar: `ELETRESISTA HORA EXTRA 100%` e `VIGILANTI NOTURNO 12X36`.
 
 ## 7. Busca e criação por voz
 
-Precisa do Chrome ou do Edge, aberto em **http://localhost:8080** no computador que está rodando o sistema, e com internet: o navegador usa o reconhecimento de voz do Google ou da Microsoft.
+Precisa do Chrome ou do Edge (no Brave a voz é bloqueada), aberto em **http://localhost:8080** no computador que está rodando o sistema, e com internet: o navegador usa o reconhecimento de voz do Google ou da Microsoft.
 
 1. Clique em **Falar** ao lado da descrição. Na primeira vez, permita o microfone.
 2. Fale: *"soldador hora extra cinquenta por cento segunda a sábado, unidade hora"*.

@@ -119,6 +119,18 @@
   form#consulta, .lote-form { align-items: start; }
   form#consulta > button, .lote-form > button { margin-top: 24.5px; }
   td button { white-space: nowrap; }
+  .links-topo { display: flex; gap: 8px; flex-wrap: wrap; }
+  .teste-voz { background: var(--cartao); border: 1px solid var(--borda); border-left: 5px solid var(--destaque); border-radius: var(--raio); box-shadow: var(--sombra); padding: 16px 18px; margin-bottom: 18px; }
+  .teste-voz-topo { display: flex; justify-content: space-between; align-items: baseline; }
+  .teste-voz h2 { margin: 0 0 10px; }
+  .checagens { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .checagens span { font-size: 13px; padding: 4px 10px; border-radius: 99px; background: var(--marca-clara); color: var(--marca); }
+  .checagens span.ruim { background: #fdecea; color: var(--vermelho); }
+  .checagens span.bom { background: #e7f6ee; color: var(--verde); }
+  .frases { margin: 8px 0; padding-left: 22px; }
+  .frases li { margin: 6px 0; }
+  .frases q { font-weight: 600; color: var(--marca-escura); }
+  .frases span { display: block; font-size: 13px; color: var(--fraco); }
 </style>
 </head>
 <body>
@@ -132,7 +144,10 @@
           <p>Códigos de serviço · digite, fale ou mande uma planilha inteira</p>
         </div>
       </div>
-      <a href="/swagger" target="_blank" rel="noopener">API · Swagger</a>
+      <div class="links-topo">
+        <a href="#testar-voz">Testar microfone</a>
+        <a href="/swagger" target="_blank" rel="noopener">API · Swagger</a>
+      </div>
     </header>
     <nav>
       <button type="button" data-aba="aba-consulta" class="ativa">Consultar e criar</button>
@@ -147,6 +162,21 @@
   <div id="aviso" role="status" aria-live="polite"></div>
 
   <section id="aba-consulta">
+  <div id="teste-voz" class="teste-voz oculto">
+    <div class="teste-voz-topo">
+      <h2>Teste do microfone</h2>
+      <a href="#" id="fechar-teste">Fechar</a>
+    </div>
+    <div class="checagens" id="checagens"></div>
+    <p class="exemplo">Preencha o Comprador, clique em <b>Falar</b> e leia uma frase de cada vez. A consulta roda sozinha quando você para de falar.</p>
+    <ol class="frases">
+      <li><q>eletricista hora extra cem por cento, unidade hora</q><span>vira ELETRICISTA HORA EXTRA 100% e o resultado é <b class="res BLOQUEAR">Já existe</b></span></li>
+      <li><q>vigilante noturno doze por trinta e seis, unidade hora</q><span>vira VIGILANTE NOTURNO 12X36 e o resultado é <b class="res REVISAR">Parecido</b></span></li>
+      <li><q>criar operador de drone para inspeção, unidade hora</q><span>o resultado é <b class="res LIBERAR">Novo</b> e a tela pede para confirmar a criação</span></li>
+      <li><q>buscar soldador hora extra cinquenta por cento segunda a sábado</q><span>vira SOLDADOR HORA EXTRA 50% SEG A SAB</span></li>
+    </ol>
+    <p class="exemplo" id="ultimo-ouvido"></p>
+  </div>
   <form id="consulta">
     <label>Descrição do serviço
       <span class="campo-voz">
@@ -528,6 +558,18 @@ $("criar").addEventListener("click", () => {
 const MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
 const Reconhecedor = window.SpeechRecognition || window.webkitSpeechRecognition;
 let ouvindo = null;
+const EDGE = "microsoft-edge:" + location.href.split("#")[0];
+
+function avisoNavegador(texto) {
+  aviso(texto + " ", "erro");
+  if (/Windows/.test(navigator.userAgent) && !/Edg\//.test(navigator.userAgent)) {
+    const a = document.createElement("a");
+    a.href = EDGE;
+    a.textContent = "Abrir esta página no Edge";
+    a.style.fontWeight = "600";
+    $("aviso").appendChild(a);
+  }
+}
 
 function prepararMic(botao, aoOuvir) {
   botao.innerHTML = MIC + "<span>Falar</span>";
@@ -543,6 +585,10 @@ function prepararMic(botao, aoOuvir) {
   }
   botao.addEventListener("click", () => {
     if (ouvindo) { ouvindo.stop(); return; }
+    if (navigator.brave) {
+      avisoNavegador("O Brave bloqueia o reconhecimento de voz. Use o Edge ou o Chrome; o resto do sistema funciona normal aqui.");
+      return;
+    }
     const r = new Reconhecedor();
     r.lang = "pt-BR";
     r.interimResults = true;
@@ -561,8 +607,9 @@ function prepararMic(botao, aoOuvir) {
                     "service-not-allowed": "O navegador bloqueou o microfone. Clique no cadeado da barra de endereço e permita o microfone.",
                     "no-speech": "Não ouvi nada. Clique em Falar e tente de novo, mais perto do microfone.",
                     "audio-capture": "Nenhum microfone encontrado neste computador.",
-                    "network": "O reconhecimento de voz do navegador precisa de internet. Digite a descrição ou confira a conexão." }[e.error];
-      if (msg) aviso(msg, "erro");
+                    "network": "O serviço de voz do navegador não respondeu. Ele precisa de internet e só funciona no Edge ou no Chrome." }[e.error];
+      if (e.error === "network") avisoNavegador(msg);
+      else if (msg) aviso(msg, "erro");
     };
     r.onend = () => {
       ouvindo = null;
@@ -585,6 +632,7 @@ function usarFala(falado, consultar) {
 let pedidoDeCriar = false;
 prepararMic($("mic-descricao"), (alternativas, final) => {
   const f = usarFala(alternativas[0], false);
+  $("ultimo-ouvido").textContent = "Última coisa que ouvi: \"" + alternativas[0] + "\" → " + f.texto + (f.unidade ? " · unidade " + f.unidade : "");
   if (!final) return;
   pedidoDeCriar = f.acao === "criar";
   const outras = [...new Set(alternativas.slice(1).map(a => falaParaTexto(a).texto))].filter(t => t && t !== f.texto);
@@ -731,6 +779,32 @@ historico();
 pendentes();
 carregarUnidades();
 if (location.hash === "#catalogo") abrir("aba-catalogo");
+
+async function checarVoz() {
+  const itens = [];
+  const edgeOuChrome = /Edg\/|Chrome\//.test(navigator.userAgent) && !navigator.brave;
+  itens.push([edgeOuChrome ? "Navegador: ok" : "Navegador: use o Edge ou o Chrome", edgeOuChrome]);
+  itens.push([window.isSecureContext ? "Endereço: localhost ok" : "Abra por http://localhost:8080", window.isSecureContext]);
+  itens.push([navigator.onLine ? "Internet: ok" : "Sem internet: a voz não funciona", navigator.onLine]);
+  try {
+    const p = await navigator.permissions.query({ name: "microphone" });
+    itens.push([{ granted: "Microfone: permitido", prompt: "Microfone: o navegador vai pedir permissão", denied: "Microfone: bloqueado, libere no cadeado da barra" }[p.state], p.state !== "denied" ? (p.state === "granted" ? true : null) : false]);
+  } catch (e) {}
+  $("checagens").replaceChildren(...itens.map(([t, ok]) => { const s = document.createElement("span"); s.textContent = t; if (ok === true) s.className = "bom"; if (ok === false) s.className = "ruim"; return s; }));
+}
+
+function testeVoz() {
+  const mostrar = location.hash === "#testar-voz";
+  $("teste-voz").classList.toggle("oculto", !mostrar);
+  if (!mostrar) return;
+  abrir("aba-consulta");
+  $("teste-voz").classList.remove("oculto");
+  checarVoz();
+  if (!$("solicitante").value) $("solicitante").value = "Teste de voz";
+}
+window.addEventListener("hashchange", testeVoz);
+$("fechar-teste").addEventListener("click", e => { e.preventDefault(); history.replaceState(null, "", location.pathname); testeVoz(); });
+testeVoz();
 </script>
 </body>
 </html>
