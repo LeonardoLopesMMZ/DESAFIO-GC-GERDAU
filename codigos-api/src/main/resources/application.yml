@@ -7,9 +7,20 @@ server:
 similaridade:
   url: ${SIMILARIDADE_URL:http://127.0.0.1:8000}
 
+springdoc:
+  swagger-ui:
+    path: /swagger
+    operations-sorter: method
+    tags-sorter: alpha
+  default-produces-media-type: application/json
+
 spring:
   application:
     name: codigos-api
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
   datasource:
     url: jdbc:h2:mem:codigos;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
     username: sa

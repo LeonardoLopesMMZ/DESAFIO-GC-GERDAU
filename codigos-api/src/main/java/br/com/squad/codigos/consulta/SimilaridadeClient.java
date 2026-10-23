@@ -1,10 +1,14 @@
 package br.com.squad.codigos.consulta;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
@@ -17,7 +21,10 @@ public class SimilaridadeClient {
     private final RestClient http;
 
     public SimilaridadeClient(RestClient.Builder builder, @Value("${similaridade.url}") String url) {
-        this.http = builder.baseUrl(url).build();
+        SimpleClientHttpRequestFactory tempo = new SimpleClientHttpRequestFactory();
+        tempo.setConnectTimeout(3_000);
+        tempo.setReadTimeout(180_000);
+        this.http = builder.baseUrl(url).requestFactory(tempo).build();
     }
 
     public Resposta buscar(String descricao, String unidade) {
@@ -29,19 +36,60 @@ public class SimilaridadeClient {
                 "grupo", grupo == null ? "" : grupo), Novo.class);
     }
 
+    public Planilha lerPlanilha(byte[] arquivo, String nome) {
+        return chamar(() -> http.post().uri("/lote/ler")
+                .header("X-Arquivo", URLEncoder.encode(nome == null ? "" : nome, StandardCharsets.UTF_8))
+                .contentType(MediaType.APPLICATION_OCTET_STREAM).body(arquivo).retrieve().body(Planilha.class));
+    }
+
+    public Analises analisarLote(List<Map<String, String>> itens) {
+        return enviar("/lote", Map.of("itens", itens), Analises.class);
+    }
+
+    public void adicionarVarios(List<Map<String, String>> itens) {
+        enviar("/codigos/lote", Map.of("itens", itens), Map.class);
+    }
+
+    public byte[] exportar(List<?> linhas) {
+        return enviar("/lote/exportar", Map.of("linhas", linhas), byte[].class);
+    }
+
     private <T> T enviar(String caminho, Map<String, Object> corpo, Class<T> tipo) {
+        return chamar(() -> http.post().uri(caminho).body(corpo).retrieve().body(tipo));
+    }
+
+    private <T> T chamar(java.util.function.Supplier<T> chamada) {
         try {
-            return http.post().uri(caminho).body(corpo).retrieve().body(tipo);
+            return chamada.get();
         } catch (ResourceAccessException e) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "Serviço de similaridade fora do ar. Rode na pasta python: python api.py");
+                    "O serviço de similaridade (Python) está fora do ar. Feche tudo e rode o iniciar.bat de novo.");
         } catch (RestClientResponseException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "Serviço de similaridade respondeu com erro: " + e.getResponseBodyAsString());
+            String corpo = e.getResponseBodyAsString();
+            String msg = corpo.contains("\"erro\"") ? corpo.replaceAll("(?s).*\"erro\"\\s*:\\s*\"(.*?)\".*", "$1") : corpo;
+            throw new ResponseStatusException(e.getStatusCode().is4xxClientError() ? HttpStatus.BAD_REQUEST : HttpStatus.BAD_GATEWAY, msg);
         }
     }
 
-    public record Resposta(String resultado, String motivo, List<Candidato> candidatos) {
+    public record Planilha(Map<String, String> colunas, List<Map<String, Object>> linhas) {
+    }
+
+    public record Analises(List<Analise> itens) {
+    }
+
+    public record Analise(String descricaoLimpa, String nomePadrao, String categoria, String resultado, String motivo,
+                          Integer repeteItem, String codigoExistente, String descricaoExistente, Integer aderencia,
+                          List<String> diferencas) {
+    }
+
+    public record Resposta(String resultado, String motivo, List<Candidato> candidatos, Sugestao sugestao) {
+    }
+
+    public record Sugestao(String descricao, List<Correcao> correcoes, String resultado, String motivo, String codigo,
+                           String descricaoExistente) {
+    }
+
+    public record Correcao(String de, String para) {
     }
 
     public record Candidato(String codigo, String descricao, String nomePadrao, String unidade, String categoria,
