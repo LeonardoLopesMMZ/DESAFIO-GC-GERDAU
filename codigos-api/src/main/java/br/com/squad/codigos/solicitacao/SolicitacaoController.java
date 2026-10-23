@@ -1,5 +1,8 @@
 package br.com.squad.codigos.solicitacao;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import java.util.List;
 
 import jakarta.validation.Valid;
@@ -22,6 +25,7 @@ import br.com.squad.codigos.catalogo.CodigoServico;
 import br.com.squad.codigos.catalogo.CodigoServicoRepository;
 import br.com.squad.codigos.consulta.SimilaridadeClient;
 
+@Tag(name = "Solicitações e curador", description = "Decisão do comprador depois da consulta e decisão do curador")
 @RestController
 @RequestMapping("/api/solicitacoes")
 public class SolicitacaoController {
@@ -37,11 +41,13 @@ public class SolicitacaoController {
         this.similaridade = similaridade;
     }
 
+    @Operation(summary = "Listar as últimas solicitações (filtro opcional por status)")
     @GetMapping
     public List<Solicitacao> listar(@RequestParam(required = false) String status) {
         return status == null ? solicitacoes.findTop50ByOrderByIdDesc() : solicitacoes.findTop50ByStatusOrderByIdDesc(status);
     }
 
+    @Operation(summary = "Usar um código existente ou criar um novo")
     @Transactional
     @PostMapping("/{id}/decisao")
     public Solicitacao decidir(@PathVariable Long id, @Valid @RequestBody Decisao d) {
@@ -68,6 +74,7 @@ public class SolicitacaoController {
         return solicitacoes.save(s);
     }
 
+    @Operation(summary = "Curador aprova ou recusa a criação")
     @Transactional
     @PostMapping("/{id}/curadoria")
     public Solicitacao curadoria(@PathVariable Long id, @Valid @RequestBody Curadoria c) {

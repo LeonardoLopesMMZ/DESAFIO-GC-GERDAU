@@ -55,7 +55,7 @@ def forma_canonica(n5, un):
         return n5, None
     explicado = {canon(x) for x in a["cargo"].replace("/", " ").split()} | VOCAB_MOD
     pcts = set(re.findall(r"(\d+(?:\.\d+)?) %", n5) + re.findall(r"EXTRA (\d{2,3})\b", n5)) if "EXTRA" in n5.split() else set()
-    nivel = re.search(r"NIVEL ([1-3])", n5)
+    nivel = re.search(r"\bNIVEL ([1-3])\b", n5)
     toks = n5.split()
     if nivel:
         i = toks.index("NIVEL")

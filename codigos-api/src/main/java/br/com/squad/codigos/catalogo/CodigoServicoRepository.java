@@ -13,8 +13,6 @@ public interface CodigoServicoRepository extends JpaRepository<CodigoServico, St
 
     List<CodigoServico> findTop20ByCodigoStartingWithOrderByCodigo(String trecho);
 
-    List<CodigoServico> findTop20ByCodigoGreaterThanEqualOrderByCodigoDesc(String codigo);
-
     @Query("select c.unidade, count(c) from CodigoServico c where c.status = 'ATIVO' group by c.unidade")
     List<Object[]> ativosPorUnidade();
 
@@ -24,6 +22,12 @@ public interface CodigoServicoRepository extends JpaRepository<CodigoServico, St
     List<CodigoServico> findByCodigoCanonicoOrderByCodigo(String codigo);
 
     long countByStatus(String status);
+
+    @Query("select count(c) from CodigoServico c where (c.motivo like 'criado%' or c.motivo like 'importado%') and c.status = :status")
+    long novosPorStatus(@Param("status") String status);
+
+    @Query("select c from CodigoServico c where c.motivo like 'criado%' or c.motivo like 'importado%' order by c.codigo desc")
+    List<CodigoServico> novos(Pageable pagina);
 
     @Query(value = "select nextval('codigo_novo')", nativeQuery = true)
     Long proximoCodigo();

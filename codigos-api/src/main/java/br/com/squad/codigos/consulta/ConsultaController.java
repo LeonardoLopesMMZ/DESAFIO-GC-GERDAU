@@ -1,5 +1,8 @@
 package br.com.squad.codigos.consulta;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,6 +22,7 @@ import br.com.squad.codigos.consulta.SimilaridadeClient.Candidato;
 import br.com.squad.codigos.solicitacao.Solicitacao;
 import br.com.squad.codigos.solicitacao.SolicitacaoRepository;
 
+@Tag(name = "Consulta", description = "Antes de criar um código, compara a descrição com o catálogo e diz BLOQUEAR, REVISAR ou LIBERAR")
 @RestController
 @RequestMapping("/api/consultas")
 public class ConsultaController {
@@ -31,6 +35,7 @@ public class ConsultaController {
         this.solicitacoes = solicitacoes;
     }
 
+    @Operation(summary = "Consultar uma descrição")
     @PostMapping
     public Resposta consultar(@Valid @RequestBody Pedido p) {
         String descricao = p.descricao().trim();
@@ -45,7 +50,7 @@ public class ConsultaController {
         String mostrados = c.stream().map(Candidato::codigo).collect(Collectors.joining(","));
         Solicitacao s = solicitacoes.save(new Solicitacao(descricao, unidade, p.grupo(), p.solicitante().trim(),
                 r.resultado(), sugerido, mostrados));
-        return new Resposta(s.getId(), r.resultado(), r.motivo(), c);
+        return new Resposta(s.getId(), r.resultado(), r.motivo(), c, r.sugestao());
     }
 
     public record Pedido(@NotBlank(message = "Informe a descrição")
@@ -57,6 +62,7 @@ public class ConsultaController {
                          @Size(max = 60, message = "O nome do comprador deve ter até 60 caracteres") String solicitante) {
     }
 
-    public record Resposta(Long solicitacaoId, String resultado, String motivo, List<Candidato> candidatos) {
+    public record Resposta(Long solicitacaoId, String resultado, String motivo, List<Candidato> candidatos,
+                           SimilaridadeClient.Sugestao sugestao) {
     }
 }
