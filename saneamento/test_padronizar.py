@@ -137,6 +137,9 @@ def test_lote_com_base_de_exemplo():
     assert r[2]["repete_item"] == 1 and r[3]["codigo_existente"] == "7000146", r
     assert b.buscar("SOLDA DOR HORA EXTRA 50%", "H")["sugestao"]["descricao"] == "SOLDADOR HORA EXTRA 50%"
     assert exportar_planilha([{"linha": 2, "resultado": "BLOQUEAR", "codigo_final": "7000146"}])[:2] == b"PK"
+    g = b.agrupar([("ELETRICISTA HE 100%", "H"), ("VIGILANTE NOTURNO 12X36", "H"), ("eletricista hora extra 100%", "H"),
+                   ("ELETRICISTA - HORA EXTRA 100%", "H"), ("ELETRICISTA HORA EXTRA 50%", "H")])
+    assert g == [0, 1, 0, 0, 4], g
 
 
 if __name__ == "__main__":

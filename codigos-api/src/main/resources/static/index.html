@@ -2,1087 +2,238 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#003366">
 <title>MOKKA · Códigos de serviço</title>
-<style>
-  :root {
-    --marca: #0b3a6e; --marca-escura: #072a52; --marca-clara: #e8eef6; --destaque: #f2b51b;
-    --fundo: #f3f5f8; --cartao: #ffffff; --borda: #d8dee6; --linha: #edf0f4;
-    --texto: #16213a; --fraco: #5d6b80;
-    --azul: var(--marca); --vermelho: #b42318; --amarelo: #a15c07; --verde: #08714a;
-    --raio: 10px; --sombra: 0 1px 2px rgba(16, 33, 58, .06), 0 1px 1px rgba(16, 33, 58, .04);
-  }
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body { margin: 0; font: 15px/1.5 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; color: var(--texto); background: var(--fundo); }
-  a { color: var(--marca); }
-
-  .topo { background: var(--marca); color: #fff; border-bottom: 3px solid var(--destaque); }
-  .topo .faixa { max-width: 1200px; margin: 0 auto; padding: 18px 16px 0; }
-  .topo header { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
-  .marca { display: flex; align-items: center; gap: 12px; }
-  .marca .selo-marca { width: 38px; height: 38px; border-radius: 8px; background: #fff; color: var(--marca); display: grid; place-items: center; font-weight: 800; font-size: 18px; letter-spacing: -.02em; box-shadow: inset 0 -3px 0 var(--destaque); }
-  .marca h1 { font-size: 20px; margin: 0; font-weight: 700; letter-spacing: .02em; }
-  .marca p { margin: 0; font-size: 13px; color: rgba(255, 255, 255, .78); }
-  .topo header a { color: #fff; font-size: 13px; text-decoration: none; border: 1px solid rgba(255, 255, 255, .35); border-radius: 6px; padding: 6px 12px; }
-  .topo header a:hover { background: rgba(255, 255, 255, .1); }
-  nav { display: flex; gap: 4px; margin-top: 16px; overflow-x: auto; }
-  nav button { border: none; border-radius: 8px 8px 0 0; background: none; color: rgba(255, 255, 255, .78); font-weight: 600; padding: 10px 16px; white-space: nowrap; }
-  nav button:hover { color: #fff; background: rgba(255, 255, 255, .08); }
-  nav button.ativa { color: var(--marca); background: var(--fundo); }
-
-  main { max-width: 1200px; margin: 0 auto; padding: 24px 16px 56px; }
-  h2 { font-size: 16px; margin: 28px 0 10px; color: var(--marca-escura); }
-  section > h2:first-child { margin-top: 4px; }
-  p.sub { margin: 0 0 16px; color: var(--fraco); }
-
-  form, .lote-form, .busca, #novo { background: var(--cartao); border: 1px solid var(--borda); border-radius: var(--raio); box-shadow: var(--sombra); padding: 18px; }
-  form#consulta { display: grid; grid-template-columns: 2fr .7fr 1fr 1fr auto; gap: 14px; align-items: end; }
-  label { display: grid; gap: 5px; font-size: 13px; font-weight: 600; color: var(--fraco); }
-  input, select, textarea { font: inherit; font-weight: 400; color: var(--texto); padding: 9px 11px; border: 1px solid var(--borda); border-radius: 7px; background: #fff; transition: border-color .15s, box-shadow .15s; }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--marca); box-shadow: 0 0 0 3px rgba(11, 58, 110, .14); }
-  button { font: inherit; font-weight: 600; padding: 9px 16px; border-radius: 7px; border: 1px solid var(--borda); background: #fff; color: var(--texto); cursor: pointer; transition: background .15s, border-color .15s; }
-  button:hover:not(:disabled) { border-color: var(--marca); }
-  button.principal { background: var(--marca); border-color: var(--marca); color: #fff; }
-  button.principal:hover:not(:disabled) { background: var(--marca-escura); }
-  button:disabled { opacity: .5; cursor: default; }
-  button:focus-visible, a:focus-visible { outline: 3px solid var(--destaque); outline-offset: 2px; }
-  .conta { font-size: 12px; font-weight: 400; color: var(--fraco); }
-
-  #aviso { margin: 0 0 18px; padding: 12px 16px; border-radius: var(--raio); border: 1px solid var(--borda); border-left: 5px solid var(--marca); background: var(--cartao); box-shadow: var(--sombra); display: none; }
-  #aviso button { margin-left: 8px; padding: 4px 12px; font-size: 13px; }
-  #aviso.BLOQUEAR { border-color: #f4c7c3; border-left-color: var(--vermelho); background: #fef4f3; }
-  #aviso.REVISAR { border-color: #f6dfb0; border-left-color: #d98e04; background: #fffaf0; }
-  #aviso.LIBERAR { border-color: #b9e6cf; border-left-color: var(--verde); background: #f1fbf6; }
-  #aviso.erro { border-color: #f4c7c3; border-left-color: var(--vermelho); background: #fef4f3; display: block; }
-
-  .rolagem { overflow-x: auto; border: 1px solid var(--borda); border-radius: var(--raio); box-shadow: var(--sombra); background: var(--cartao); }
-  .rolagem table { min-width: 760px; }
-  table { width: 100%; border-collapse: collapse; background: var(--cartao); }
-  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--linha); vertical-align: top; font-size: 14px; }
-  th { background: #f7f9fb; font-size: 11px; font-weight: 700; color: var(--fraco); text-transform: uppercase; letter-spacing: .05em; position: sticky; top: 0; }
-  tbody tr:hover { background: #f9fbfd; }
-  tbody tr:last-child td { border-bottom: none; }
-  td select { padding: 5px 8px; font-size: 13px; }
-
-  .classe { font-size: 12px; font-weight: 700; }
-  .DUPLICADO { color: var(--vermelho); } .REVISAR { color: var(--amarelo); } .DIFERENTE { color: var(--fraco); }
-  #novo { margin-top: 16px; display: none; gap: 10px; }
-  #novo textarea { width: 100%; min-height: 64px; }
-  .oculto { display: none !important; }
-
-  .busca { display: flex; gap: 10px; }
-  .busca input { flex: 1; min-width: 0; }
-  .selo { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 99px; background: var(--marca-clara); color: var(--marca); }
-  .selo.repetido { background: #fdecea; color: var(--vermelho); }
-  .acoes { display: flex; gap: 6px; flex-wrap: wrap; }
-  .vazio { color: var(--fraco); padding: 16px 0; }
-  .erro-texto { color: var(--vermelho); }
-  .aviso-unidade { font-size: 12px; color: var(--amarelo); margin-top: 4px; }
-  .exemplo { font-size: 13px; color: var(--fraco); }
-
-  .numeros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 18px; }
-  .numeros div { background: var(--cartao); border: 1px solid var(--borda); border-top: 3px solid var(--marca); border-radius: var(--raio); box-shadow: var(--sombra); padding: 14px 16px; }
-  .numeros div:last-child { border-top-color: var(--destaque); }
-  .numeros b { display: block; font-size: 26px; color: var(--marca-escura); font-variant-numeric: tabular-nums; }
-  .numeros span { font-size: 13px; color: var(--fraco); }
-  .grupo { background: var(--cartao); border: 1px solid var(--borda); border-radius: var(--raio); box-shadow: var(--sombra); padding: 12px 16px; margin-bottom: 10px; }
-  .grupo .oficial { font-weight: 600; color: var(--marca-escura); }
-  .grupo .repetido { font-size: 13px; color: var(--fraco); padding-left: 16px; border-left: 2px solid var(--linha); margin-top: 4px; }
-
-  .campo-voz { display: flex; gap: 6px; }
-  .campo-voz input { flex: 1; min-width: 0; }
-  .mic { display: inline-flex; align-items: center; gap: 6px; padding: 9px 12px; white-space: nowrap; color: var(--marca); }
-  .mic svg { width: 16px; height: 16px; }
-  .mic.ouvindo { background: var(--vermelho); border-color: var(--vermelho); color: #fff; animation: pulsa 1.2s infinite; }
-  @keyframes pulsa { 50% { opacity: .65; } }
-  .ouvi { font-size: 12px; font-weight: 400; color: var(--fraco); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 4px; }
-  .ouvi button { font-size: 12px; padding: 2px 10px; border-radius: 99px; }
-
-  .lote-form { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 14px; align-items: end; }
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 10px; }
-  .chips button { border-radius: 99px; font-size: 13px; padding: 6px 14px; }
-  .chips button.ativa { border-color: var(--marca); background: var(--marca-clara); color: var(--marca); }
-  .res { font-size: 12px; font-weight: 700; }
-  .res.BLOQUEAR { color: var(--vermelho); } .res.REVISAR { color: var(--amarelo); } .res.LIBERAR { color: var(--verde); }
-  .res.REPETIDO { color: var(--marca); } .res.ERRO { color: var(--fraco); }
-  .barra-lote { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin: 12px 0; }
-  .barra-lote label { min-width: 240px; }
-
-  @media (max-width: 860px) {
-    form#consulta { grid-template-columns: 1fr 1fr; }
-    form#consulta label:first-child { grid-column: 1 / -1; }
-    .lote-form { grid-template-columns: 1fr; }
-    .numeros { grid-template-columns: 1fr 1fr; }
-  }
-  form > *, input, select { min-width: 0; }
-  form#consulta, .lote-form { align-items: start; }
-  form#consulta > button, .lote-form > button { margin-top: 24.5px; }
-  td button { white-space: nowrap; }
-  .links-topo { display: flex; gap: 8px; flex-wrap: wrap; }
-  .teste-voz { background: var(--cartao); border: 1px solid var(--borda); border-left: 5px solid var(--destaque); border-radius: var(--raio); box-shadow: var(--sombra); padding: 16px 18px; margin-bottom: 18px; }
-  .teste-voz-topo { display: flex; justify-content: space-between; align-items: baseline; }
-  .teste-voz h2 { margin: 0 0 10px; }
-  .checagens { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-  .checagens span { font-size: 13px; padding: 4px 10px; border-radius: 99px; background: var(--marca-clara); color: var(--marca); }
-  .checagens span.ruim { background: #fdecea; color: var(--vermelho); }
-  .checagens span.bom { background: #e7f6ee; color: var(--verde); }
-  .frases { margin: 8px 0; padding-left: 22px; }
-  .frases li { margin: 6px 0; }
-  .frases q { font-weight: 600; color: var(--marca-escura); }
-  .frases span { display: block; font-size: 13px; color: var(--fraco); }
-  .topo { position: relative; overflow: hidden; background: linear-gradient(115deg, var(--marca-escura) 0%, var(--marca) 55%, #12508f 100%); }
-  .topo::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(135deg, rgba(255, 255, 255, .035) 0 2px, transparent 2px 14px); pointer-events: none; }
-  .topo .faixa { position: relative; }
-  .marca .selo-marca { transition: transform .4s cubic-bezier(.2, .8, .2, 1.4); }
-  .marca:hover .selo-marca { transform: rotate(-6deg) scale(1.06); }
-  nav button { position: relative; transition: color .2s, background .2s; }
-  nav button::after { content: ""; position: absolute; left: 14px; right: 14px; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--destaque); transform: scaleX(0); transition: transform .25s ease; }
-  nav button.ativa::after { transform: scaleX(1); }
-
-  #carregando { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: var(--destaque); box-shadow: 0 0 8px rgba(242, 181, 27, .7); z-index: 50; opacity: 0; transition: opacity .2s; }
-  body.carregando #carregando { opacity: 1; animation: carrega 1.4s ease-in-out infinite; }
-  @keyframes carrega { 0% { width: 0; left: 0; } 50% { width: 60%; left: 20%; } 100% { width: 0; left: 100%; } }
-
-  .entrar { animation: surgir .35s cubic-bezier(.2, .8, .2, 1) both; }
-  @keyframes surgir { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-  #aviso { animation: descer .3s ease both; }
-  @keyframes descer { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
-  tbody tr.nova { animation: surgir .35s ease both; animation-delay: calc(var(--i, 0) * 35ms); }
-  button { transition: background .15s, border-color .15s, transform .15s, box-shadow .15s; }
-  button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(11, 58, 110, .12); }
-  button:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
-  button.ocupado { position: relative; color: transparent !important; pointer-events: none; }
-  button.ocupado::after { content: ""; position: absolute; inset: 0; margin: auto; width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .5); border-top-color: #fff; animation: gira .7s linear infinite; }
-  button:not(.principal).ocupado::after { border-color: rgba(11, 58, 110, .25); border-top-color: var(--marca); }
-  @keyframes gira { to { transform: rotate(360deg); } }
-  .numeros div { transition: transform .2s, box-shadow .2s; }
-  .numeros div:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(16, 33, 58, .08); }
-  .grupo { transition: border-color .2s, box-shadow .2s; }
-  .grupo:hover { border-color: #b9c6d6; box-shadow: 0 4px 12px rgba(16, 33, 58, .06); }
-
-  .mic.ouvindo { animation: none; background: var(--vermelho); box-shadow: 0 0 0 0 rgba(180, 35, 24, .45); animation: onda 1.3s ease-out infinite; }
-  @keyframes onda { 0% { box-shadow: 0 0 0 0 rgba(180, 35, 24, .45); } 100% { box-shadow: 0 0 0 14px rgba(180, 35, 24, 0); } }
-
-  #descricao, #busca { text-transform: uppercase; }
-  #descricao::placeholder, #busca::placeholder { text-transform: none; }
-  .falado { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 10px 0 0; padding: 12px 16px; background: var(--cartao); border: 1px dashed #c9d4e2; border-radius: var(--raio); animation: surgir .3s ease both; }
-  .falado-titulo { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--fraco); }
-  .palavras { display: flex; flex-wrap: wrap; gap: 6px; position: relative; }
-  .palavra { position: relative; font-size: 14px; font-weight: 600; padding: 4px 10px; border-radius: 8px; background: var(--marca-clara); color: var(--marca-escura); animation: pop .3s cubic-bezier(.2, .8, .2, 1.3) both; animation-delay: calc(var(--i, 0) * 45ms); }
-  .palavra.duvida { background: #fff8e6; color: #7a4a00; border: 1px solid var(--destaque); border-bottom-width: 3px; cursor: pointer; padding: 3px 10px 2px; }
-  .palavra.duvida::after { content: "▾"; font-size: 10px; margin-left: 5px; }
-  .palavra.duvida:hover { background: #ffefc2; }
-  .palavra.trocada { background: #e7f6ee; color: var(--verde); animation: brilho .9s ease; }
-  @keyframes pop { from { opacity: 0; transform: scale(.85) translateY(4px); } to { opacity: 1; transform: none; } }
-  @keyframes brilho { 0% { box-shadow: 0 0 0 0 rgba(8, 113, 74, .4); } 100% { box-shadow: 0 0 0 10px rgba(8, 113, 74, 0); } }
-  .falado-nota { flex-basis: 100%; font-size: 12px; color: var(--fraco); }
-  .falado-nota:empty { display: none; }
-  .palavras.tem-duvida { padding-top: 34px; }
-  .caixa-duvida { position: relative; display: inline-flex; }
-  .bolha { position: absolute; bottom: calc(100% + 8px); left: -40px; right: -40px; margin: 0 auto; width: max-content; white-space: nowrap; font-size: 12px; font-weight: 700; padding: 4px 11px; border-radius: 99px; border: none; background: var(--marca); color: #fff; box-shadow: 0 4px 12px rgba(11, 58, 110, .25); animation: flutua 2.4s ease-in-out infinite, aparece .35s cubic-bezier(.2, .8, .2, 1.3) both; z-index: 2; }
-  .bolha::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border: 5px solid transparent; border-top-color: var(--marca); }
-  .bolha:hover:not(:disabled) { background: var(--destaque); color: var(--marca-escura); transform: none; }
-  .bolha:hover::after { border-top-color: var(--destaque); }
-  @keyframes flutua { 0%, 100% { translate: 0 0; } 50% { translate: 0 -3px; } }
-  @keyframes aparece { from { opacity: 0; scale: .8; } to { opacity: 1; scale: 1; } }
-  .opcoes { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px; background: #fff; border: 1px solid var(--borda); border-radius: 10px; box-shadow: 0 10px 28px rgba(16, 33, 58, .16); animation: pop .2s ease both; max-width: 420px; }
-  .opcoes span { flex-basis: 100%; font-size: 12px; color: var(--fraco); }
-  .opcoes button { padding: 5px 12px; font-size: 13px; border-radius: 99px; background: var(--marca-clara); border-color: transparent; color: var(--marca); }
-  .opcoes button:hover { background: var(--marca); color: #fff; }
-  .opcoes button.manter { background: none; border-color: var(--borda); color: var(--fraco); }
-
-  .lote-form .colar { grid-column: 1 / -1; }
-  .colar summary { cursor: pointer; color: var(--marca); font-weight: 600; font-size: 14px; }
-  .colar textarea { width: 100%; margin-top: 8px; font-family: inherit; }
-  .relatorio { margin-top: 16px; padding: 12px 16px; background: #f6f9fc; border: 1px solid var(--borda); border-left: 5px solid var(--marca); border-radius: var(--raio); animation: surgir .3s ease both; }
-  .relatorio b { font-size: 13px; color: var(--marca-escura); }
-  .relatorio ul { margin: 6px 0 0; padding-left: 20px; font-size: 13px; color: var(--texto); }
-
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
-  }
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div id="carregando" aria-hidden="true"></div>
-<div class="topo">
-  <div class="faixa">
-    <header>
-      <div class="marca">
-        <div class="selo-marca" aria-hidden="true">M</div>
-        <div>
-          <h1>MOKKA</h1>
-          <p>Códigos de serviço · digite, fale ou mande uma planilha inteira</p>
-        </div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-busca" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-planilha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/></symbol>
+  <symbol id="i-regua" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 17 17 3l4 4L7 21z"/><path d="m7 13 2 2M10 10l2 2M13 7l2 2"/></symbol>
+  <symbol id="i-catalogo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M9 8h7"/></symbol>
+  <symbol id="i-curador" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+  <symbol id="i-pessoa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-rosto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M9 10v1M15 10v1M12 10v3h-1M9.5 16a4 4 0 0 0 5 0"/></symbol>
+  <symbol id="i-api" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m8 7-5 5 5 5M16 7l5 5-5 5"/></symbol>
+</svg>
+
+<header class="topo">
+  <div class="topo-dentro">
+    <div class="marca">
+      <div class="selo-marca" aria-hidden="true">M</div>
+      <div>
+        <h1>MOKKA</h1>
+        <p>Códigos de serviço sem repetição</p>
       </div>
-      <div class="links-topo">
-        <a href="#testar-voz">Testar microfone</a>
-        <a href="/swagger" target="_blank" rel="noopener">API · Swagger</a>
-      </div>
-    </header>
-    <nav>
-      <button type="button" data-aba="aba-consulta" class="ativa">Consultar e criar</button>
-      <button type="button" data-aba="aba-lote">Planilha (lote)</button>
-      <button type="button" data-aba="aba-unidades">Unidades</button>
-      <button type="button" data-aba="aba-catalogo">Catálogo</button>
-      <button type="button" data-aba="aba-curador" id="botao-curador">Curador</button>
-    </nav>
+    </div>
+    <div class="topo-acoes">
+      <a href="/swagger" target="_blank" rel="noopener" title="API (Swagger)"><svg><use href="#i-api"/></svg><span class="texto">API</span></a>
+      <button type="button" id="usuario"><svg><use href="#i-pessoa"/></svg><span id="usuario-nome">Entrar</span></button>
+    </div>
   </div>
-</div>
+</header>
+
+<nav class="abas" aria-label="Seções">
+  <div>
+    <button type="button" data-aba="aba-consulta" class="ativa"><svg><use href="#i-busca"/></svg>Consultar</button>
+    <button type="button" data-aba="aba-lote"><svg><use href="#i-planilha"/></svg>Planilha</button>
+    <button type="button" data-aba="aba-catalogo"><svg><use href="#i-catalogo"/></svg>Catálogo</button>
+    <button type="button" data-aba="aba-unidades"><svg><use href="#i-regua"/></svg>Unidades</button>
+    <button type="button" data-aba="aba-curador" id="botao-curador"><svg><use href="#i-curador"/></svg>Curador <span class="contador oculto" id="qtd-curador"></span></button>
+  </div>
+</nav>
+
 <main>
   <div id="aviso" role="status" aria-live="polite"></div>
 
   <section id="aba-consulta">
-  <div id="teste-voz" class="teste-voz oculto">
-    <div class="teste-voz-topo">
-      <h2>Teste do microfone</h2>
-      <a href="#" id="fechar-teste">Fechar</a>
+    <div id="teste-voz" class="cartao teste-voz oculto">
+      <div class="teste-voz-topo">
+        <h2>Teste do microfone</h2>
+        <button type="button" class="link" id="fechar-teste">Fechar</button>
+      </div>
+      <div class="checagens" id="checagens"></div>
+      <ol class="frases">
+        <li><q>eletricista hora extra cem por cento, unidade hora</q><span>→ <b class="res BLOQUEAR">Já existe</b></span></li>
+        <li><q>vigilante noturno doze por trinta e seis, unidade hora</q><span>→ <b class="res REVISAR">Parecido</b></span></li>
+        <li><q>criar operador de drone para inspeção, unidade hora</q><span>→ <b class="res LIBERAR">Novo</b></span></li>
+        <li><q>técnico de segurança do trabalho hora extra cem por cento domingo e feriado</q><span>→ abrevia para caber em 40</span></li>
+      </ol>
+      <p class="info" id="ultimo-ouvido"></p>
     </div>
-    <div class="checagens" id="checagens"></div>
-    <p class="exemplo">Preencha o Comprador, clique em <b>Falar</b> e leia uma frase de cada vez. A consulta roda sozinha quando você para de falar.</p>
-    <ol class="frases">
-      <li><q>eletricista hora extra cem por cento, unidade hora</q><span>vira ELETRICISTA HORA EXTRA 100% e o resultado é <b class="res BLOQUEAR">Já existe</b></span></li>
-      <li><q>vigilante noturno doze por trinta e seis, unidade hora</q><span>vira VIGILANTE NOTURNO 12X36 e o resultado é <b class="res REVISAR">Parecido</b></span></li>
-      <li><q>criar operador de drone para inspeção, unidade hora</q><span>o resultado é <b class="res LIBERAR">Novo</b> e a tela pede para confirmar a criação</span></li>
-      <li><q>buscar soldador hora extra cinquenta por cento segunda a sábado</q><span>vira SOLDADOR HORA EXTRA 50% SEG A SAB</span></li>
-    </ol>
-    <p class="exemplo" id="ultimo-ouvido"></p>
-  </div>
-  <form id="consulta">
-    <label>Descrição do serviço
-      <span class="campo-voz">
-        <input id="descricao" maxlength="40" required placeholder="ex.: SOLDADOR HE 50% SEG A SAB" autocomplete="off">
-        <button type="button" class="mic" id="mic-descricao" title="Falar a descrição"></button>
-      </span>
-      <span class="conta" id="conta">0/40</span>
-    </label>
-    <label>Unidade
-      <input id="unidade" maxlength="30" required list="unidades" value="H" placeholder="ex.: hora" autocomplete="off">
-      <datalist id="unidades"></datalist>
-      <span class="conta" id="unidade-dica"></span>
-    </label>
-    <label>Grupo
-      <select id="grupo"><option>Civil</option><option>Facilities</option><option>Eletromecânica</option></select>
-    </label>
-    <label>Comprador
-      <input id="solicitante" maxlength="60" required placeholder="seu nome">
-    </label>
-    <button class="principal" type="submit">Consultar</button>
-  </form>
-  <div id="falado" class="falado oculto" aria-live="polite">
-    <span class="falado-titulo">Entendi</span>
-    <div id="palavras" class="palavras"></div>
-    <span id="falado-nota" class="falado-nota"></span>
-  </div>
 
-  <section id="resultado" class="oculto">
-    <h2>Códigos parecidos</h2>
-    <div class="rolagem"><table>
-      <thead><tr><th>Código</th><th>Descrição</th><th>Nome padrão</th><th>Un.</th><th>Categoria</th><th>Aderência</th><th>O que muda</th><th></th></tr></thead>
-      <tbody id="candidatos"></tbody>
-    </table></div>
-    <div id="novo">
-      <label for="justificativa">Nenhum serve? Explique por que o serviço é diferente e crie um código novo.</label>
-      <textarea id="justificativa" maxlength="200"></textarea>
-      <div><button id="criar" type="button">Criar código novo</button></div>
+    <form id="consulta" class="cartao" autocomplete="off">
+      <label>Descrição do serviço
+        <span class="campo-voz">
+          <input id="descricao" maxlength="40" required placeholder="Digite ou fale, ex.: soldador HE 50%">
+          <button type="button" class="mic" id="mic-descricao"></button>
+        </span>
+        <span class="rodape-campo">
+          <span class="voz-opcoes">
+            <label class="chave-liga" title="Filtro anti-ruído: ajuda em lugar barulhento; em microfone bom pode piorar. Teste ligado e desligado.">
+              <input type="checkbox" id="filtro-ruido"><i></i>Anti-ruído
+            </label>
+            <span class="nivel" id="nivel" aria-hidden="true"><b></b><b></b><b></b><b></b><b></b><b></b></span>
+          </span>
+          <span class="conta" id="conta">0/40</span>
+        </span>
+      </label>
+      <label>Unidade
+        <input id="unidade" maxlength="30" required list="unidades" value="H" placeholder="hora, m2…">
+        <datalist id="unidades"></datalist>
+        <span class="conta" id="unidade-dica"></span>
+      </label>
+      <label>Grupo
+        <select id="grupo"><option>Civil</option><option>Facilities</option><option>Eletromecânica</option></select>
+        <span class="conta">&nbsp;</span>
+      </label>
+      <button class="principal" type="submit">Consultar</button>
+    </form>
+
+    <div id="falado" class="falado oculto" aria-live="polite">
+      <span class="falado-titulo">Entendi</span>
+      <div id="palavras" class="palavras"></div>
+      <span id="falado-nota" class="falado-nota"></span>
     </div>
-  </section>
 
-  <h2>Solicitações recentes</h2>
-  <div class="rolagem"><table>
-    <thead><tr><th>#</th><th>Descrição</th><th>Comprador</th><th>Resultado</th><th>Sugerido</th><th>Código final</th><th>Situação</th><th>Justificativa</th></tr></thead>
-    <tbody id="historico"></tbody>
-  </table></div>
+    <section id="resultado" class="oculto">
+      <h2>Parecidos no catálogo</h2>
+      <div class="rolagem"><table>
+        <thead><tr><th>Código</th><th>Descrição</th><th>Un.</th><th>Aderência</th><th>O que muda</th><th></th></tr></thead>
+        <tbody id="candidatos"></tbody>
+      </table></div>
+      <div id="novo" class="cartao">
+        <label for="justificativa" id="rotulo-justificativa">Nenhum serve? Diga por que é diferente.</label>
+        <textarea id="justificativa" maxlength="200"></textarea>
+        <div class="linha-botoes"><button id="criar" type="button">Criar código novo</button></div>
+      </div>
+    </section>
+
+    <details class="historico" id="caixa-historico">
+      <summary>Últimas consultas</summary>
+      <div class="rolagem"><table>
+        <thead><tr><th>#</th><th>Descrição</th><th>Quem</th><th>Resultado</th><th>Código final</th><th>Situação</th></tr></thead>
+        <tbody id="historico"></tbody>
+      </table></div>
+    </details>
   </section>
 
   <section id="aba-lote" class="oculto">
-    <h2>Muitos códigos de uma vez</h2>
-    <p class="sub">Mande um Excel (.xlsx) ou CSV, mesmo sem tratamento. O sistema lê cada linha, padroniza, diz se o código já existe, se é parecido, se é novo ou se repete outra linha da planilha. Depois você importa no banco e baixa o Excel organizado. <a href="/modelo_lote.xlsx" download>Baixar modelo de planilha</a> · <a href="/exemplo_baguncado.xlsx" download>Baixar exemplo bagunçado</a></p>
-    <form class="lote-form" id="form-lote">
-      <label>Planilha (.xlsx ou .csv, até 5000 linhas)
+    <h2>Planilha inteira</h2>
+    <div class="links">
+      <a href="/modelo_lote.xlsx" download>Baixar modelo</a>
+      <a href="/exemplo_baguncado.xlsx" download>Baixar exemplo bagunçado</a>
+    </div>
+    <form class="lote-form cartao" id="form-lote">
+      <label>Excel ou CSV (até 5000 linhas)
         <input type="file" id="arquivo" accept=".xlsx,.xlsm,.csv,.txt">
       </label>
-      <label>Unidade para linhas sem unidade
+      <label>Unidade se faltar
         <input id="lote-unidade" list="unidades" placeholder="ex.: SV" autocomplete="off">
       </label>
-      <label>Grupo para linhas sem grupo
-        <select id="lote-grupo"><option value="">(deixar vazio)</option><option>Civil</option><option>Facilities</option><option>Eletromecânica</option></select>
+      <label>Grupo se faltar
+        <select id="lote-grupo"><option value="">—</option><option>Civil</option><option>Facilities</option><option>Eletromecânica</option></select>
       </label>
       <button class="principal" type="submit" id="analisar">Analisar</button>
       <details class="colar">
-        <summary>Ou cole a lista aqui</summary>
-        <textarea id="lote-texto" rows="6" placeholder="Uma descrição por linha. Se tiver mais colunas, separe com ; ou tab (ex.: Descrição;Unidade;Grupo)."></textarea>
+        <summary>Ou cole a lista</summary>
+        <textarea id="lote-texto" rows="5" placeholder="Uma descrição por linha (colunas separadas por ; ou tab)"></textarea>
       </details>
     </form>
     <div id="lote-resultado" class="oculto">
       <div class="relatorio" id="lote-relatorio"></div>
       <div class="chips" id="lote-chips"></div>
       <div class="barra-lote">
-        <label>Quem está importando
-          <input id="lote-quem" maxlength="60" placeholder="seu nome">
-        </label>
         <button class="principal" type="button" id="importar">Importar no banco</button>
         <button type="button" id="exportar">Baixar Excel organizado</button>
       </div>
-      <p class="exemplo" id="lote-info"></p>
+      <p class="info" id="lote-info"></p>
       <div class="rolagem"><table>
-        <thead><tr><th>Linha</th><th>Cód. planilha</th><th>Descrição original</th><th>Un.</th><th>Nome padrão</th><th>Resultado</th><th>Código parecido</th><th>Ação</th><th>Código final</th><th>Motivo / situação</th></tr></thead>
+        <thead><tr><th>Linha</th><th>Descrição</th><th>Un.</th><th>Nome padrão</th><th>Resultado</th><th>Parecido</th><th>Ação</th><th>Código final</th><th>Situação</th></tr></thead>
         <tbody id="lote-linhas"></tbody>
       </table></div>
     </div>
   </section>
 
-  <section id="aba-unidades" class="oculto">
-    <h2>Como escrever a unidade</h2>
-    <p class="sub">Na consulta dá para escrever a unidade do jeito normal, como "hora" ou "metro quadrado": a tela troca pelo código do SAP. Clique em Usar para levar a unidade para a consulta.</p>
-    <div class="rolagem"><table>
-      <thead><tr><th>Código SAP</th><th>O que é</th><th>Pode escrever</th><th>Exemplos na base</th><th>Códigos ativos</th><th></th></tr></thead>
-      <tbody id="lista-unidades"></tbody>
-    </table></div>
-  </section>
-
   <section id="aba-catalogo" class="oculto">
     <form class="busca" id="form-catalogo">
-      <input id="busca" maxlength="40" placeholder="Descrição ou número do código, ex.: SOLDADOR ou 7000146" autocomplete="off">
-      <button type="button" class="mic" id="mic-busca" title="Falar a busca"></button>
+      <span class="campo-voz">
+        <input id="busca" maxlength="40" placeholder="Código ou descrição" autocomplete="off">
+        <button type="button" class="mic" id="mic-busca"></button>
+      </span>
       <button class="principal" type="submit">Buscar</button>
     </form>
     <div id="visao-geral">
       <div class="numeros" id="numeros"></div>
-      <h2>Códigos padronizados</h2>
-      <p class="sub">Cada código oficial com os repetidos que agora apontam para ele. Os repetidos ficam bloqueados: quem procurar por eles é mandado para o oficial.</p>
-      <div id="grupos"></div>
+      <h2>Mais repetidos na base</h2>
+      <div class="grupos" id="grupos"></div>
     </div>
-    <h2 id="titulo-catalogo">Códigos criados agora</h2>
+    <h2 id="titulo-catalogo">Criados agora</h2>
     <div class="rolagem"><table>
-      <thead><tr><th>Código</th><th>Descrição</th><th>Nome padrão</th><th>Un.</th><th>Grupo</th><th>Categoria</th><th>Situação</th></tr></thead>
+      <thead><tr><th>Código</th><th>Descrição</th><th>Un.</th><th>Grupo</th><th>Criado por</th><th>Situação</th></tr></thead>
       <tbody id="lista-catalogo"></tbody>
     </table></div>
     <p class="vazio oculto" id="catalogo-vazio">Nada encontrado.</p>
   </section>
 
-  <section id="aba-curador" class="oculto">
-    <h2>Pedidos esperando o curador</h2>
-    <p class="sub">O comprador quis criar um código mesmo existindo um igual. Aprovar cria o código; recusar manda usar o existente.</p>
+  <section id="aba-unidades" class="oculto">
+    <h2>Unidades</h2>
+    <p class="dica">Escreva "hora" ou "metro quadrado": a tela troca pelo código do SAP.</p>
     <div class="rolagem"><table>
-      <thead><tr><th>#</th><th>Descrição</th><th>Un.</th><th>Comprador</th><th>Já existe</th><th>Justificativa</th><th></th></tr></thead>
-      <tbody id="lista-curador"></tbody>
+      <thead><tr><th>SAP</th><th>O que é</th><th>Pode escrever</th><th>Exemplo</th><th>Ativos</th><th></th></tr></thead>
+      <tbody id="lista-unidades"></tbody>
     </table></div>
+  </section>
+
+  <section id="aba-curador" class="oculto">
+    <h2>Pedidos para o curador</h2>
+    <p class="dica">Pedidos iguais, mesmo escritos diferente, vêm juntos: decida o grupo de uma vez.</p>
+    <div class="pedidos" id="lista-curador"></div>
     <p class="vazio oculto" id="curador-vazio">Nenhum pedido esperando.</p>
   </section>
 </main>
 
+<dialog id="janela-entrar">
+  <div class="janela-topo">
+    <h2>Entrar</h2>
+    <button type="button" data-fechar>Fechar</button>
+  </div>
+  <div class="janela-corpo">
+    <button type="button" class="principal botao-chave" id="entrar-chave"><svg><use href="#i-rosto"/></svg>Entrar com rosto ou digital</button>
+    <div class="ou">ou pelo nome</div>
+    <form class="linha-entrar" id="form-entrar">
+      <input id="entrar-nome" maxlength="60" placeholder="Seu nome" autocomplete="name" required>
+      <button type="submit">Entrar</button>
+    </form>
+    <p class="info" id="entrar-info"></p>
+  </div>
+</dialog>
+
+<dialog id="janela-conta">
+  <div class="janela-topo">
+    <h2 id="conta-nome"></h2>
+    <button type="button" data-fechar>Fechar</button>
+  </div>
+  <div class="janela-corpo">
+    <p class="info" id="conta-info"></p>
+    <button type="button" class="principal botao-chave" id="cadastrar-chave"><svg><use href="#i-rosto"/></svg>Cadastrar rosto ou digital</button>
+    <button type="button" class="perigo" id="sair">Sair</button>
+  </div>
+</dialog>
+
+<dialog id="janela-ficha">
+  <div class="janela-topo">
+    <h2 id="ficha-titulo">Código</h2>
+    <button type="button" data-fechar>Fechar</button>
+  </div>
+  <div class="janela-corpo ficha" id="ficha"></div>
+</dialog>
+
 <script src="fala.js"></script>
-<script>
-const $ = id => document.getElementById(id);
-const M = t => (t ?? "").toString().toUpperCase();
-let atual = null;
-
-function celula(tr, texto, classe) {
-  const td = document.createElement("td");
-  td.textContent = texto ?? "";
-  if (classe) td.className = classe;
-  tr.appendChild(td);
-  return td;
-}
-
-function aviso(texto, classe) {
-  const a = $("aviso");
-  a.textContent = texto;
-  a.className = classe;
-  a.style.display = "block";
-  a.style.animation = "none";
-  void a.offsetWidth;
-  a.style.animation = "";
-}
-
-function contar(el, alvo) {
-  const ini = performance.now(), dur = 700;
-  const passo = t => {
-    const p = Math.min(1, (t - ini) / dur), v = Math.round(alvo * (1 - Math.pow(1 - p, 3)));
-    el.textContent = v.toLocaleString("pt-BR");
-    if (p < 1) requestAnimationFrame(passo);
-  };
-  requestAnimationFrame(passo);
-}
-
-function animarLinhas(corpo) {
-  [...corpo.children].forEach((tr, i) => { tr.classList.add("nova"); tr.style.setProperty("--i", Math.min(i, 15)); });
-}
-
-let pendentesRede = 0;
-function rede(delta) {
-  pendentesRede = Math.max(0, pendentesRede + delta);
-  document.body.classList.toggle("carregando", pendentesRede > 0);
-}
-
-async function chamar(url, corpo) {
-  rede(1);
-  let r;
-  try { r = await fetch(url, corpo ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) } : {}); }
-  catch (e) { rede(-1); throw new Error("Sem resposta do sistema. Ele está ligado? Rode o MOKKA de novo."); }
-  rede(-1);
-  const dados = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(dados.erro || dados.message || "Erro " + r.status);
-  return dados;
-}
-
-async function decidir(acao, codigo) {
-  try {
-    const s = await chamar(`/api/solicitacoes/${atual.solicitacao_id}/decisao`, { acao, codigo, justificativa: $("justificativa").value });
-    const texto = { USOU_EXISTENTE: `Pronto: use o código ${s.codigo_escolhido}. Nenhum código novo foi criado.`,
-                    CRIADO: `Código ${s.codigo_escolhido} criado e já está no catálogo. Se alguém consultar o mesmo serviço, ele aparece.`,
-                    AGUARDANDO_CURADOR: "Pedido enviado ao curador do grupo: já existe um código igual, então a criação precisa de aprovação." }[s.status];
-    aviso(texto, s.status === "AGUARDANDO_CURADOR" ? "REVISAR" : "LIBERAR");
-    document.querySelectorAll("#resultado button").forEach(b => b.disabled = true);
-    historico();
-    pendentes();
-  } catch (e) { aviso(e.message, "erro"); }
-}
-
-function abrir(id) {
-  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("ativa", b.dataset.aba === id));
-  ["aba-consulta", "aba-lote", "aba-unidades", "aba-catalogo", "aba-curador"].forEach(a => {
-    $(a).classList.toggle("oculto", a !== id);
-    $(a).classList.remove("entrar");
-  });
-  void $(id).offsetWidth;
-  $(id).classList.add("entrar");
-  $("aviso").style.display = "none";
-  if (id === "aba-catalogo" && !$("busca").value.trim()) catalogo();
-  if (id === "aba-curador") pendentes();
-}
-
-let unidades = [];
-const limpar = t => t.normalize("NFKD").replace(/\p{M}/gu, "").replace(/\./g, "").trim().replace(/\s+/g, " ").toUpperCase();
-
-function conferirUnidade() {
-  const campo = $("unidade"), dica = $("unidade-dica"), texto = limpar(campo.value);
-  if (!texto) { dica.textContent = ""; return; }
-  const u = unidades.find(x => [x.codigo, ...x.pode_escrever].some(t => limpar(t) === texto));
-  if (u) { campo.value = u.codigo; dica.textContent = u.nome; dica.className = "conta"; }
-  else if (unidades.length) { dica.textContent = "Não conheço essa unidade. Veja a aba Unidades."; dica.className = "conta erro-texto"; }
-}
-
-async function carregarUnidades() {
-  try {
-    unidades = await chamar("/api/unidades");
-    $("unidades").replaceChildren(...unidades.map(u => { const o = document.createElement("option"); o.value = u.codigo; o.label = u.nome; return o; }));
-    const corpo = $("lista-unidades");
-    corpo.replaceChildren();
-    unidades.forEach(u => {
-      const tr = document.createElement("tr");
-      celula(tr, u.codigo).style.fontWeight = "600";
-      const nome = celula(tr, u.nome);
-      if (u.aviso) { const a = document.createElement("div"); a.className = "aviso-unidade"; a.textContent = u.aviso; nome.appendChild(a); }
-      celula(tr, u.pode_escrever.join(", "));
-      const ex = celula(tr, "");
-      u.exemplos.forEach(e => { const d = document.createElement("div"); d.className = "exemplo"; d.textContent = e; ex.appendChild(d); });
-      celula(tr, u.codigos_ativos.toLocaleString("pt-BR"));
-      const b = document.createElement("button");
-      b.type = "button";
-      b.textContent = "Usar";
-      b.onclick = () => { $("unidade").value = u.codigo; conferirUnidade(); abrir("aba-consulta"); $("descricao").focus(); };
-      celula(tr, "").appendChild(b);
-      corpo.appendChild(tr);
-    });
-    conferirUnidade();
-  } catch (e) {}
-}
-
-function situacao(c) {
-  const s = document.createElement("span");
-  s.className = "selo";
-  if (c.status === "BLOQUEADO") { s.className += " repetido"; s.textContent = "Repetido, use " + c.codigo_canonico; }
-  else s.textContent = /^(criado|importado)/.test(c.motivo || "") ? "Novo" : "Ativo";
-  return s;
-}
-
-async function visaoGeral() {
-  try {
-    const [r, grupos] = await Promise.all([chamar("/api/codigos/resumo"), chamar("/api/codigos/padronizados")]);
-    $("numeros").replaceChildren(...[[r.na_base, "códigos na base"], [r.oficiais, "códigos oficiais depois da limpeza"],
-      [r.repetidos, "repetidos apontando para o oficial"], [r.criados, "criados ou importados agora"]].map(([n, t]) => {
-      const d = document.createElement("div"), b = document.createElement("b"), s = document.createElement("span");
-      contar(b, n); s.textContent = t; d.append(b, s); return d; }));
-    $("grupos").replaceChildren(...grupos.map(g => {
-      const d = document.createElement("div"), o = document.createElement("div");
-      d.className = "grupo"; o.className = "oficial";
-      o.textContent = `${g.oficial.codigo} · ${M(g.oficial.descricao)} [${g.oficial.unidade}]` + (g.oficial.descricao_padrao ? ` · nome padrão: ${g.oficial.descricao_padrao}` : "");
-      d.appendChild(o);
-      g.repetidos.forEach(x => { const l = document.createElement("div"); l.className = "repetido"; l.textContent = `${x.codigo} · ${M(x.descricao)} [${x.unidade}] → use ${g.oficial.codigo}`; d.appendChild(l); });
-      return d; }));
-  } catch (e) {}
-}
-
-async function catalogo(busca) {
-  $("visao-geral").classList.toggle("oculto", !!busca);
-  if (!busca) visaoGeral();
-  try {
-    const lista = await chamar(busca ? "/api/codigos?busca=" + encodeURIComponent(busca) : "/api/codigos/novos");
-    $("titulo-catalogo").textContent = busca ? `Resultado para "${busca}"` : "Códigos criados ou importados agora";
-    const corpo = $("lista-catalogo");
-    corpo.replaceChildren();
-    lista.forEach(c => {
-      const tr = document.createElement("tr");
-      [c.codigo, M(c.descricao), c.descricao_padrao, c.unidade, c.grupo, c.categoria].forEach(v => celula(tr, v));
-      celula(tr, "").appendChild(situacao(c));
-      corpo.appendChild(tr);
-    });
-    animarLinhas(corpo);
-    $("catalogo-vazio").textContent = busca ? "Nada encontrado." : "Nenhum código criado ainda.";
-    $("catalogo-vazio").classList.toggle("oculto", lista.length > 0);
-  } catch (e) { aviso(e.message, "erro"); }
-}
-
-async function pendentes() {
-  try {
-    const lista = await chamar("/api/solicitacoes?status=AGUARDANDO_CURADOR");
-    $("botao-curador").textContent = lista.length ? `Curador (${lista.length})` : "Curador";
-    const corpo = $("lista-curador");
-    corpo.replaceChildren();
-    lista.forEach(s => {
-      const tr = document.createElement("tr");
-      [s.id, M(s.descricao_digitada), s.unidade, s.solicitante, s.codigo_sugerido, s.justificativa].forEach(v => celula(tr, v));
-      const acoes = document.createElement("div");
-      acoes.className = "acoes";
-      [["Aprovar", true, "principal"], ["Recusar", false, ""]].forEach(([nome, aprovar, classe]) => {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.textContent = nome;
-        b.className = classe;
-        b.onclick = () => curadoria(s.id, aprovar);
-        acoes.appendChild(b);
-      });
-      celula(tr, "").appendChild(acoes);
-      corpo.appendChild(tr);
-    });
-    $("curador-vazio").classList.toggle("oculto", lista.length > 0);
-  } catch (e) {}
-}
-
-async function curadoria(id, aprovar) {
-  try {
-    const s = await chamar(`/api/solicitacoes/${id}/curadoria`, { aprovar });
-    aviso(aprovar ? `Aprovado: código ${s.codigo_escolhido} criado e já está no catálogo.`
-                  : `Recusado: o comprador deve usar o código ${s.codigo_escolhido}.`, aprovar ? "LIBERAR" : "REVISAR");
-    pendentes();
-    historico();
-  } catch (e) { aviso(e.message, "erro"); }
-}
-
-function mostrar(r) {
-  atual = r;
-  aviso(r.motivo, r.resultado);
-  if (r.sugestao) {
-    const s = r.sugestao, a = $("aviso");
-    a.className = "REVISAR";
-    a.textContent = `Não achei igual a "${M($("descricao").value)}". Você quis dizer "${M(s.descricao)}"? `
-      + `(${s.correcoes.map(c => c.de + " → " + c.para).join(", ")}). Assim: ${s.motivo}. `;
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "principal";
-    b.textContent = "Sim, consultar assim";
-    b.onclick = () => { $("descricao").value = s.descricao; $("conta").textContent = s.descricao.length + "/40"; $("consulta").requestSubmit(); };
-    a.appendChild(b);
-  }
-  const corpo = $("candidatos");
-  corpo.replaceChildren();
-  r.candidatos.forEach((c, i) => {
-    const tr = document.createElement("tr");
-    celula(tr, c.codigo);
-    celula(tr, M(c.descricao));
-    celula(tr, c.nome_padrao);
-    celula(tr, c.unidade);
-    celula(tr, c.categoria);
-    celula(tr, c.aderencia + "%");
-    const muda = celula(tr, "");
-    const classe = document.createElement("div");
-    classe.className = "classe " + c.classe;
-    classe.textContent = { DUPLICADO: "Igual", REVISAR: "Quase igual", DIFERENTE: "Diferente" }[c.classe];
-    muda.append(classe, c.diferencas.join(", "));
-    const b = document.createElement("button");
-    b.type = "button";
-    b.textContent = "Usar este";
-    if (i === 0 && r.resultado !== "LIBERAR") b.className = "principal";
-    b.onclick = () => decidir("USAR_EXISTENTE", c.codigo);
-    celula(tr, "").appendChild(b);
-    corpo.appendChild(tr);
-  });
-  animarLinhas(corpo);
-  $("resultado").classList.remove("oculto");
-  $("novo").style.display = "grid";
-  $("justificativa").value = "";
-  $("justificativa").required = r.resultado !== "LIBERAR";
-  $("criar").className = r.resultado === "LIBERAR" ? "principal" : "";
-  $("criar").disabled = false;
-  const pediuCriar = pedidoDeCriar;
-  pedidoDeCriar = false;
-  if (pediuCriar && !r.sugestao) {
-    aviso(r.motivo + (r.resultado === "LIBERAR" ? ". Você pediu para criar: confira e clique em Criar código novo."
-      : ". Você pediu para criar, mas já existe código igual ou parecido: use um da lista ou justifique."), r.resultado);
-    $(r.resultado === "LIBERAR" ? "criar" : "justificativa").scrollIntoView({ behavior: "smooth", block: "center" });
-  }
-}
-
-async function historico() {
-  try {
-    const lista = await chamar("/api/solicitacoes");
-    const corpo = $("historico");
-    corpo.replaceChildren();
-    lista.forEach(s => {
-      const tr = document.createElement("tr");
-      [s.id, M(s.descricao_digitada), s.solicitante, s.resultado, s.codigo_sugerido, s.codigo_escolhido, s.status, s.justificativa].forEach(v => celula(tr, v));
-      corpo.appendChild(tr);
-    });
-  } catch (e) {}
-}
-
-document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => abrir(b.dataset.aba)));
-
-$("form-catalogo").addEventListener("submit", e => {
-  e.preventDefault();
-  const busca = $("busca").value.trim();
-  if (busca.length < 2) { aviso("Digite pelo menos 2 letras ou números.", "erro"); return; }
-  $("aviso").style.display = "none";
-  catalogo(busca);
-});
-
-$("unidade").addEventListener("change", conferirUnidade);
-
-function maiusculas(campo) {
-  const p = campo.selectionStart;
-  campo.value = campo.value.toUpperCase();
-  campo.setSelectionRange(p, p);
-}
-
-$("descricao").addEventListener("input", e => {
-  maiusculas(e.target);
-  $("conta").textContent = e.target.value.length + "/40";
-  if (falado) { falado = null; desenharPalavras(); }
-});
-$("busca").addEventListener("input", e => maiusculas(e.target));
-
-$("consulta").addEventListener("submit", async e => {
-  e.preventDefault();
-  conferirUnidade();
-  const botao = $("consulta").querySelector("button.principal");
-  botao.classList.add("ocupado");
-  try {
-    mostrar(await chamar("/api/consultas", { descricao: $("descricao").value, unidade: $("unidade").value, grupo: $("grupo").value, solicitante: $("solicitante").value }));
-    historico();
-  } catch (err) { aviso(err.message, "erro"); }
-  botao.classList.remove("ocupado");
-});
-
-$("criar").addEventListener("click", () => {
-  if ($("justificativa").required && !$("justificativa").value.trim()) {
-    aviso("Escreva a justificativa: já existe código igual ou parecido.", "erro");
-    $("justificativa").focus();
-    return;
-  }
-  decidir("CRIAR_NOVO");
-});
-
-const MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
-const Reconhecedor = window.SpeechRecognition || window.webkitSpeechRecognition;
-let ouvindo = null;
-const EDGE = "microsoft-edge:" + location.href.split("#")[0];
-
-function avisoNavegador(texto) {
-  aviso(texto + " ", "erro");
-  if (/Windows/.test(navigator.userAgent) && !/Edg\//.test(navigator.userAgent)) {
-    const a = document.createElement("a");
-    a.href = EDGE;
-    a.textContent = "Abrir esta página no Edge";
-    a.style.fontWeight = "600";
-    $("aviso").appendChild(a);
-  }
-}
-
-function prepararMic(botao, aoOuvir) {
-  botao.innerHTML = MIC + "<span>Falar</span>";
-  if (!Reconhecedor) {
-    botao.disabled = true;
-    botao.title = "Este navegador não tem reconhecimento de voz. Use o Edge, o Chrome ou o Safari.";
-    return;
-  }
-  if (!window.isSecureContext) {
-    botao.disabled = true;
-    botao.title = "O microfone só funciona abrindo pelo endereço localhost (http://localhost:8080) neste computador.";
-    return;
-  }
-  botao.addEventListener("click", () => {
-    if (ouvindo) { ouvindo.stop(); return; }
-    if (navigator.brave) {
-      avisoNavegador("O Brave bloqueia o reconhecimento de voz. Use o Edge ou o Chrome; o resto do sistema funciona normal aqui.");
-      return;
-    }
-    const r = new Reconhecedor();
-    r.lang = "pt-BR";
-    r.interimResults = true;
-    r.maxAlternatives = 5;
-    r.continuous = false;
-    ouvindo = r;
-    botao.classList.add("ouvindo");
-    botao.querySelector("span").textContent = "Ouvindo…";
-    aviso("Pode falar. Ex.: \"soldador hora extra cinquenta por cento segunda a sábado, unidade hora\".", "");
-    r.onresult = e => {
-      const res = e.results[e.results.length - 1];
-      const alternativas = Array.from(res).map(a => a.transcript);
-      aoOuvir(alternativas, res.isFinal, res[0] && res[0].confidence);
-    };
-    r.onerror = e => {
-      const msg = { "not-allowed": "O navegador bloqueou o microfone. Clique no cadeado da barra de endereço e permita o microfone.",
-                    "service-not-allowed": "O navegador bloqueou o microfone. Clique no cadeado da barra de endereço e permita o microfone.",
-                    "no-speech": "Não ouvi nada. Clique em Falar e tente de novo, mais perto do microfone.",
-                    "audio-capture": "Nenhum microfone encontrado neste computador.",
-                    "network": "O serviço de voz do navegador não respondeu. Ele precisa de internet e só funciona no Edge ou no Chrome." }[e.error];
-      if (e.error === "network") avisoNavegador(msg);
-      else if (msg) aviso(msg, "erro");
-    };
-    r.onend = () => {
-      ouvindo = null;
-      botao.classList.remove("ouvindo");
-      botao.querySelector("span").textContent = "Falar";
-    };
-    r.start();
-  });
-}
-
-function usarFala(f) {
-  $("descricao").value = f.texto;
-  $("conta").textContent = f.texto.length + "/40";
-  if (f.unidade) { $("unidade").value = f.unidade; conferirUnidade(); }
-}
-
-function diffPalavras(a, b) {
-  const n = a.length, m = b.length, L = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
-  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) L[i][j] = a[i] === b[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
-  const blocos = [];
-  let i = 0, j = 0, bi = null, bj = null;
-  const fechar = () => { if (bi !== null) { blocos.push([bi, i, bj, j]); bi = bj = null; } };
-  while (i < n || j < m) {
-    if (i < n && j < m && a[i] === b[j]) { fechar(); i++; j++; }
-    else {
-      if (bi === null) { bi = i; bj = j; }
-      if (j < m && (i >= n || L[i][j + 1] >= L[i + 1][j])) j++; else i++;
-    }
-  }
-  fechar();
-  return blocos;
-}
-
-const SEM_ACENTO = t => t.normalize("NFD").replace(/\p{M}/gu, "");
-let falado = null;
-
-function juntarSugestao(mapa, indice, tamanho, sugestoes) {
-  const atual = mapa.get(indice) || { tamanho, sugestoes: [] };
-  if (tamanho > atual.tamanho) atual.tamanho = tamanho;
-  for (const s of sugestoes) if (s && !atual.sugestoes.includes(s)) atual.sugestoes.push(s);
-  mapa.set(indice, atual);
-}
-
-async function palavrasDuvidosas(texto) {
-  try { return (await chamar("/api/consultas/palavras", { texto })).palavras; } catch (e) { return []; }
-}
-
-async function escolherMelhor(alternativas) {
-  const convertidas = alternativas.map(a => falaParaTexto(a)).filter(f => f.texto);
-  if (convertidas.length < 2) return { melhor: convertidas[0], outras: [] };
-  const duvidas = await Promise.all(convertidas.map(f => palavrasDuvidosas(f.texto)));
-  let melhor = 0;
-  duvidas.forEach((d, i) => { if (d.length < duvidas[melhor].length) melhor = i; });
-  return { melhor: convertidas[melhor], duvidas: duvidas[melhor], outras: convertidas.filter((_, i) => i !== melhor) };
-}
-
-function desenharPalavras() {
-  const caixa = $("palavras");
-  caixa.replaceChildren();
-  if (!falado) { $("falado").classList.add("oculto"); return; }
-  const palavras = $("descricao").value.split(" ").filter(Boolean);
-  caixa.classList.toggle("tem-duvida", falado.mapa.size > 0);
-  for (let i = 0; i < palavras.length;) {
-    const s = falado.mapa.get(i);
-    const tam = s ? s.tamanho : 1;
-    const chip = document.createElement(s ? "button" : "span");
-    chip.className = "palavra" + (s ? " duvida" : "");
-    chip.textContent = palavras.slice(i, i + tam).join(" ");
-    chip.style.setProperty("--i", i);
-    if (s) {
-      const indice = i;
-      const envolve = document.createElement("span");
-      envolve.className = "caixa-duvida";
-      const bolha = document.createElement("button");
-      bolha.type = "button";
-      bolha.className = "bolha";
-      bolha.textContent = s.sugestoes[0] + "?";
-      bolha.title = "Trocar por " + s.sugestoes[0];
-      bolha.onclick = e => { e.stopPropagation(); trocarPalavra(indice, s.tamanho, s.sugestoes[0]); };
-      chip.type = "button";
-      chip.title = "Não tenho certeza dessa palavra. Clique para ver mais opções.";
-      chip.onclick = e => { e.stopPropagation(); abrirOpcoes(envolve, indice, s); };
-      envolve.append(bolha, chip);
-      caixa.appendChild(envolve);
-    } else caixa.appendChild(chip);
-    i += tam;
-  }
-  $("falado").classList.remove("oculto");
-}
-
-function fecharOpcoes() {
-  document.querySelectorAll(".opcoes").forEach(o => o.remove());
-}
-
-function abrirOpcoes(envolve, indice, s) {
-  fecharOpcoes();
-  const menu = document.createElement("div");
-  menu.className = "opcoes";
-  const titulo = document.createElement("span");
-  titulo.textContent = "Você quis dizer:";
-  menu.appendChild(titulo);
-  s.sugestoes.slice(0, 4).forEach(sug => {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.textContent = sug;
-    b.onclick = e => { e.stopPropagation(); trocarPalavra(indice, s.tamanho, sug); };
-    menu.appendChild(b);
-  });
-  const manter = document.createElement("button");
-  manter.type = "button";
-  manter.className = "manter";
-  manter.textContent = "Manter";
-  manter.onclick = e => { e.stopPropagation(); falado.mapa.delete(indice); fecharOpcoes(); desenharPalavras(); };
-  menu.appendChild(manter);
-  envolve.appendChild(menu);
-}
-
-function trocarPalavra(indice, tamanho, nova) {
-  const palavras = $("descricao").value.split(" ").filter(Boolean);
-  palavras.splice(indice, tamanho, nova);
-  const r = caber40(palavras.join(" "));
-  $("descricao").value = r.texto;
-  $("conta").textContent = r.texto.length + "/40";
-  const novo = new Map();
-  for (const [i, v] of falado.mapa) {
-    if (i < indice) novo.set(i, v);
-    else if (i >= indice + tamanho) novo.set(i - tamanho + 1, v);
-  }
-  falado.mapa = novo;
-  fecharOpcoes();
-  desenharPalavras();
-  [...$("palavras").querySelectorAll(".palavra")].find(c => c.textContent === nova)?.classList.add("trocada");
-  if ($("solicitante").value.trim()) $("consulta").requestSubmit();
-}
-
-async function prepararPalavras(f, outras, duvidas, confianca) {
-  const palavras = f.texto.split(" ").filter(Boolean);
-  const mapa = new Map();
-  for (const d of (duvidas || await palavrasDuvidosas(f.texto))) juntarSugestao(mapa, d.indice, d.tamanho, d.sugestoes);
-  for (const o of outras) {
-    const alt = o.texto.split(" ").filter(Boolean);
-    for (const [i0, i1, j0, j1] of diffPalavras(palavras, alt)) {
-      if (i1 === i0 || j1 === j0) continue;
-      const trecho = alt.slice(j0, j1).join(" ");
-      if (i1 - i0 === j1 - j0) for (let k = 0; k < i1 - i0; k++) juntarSugestao(mapa, i0 + k, 1, [alt[j0 + k]]);
-      else juntarSugestao(mapa, i0, i1 - i0, [trecho]);
-    }
-  }
-  for (const [i, v] of mapa) {
-    const atual = palavras.slice(i, i + v.tamanho).join(" ");
-    v.sugestoes = v.sugestoes.filter(x => SEM_ACENTO(x) !== SEM_ACENTO(atual));
-    if (!v.sugestoes.length) mapa.delete(i);
-  }
-  falado = { mapa, confianca };
-  const nota = [];
-  if (f.abreviou) nota.push("abreviei para caber nos 40 caracteres");
-  if (f.cortou) nota.push("passou de 40 caracteres e cortei o final, confira");
-  if (mapa.size) nota.push("as palavras com borda amarela podem estar erradas: clique para trocar");
-  else if (confianca && confianca < 0.6) nota.push("não tenho muita certeza do que ouvi, confira o texto");
-  $("falado-nota").textContent = nota.join(" · ");
-  desenharPalavras();
-}
-
-let pedidoDeCriar = false;
-prepararMic($("mic-descricao"), async (alternativas, final, confianca) => {
-  if (!final) { usarFala(falaParaTexto(alternativas[0])); return; }
-  const { melhor, duvidas, outras } = await escolherMelhor(alternativas);
-  if (!melhor) return;
-  usarFala(melhor);
-  $("ultimo-ouvido").textContent = "Última coisa que ouvi: \"" + alternativas[0] + "\" → " + melhor.texto + (melhor.unidade ? " · unidade " + melhor.unidade : "");
-  pedidoDeCriar = melhor.acao === "criar";
-  await prepararPalavras(melhor, outras, duvidas, confianca);
-  if (!$("solicitante").value.trim()) { aviso("Ouvi: " + melhor.texto + ". Preencha o Comprador e clique em Consultar.", "REVISAR"); $("solicitante").focus(); return; }
-  $("consulta").requestSubmit();
-});
-
-document.addEventListener("click", fecharOpcoes);
-
-prepararMic($("mic-busca"), (alternativas, final) => {
-  const t = falaParaTexto(alternativas[0]).texto;
-  $("busca").value = t;
-  if (final && t.length >= 2) catalogo(t);
-});
-
-let lote = null;
-let filtroLote = null;
-const NOMES = { BLOQUEAR: "Já existem", REVISAR: "Parecidos", LIBERAR: "Novos", REPETIDO: "Repetidos na planilha", ERRO: "Com erro" };
-const ACOES = { BLOQUEAR: [["USAR_EXISTENTE", "Usar o existente"], ["IGNORAR", "Ignorar"]],
-                REVISAR: [["USAR_EXISTENTE", "Usar o existente"], ["CRIAR", "Criar código"], ["IGNORAR", "Ignorar"]],
-                LIBERAR: [["CRIAR", "Criar código"], ["IGNORAR", "Ignorar"]],
-                REPETIDO: [["CRIAR", "Mesmo da linha"], ["IGNORAR", "Ignorar"]],
-                ERRO: [["IGNORAR", "Ignorar"]] };
-
-function desenharLote() {
-  const chips = $("lote-chips");
-  chips.replaceChildren();
-  const todas = document.createElement("button");
-  todas.type = "button";
-  todas.textContent = `Todas (${lote.linhas.length})`;
-  todas.className = filtroLote ? "" : "ativa";
-  todas.onclick = () => { filtroLote = null; desenharLote(); };
-  chips.appendChild(todas);
-  Object.entries(NOMES).forEach(([k, nome]) => {
-    const n = lote.linhas.filter(l => l.resultado === k).length;
-    if (!n) return;
-    const b = document.createElement("button");
-    b.type = "button";
-    b.innerHTML = `<span class="res ${k}">●</span> `;
-    b.append(`${nome} (${n})`);
-    b.className = filtroLote === k ? "ativa" : "";
-    b.onclick = () => { filtroLote = k; desenharLote(); };
-    chips.appendChild(b);
-  });
-  const visiveis = lote.linhas.filter(l => !filtroLote || l.resultado === filtroLote);
-  const corpo = $("lote-linhas");
-  corpo.replaceChildren();
-  visiveis.slice(0, 300).forEach(l => {
-    const tr = document.createElement("tr");
-    celula(tr, l.linha).title = l.origem || "";
-    [l.codigo_informado, M(l.descricao), M(l.unidade), l.nome_padrao].forEach(v => celula(tr, v));
-    celula(tr, NOMES[l.resultado] || l.resultado, "res " + l.resultado);
-    celula(tr, l.codigo_existente ? `${l.codigo_existente} · ${M(l.descricao_existente)}` : "");
-    const sel = document.createElement("select");
-    (ACOES[l.resultado] || ACOES.ERRO).forEach(([v, t]) => {
-      const o = document.createElement("option");
-      o.value = v;
-      o.textContent = v === "CRIAR" && l.repete_linha ? `Mesmo da linha ${l.repete_linha}` : t;
-      sel.appendChild(o);
-    });
-    sel.value = l.acao;
-    sel.disabled = l.resultado === "ERRO" || !!l.situacao;
-    sel.onchange = () => { l.acao = sel.value; };
-    celula(tr, "").appendChild(sel);
-    celula(tr, l.codigo_final);
-    celula(tr, l.situacao || l.motivo);
-    corpo.appendChild(tr);
-  });
-  animarLinhas(corpo);
-  const importado = lote.linhas.some(l => l.situacao);
-  $("lote-info").textContent = (visiveis.length > 300 ? `Mostrando 300 de ${visiveis.length} linhas; o Excel organizado traz todas. ` : "")
-    + (importado ? "Importação feita. Baixe o Excel organizado para ter o código final de cada linha."
-                 : "Confira a coluna Ação: dá para trocar linha a linha antes de importar.");
-  $("importar").disabled = importado;
-  $("lote-resultado").classList.remove("oculto");
-}
-
-async function baixar(url, corpo, nome) {
-  rede(1);
-  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) }).finally(() => rede(-1));
-  if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.erro || "Erro " + r.status); }
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(await r.blob());
-  a.download = (r.headers.get("Content-Disposition") || "").match(/filename="?([^"]+)"?/)?.[1] || nome;
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-$("form-lote").addEventListener("submit", async e => {
-  e.preventDefault();
-  const colado = $("lote-texto").value.trim();
-  const arquivo = $("arquivo").files[0] || (colado ? new File([colado], "colado.txt", { type: "text/plain" }) : null);
-  if (!arquivo) { aviso("Escolha uma planilha ou cole a lista.", "erro"); return; }
-  const dados = new FormData();
-  dados.append("arquivo", arquivo);
-  dados.append("unidadePadrao", $("lote-unidade").value.trim());
-  dados.append("grupoPadrao", $("lote-grupo").value);
-  $("analisar").classList.add("ocupado");
-  aviso(`Analisando ${arquivo.name}… planilhas grandes levam alguns segundos.`, "");
-  try {
-    rede(1);
-    const r = await fetch("/api/lotes/analisar", { method: "POST", body: dados }).finally(() => rede(-1));
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(d.erro || "Erro " + r.status);
-    lote = d;
-    filtroLote = null;
-    const rel = $("lote-relatorio");
-    rel.replaceChildren();
-    const t = document.createElement("b");
-    t.textContent = "O que eu arrumei antes de analisar";
-    const ul = document.createElement("ul");
-    (d.relatorio || []).forEach(x => { const li = document.createElement("li"); li.textContent = x; ul.appendChild(li); });
-    rel.append(t, ul);
-    const s = d.resumo;
-    aviso(`${s.TOTAL} linhas analisadas em ${(d.milissegundos / 1000).toFixed(1)} s: ${s.BLOQUEAR} já existem, ${s.REVISAR} parecidos, ${s.LIBERAR} novos, ${s.REPETIDO} repetidos dentro da planilha e ${s.ERRO} com erro.`, "LIBERAR");
-    if (!$("lote-quem").value) $("lote-quem").value = $("solicitante").value;
-    desenharLote();
-  } catch (err) { aviso(err.message, "erro"); }
-  $("analisar").classList.remove("ocupado");
-});
-
-$("importar").addEventListener("click", async () => {
-  if (!lote) return;
-  if (!$("lote-quem").value.trim()) { aviso("Preencha quem está importando.", "erro"); $("lote-quem").focus(); return; }
-  const criar = lote.linhas.filter(l => l.acao === "CRIAR").length;
-  if (!confirm(`Importar ${lote.linhas.length} linhas? ${criar} vão criar código (ou usar o da linha repetida).`)) return;
-  $("importar").disabled = true;
-  try {
-    const r = await chamar("/api/lotes/importar", { solicitante: $("lote-quem").value.trim(), linhas: lote.linhas });
-    lote.linhas = r.linhas;
-    const s = r.resumo;
-    aviso(`Importado em ${(r.milissegundos / 1000).toFixed(1)} s: ${s.criados || 0} códigos criados, ${s.usam_existente || 0} linhas usam código existente e ${s.nao_importadas || 0} não importadas.`, "LIBERAR");
-    desenharLote();
-    historico();
-  } catch (err) { aviso(err.message, "erro"); $("importar").disabled = false; }
-});
-
-$("exportar").addEventListener("click", async () => {
-  if (!lote) return;
-  try { await baixar("/api/lotes/exportar", { linhas: lote.linhas, relatorio: lote.relatorio || [] }, "codigos_organizados.xlsx"); }
-  catch (err) { aviso(err.message, "erro"); }
-});
-
-historico();
-pendentes();
-carregarUnidades();
-if (location.hash === "#catalogo") abrir("aba-catalogo");
-
-async function checarVoz() {
-  const itens = [];
-  const serve = !!Reconhecedor && !navigator.brave;
-  itens.push([serve ? "Navegador: ok" : "Navegador: use o Edge, o Chrome ou o Safari", serve]);
-  itens.push([window.isSecureContext ? "Endereço: localhost ok" : "Abra por http://localhost:8080", window.isSecureContext]);
-  itens.push([navigator.onLine ? "Internet: ok" : "Sem internet: a voz não funciona", navigator.onLine]);
-  try {
-    const p = await navigator.permissions.query({ name: "microphone" });
-    itens.push([{ granted: "Microfone: permitido", prompt: "Microfone: o navegador vai pedir permissão", denied: "Microfone: bloqueado, libere no cadeado da barra" }[p.state], p.state !== "denied" ? (p.state === "granted" ? true : null) : false]);
-  } catch (e) {}
-  $("checagens").replaceChildren(...itens.map(([t, ok]) => { const s = document.createElement("span"); s.textContent = t; if (ok === true) s.className = "bom"; if (ok === false) s.className = "ruim"; return s; }));
-}
-
-function testeVoz() {
-  const mostrar = location.hash === "#testar-voz";
-  $("teste-voz").classList.toggle("oculto", !mostrar);
-  if (!mostrar) return;
-  abrir("aba-consulta");
-  $("teste-voz").classList.remove("oculto");
-  checarVoz();
-  if (!$("solicitante").value) $("solicitante").value = "Teste de voz";
-}
-window.addEventListener("hashchange", testeVoz);
-$("fechar-teste").addEventListener("click", e => { e.preventDefault(); history.replaceState(null, "", location.pathname); testeVoz(); });
-testeVoz();
-</script>
+<script src="app.js"></script>
 </body>
 </html>

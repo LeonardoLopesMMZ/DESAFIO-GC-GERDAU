@@ -217,6 +217,19 @@ class Buscador:
                               "aderencia": top and top["aderencia"], "diferencas": top["diferencas"] if top else []})
         return resultado
 
+    def agrupar(self, itens):
+        n5s = [normalizar(d)["n5"] for d, _ in itens]
+        prep = [preparar(forma_canonica(n, u)[0]) if n else None for n, (_, u) in zip(n5s, itens)]
+        P = (self.vec.transform(n5s) @ self.vec.transform(n5s).T).toarray()
+        grupo = list(range(len(itens)))
+        for i in range(len(itens)):
+            for j in range(i):
+                if prep[i] is not None and prep[j] is not None and P[i, j] >= 0.5 \
+                        and comparar(prep[i], itens[i][1], prep[j], itens[j][1])[0] == "DUPLICADO":
+                    grupo[i] = grupo[j]
+                    break
+        return grupo
+
     def _classificar(self, n5, unidade, s, limite, k=60):
         k = min(k, len(s))
         idx = np.argpartition(-s, k - 1)[:k] if k < len(s) else np.arange(len(s))

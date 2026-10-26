@@ -24,9 +24,11 @@ function Texto([string]$s) {
   [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(28591).GetBytes($s))
 }
 
+$script:token = ''
+
 function Json([string]$caminho, $corpo) {
   $bytes = [Text.Encoding]::UTF8.GetBytes(($corpo | ConvertTo-Json -Depth 10))
-  Invoke-RestMethod -Uri ($site + $caminho) -Method Post -Body $bytes -ContentType 'application/json; charset=utf-8'
+  Invoke-RestMethod -Uri ($site + $caminho) -Method Post -Body $bytes -ContentType 'application/json; charset=utf-8' -Headers @{ Authorization = "Bearer $script:token" }
 }
 
 Write-Host ""
@@ -56,31 +58,56 @@ Teste 'Numeros do catalogo' {
   "$($r.na_base) na base, $($r.oficiais) oficiais, $($r.repetidos) repetidos"
 }
 
+Teste 'Entrada com token' {
+  $r = Json '/api/acesso/entrar' @{ nome = 'Teste automatico' }
+  $script:token = $r.token
+  $corpo = Join-Path $env:TEMP 'mokka_sem_token.json'
+  [IO.File]::WriteAllText($corpo, '{"descricao":"PEDREIRO HN","unidade":"H"}')
+  $txt = & curl.exe -s -H "Content-Type: application/json" --data-binary "@$corpo" ($site + '/api/consultas')
+  if (($txt | ConvertFrom-Json).status -ne 401) { throw "consulta sem token deveria ser recusada: $txt" }
+  "token valido ate $($r.expira); sem token a gravacao e recusada"
+}
+
 Teste 'Consulta de codigo que ja existe (BLOQUEAR)' {
-  $r = Json '/api/consultas' @{ descricao = 'ELETRICISTA HORA EXTRA 100%'; unidade = 'hora'; solicitante = 'Teste automatico' }
+  $r = Json '/api/consultas' @{ descricao = 'ELETRICISTA HORA EXTRA 100%'; unidade = 'hora' }
   if ($r.resultado -ne 'BLOQUEAR') { throw "veio $($r.resultado)" }
   Texto $r.motivo
 }
 
 Teste 'Consulta de servico novo (LIBERAR)' {
-  $r = Json '/api/consultas' @{ descricao = 'TREINAMENTO EM REALIDADE VIRTUAL'; unidade = 'SV'; solicitante = 'Teste automatico' }
+  $r = Json '/api/consultas' @{ descricao = 'TREINAMENTO EM REALIDADE VIRTUAL'; unidade = 'SV' }
   if ($r.resultado -ne 'LIBERAR') { throw "veio $($r.resultado)" }
   'nenhum codigo igual'
 }
 
 Teste 'Correcao de fala ou digitacao (SOLDA DOR)' {
-  $r = Json '/api/consultas' @{ descricao = 'SOLDA DOR HORA EXTRA 50%'; unidade = 'H'; solicitante = 'Teste automatico' }
+  $r = Json '/api/consultas' @{ descricao = 'SOLDA DOR HORA EXTRA 50%'; unidade = 'H' }
   if (-not $r.sugestao) { throw 'nao sugeriu correcao' }
   "sugeriu: $($r.sugestao.descricao)"
 }
 
 Teste 'Erro em portugues para unidade errada' {
   $corpo = Join-Path $env:TEMP 'mokka_unidade.json'
-  [IO.File]::WriteAllText($corpo, '{"descricao":"PEDREIRO HN","unidade":"caixa","solicitante":"Teste automatico"}')
-  $txt = & curl.exe -s -H "Content-Type: application/json" --data-binary "@$corpo" ($site + '/api/consultas')
+  [IO.File]::WriteAllText($corpo, '{"descricao":"PEDREIRO HN","unidade":"caixa"}')
+  $txt = & curl.exe -s -H "Content-Type: application/json" -H "Authorization: Bearer $script:token" --data-binary "@$corpo" ($site + '/api/consultas')
   $msg = ($txt | ConvertFrom-Json).erro
   if ($msg -notmatch 'Unidade') { throw "resposta: $txt" }
   $msg
+}
+
+Teste 'Curador junta pedidos iguais' {
+  $ids = @()
+  foreach ($d in @('PEDREIRO HORA NORMAL', 'pedreiro hora normal', 'PEDREIRO - HORA NORMAL')) {
+    $c = Json '/api/consultas' @{ descricao = $d; unidade = 'H' }
+    if ($c.resultado -ne 'BLOQUEAR') { continue }
+    $s = Json "/api/solicitacoes/$($c.solicitacao_id)/decisao" @{ acao = 'CRIAR_NOVO'; justificativa = 'teste automatico' }
+    $ids += $s.id
+  }
+  if ($ids.Count -lt 2) { throw 'a base nao tem PEDREIRO HORA NORMAL para testar' }
+  $g = @(Invoke-RestMethod ($site + '/api/solicitacoes/curador')) | Where-Object { $_.ids -contains $ids[0] }
+  if (@($g.ids).Count -ne $ids.Count) { throw "esperava $($ids.Count) juntos, veio $(@($g.ids).Count)" }
+  $r = Json '/api/solicitacoes/curador/grupo' @{ ids = $ids; aprovar = $false }
+  "$($ids.Count) pedidos escritos diferente viraram 1 grupo e foram decididos de uma vez"
 }
 
 Teste 'Planilha em lote (modelo com 14 linhas)' {
