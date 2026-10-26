@@ -17,8 +17,15 @@
   --barra: 0px;
 }
 
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+* { 
+  box-sizing: border-box; 
+}
+
+html { 
+  scroll-behavior: smooth; 
+  -webkit-text-size-adjust: 100%; 
+}
+
 body {
   margin: 0;
   font: 15px/1.45 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
@@ -26,7 +33,11 @@ body {
   background: linear-gradient(135deg, rgba(0, 51, 102, .03) 25%, transparent 25%) 0 0 / 32px 32px, var(--fundo);
   padding-bottom: var(--barra);
 }
-a { color: var(--azul-2); }
+
+a { 
+  color: var(--azul-2); 
+}
+
 .oculto { display: none !important; }
 .so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
@@ -120,6 +131,7 @@ nav.abas {
   margin: 18px auto 0;
   padding: 0 16px;
 }
+
 nav.abas > div {
   display: flex;
   gap: 4px;
@@ -131,6 +143,7 @@ nav.abas > div {
   overflow-x: auto;
   scrollbar-width: none;
 }
+
 nav.abas button {
   position: relative;
   display: inline-flex;
@@ -239,7 +252,19 @@ button:not(.principal).ocupado::after { border-color: rgba(0, 51, 102, .25); bor
 .link { min-height: 0; padding: 0; border: 0; background: none; color: var(--azul-2); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 .link:hover:not(:disabled) { background: none; transform: none; color: var(--azul); }
 
-#consulta { display: grid; grid-template-columns: minmax(0, 1fr) 150px 170px auto; gap: 12px; align-items: end; }
+#consulta { 
+  display: grid; 
+  grid-template-columns: minmax(0, 1fr) 150px 170px auto; 
+  gap: 12px; 
+  align-items: start; 
+}
+
+#consulta > button {
+  align-self: start;
+  margin-top: 24px;
+  height: 44px;
+}
+
 .campo-voz { position: relative; display: flex; }
 .campo-voz input { padding-right: 112px; font-size: 16px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; }
 .campo-voz input::placeholder { text-transform: none; font-weight: 400; letter-spacing: 0; }
@@ -284,6 +309,31 @@ button:not(.principal).ocupado::after { border-color: rgba(0, 51, 102, .25); bor
 .nivel { display: inline-flex; align-items: flex-end; gap: 2px; height: 16px; }
 .nivel b { width: 3px; height: 3px; border-radius: 2px; background: #c3ced9; transition: height .08s, background .08s; }
 .nivel.ativo b { background: var(--verde); }
+
+.modo-local {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  color: #6b4a00;
+  background: #fff8e1;
+  border: 1px solid var(--amarelo);
+  border-radius: var(--raio);
+  font-size: 14px;
+  font-weight: 700;
+  animation: descer .3s ease both;
+}
+.modo-local::before {
+  content: "";
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--amarelo);
+  animation: pulsa 1.6s ease-out infinite;
+}
+@keyframes pulsa { 0% { box-shadow: 0 0 0 0 rgba(255, 204, 0, .7); } 100% { box-shadow: 0 0 0 10px rgba(255, 204, 0, 0); } }
 
 #aviso {
   display: none;
@@ -460,9 +510,23 @@ body.carregando #carregando { opacity: 1; animation: carrega 1.4s ease-in-out in
 @keyframes carrega { 0% { width: 0; left: 0; } 50% { width: 60%; left: 20%; } 100% { width: 0; left: 100%; } }
 
 @media (max-width: 960px) {
-  #consulta { grid-template-columns: 1fr 1fr; }
-  #consulta > :first-child, #consulta > button { grid-column: 1 / -1; }
-  .lote-form { grid-template-columns: 1fr 1fr; }
+  #consulta { 
+    grid-template-columns: 1fr 1fr; 
+  }
+
+  #consulta > :first-child { 
+    grid-column: 1 / -1; 
+  }
+
+  #consulta > button {
+    grid-column: 1 / -1;
+    margin-top: 0;
+  }
+
+  .lote-form { 
+    grid-template-columns: 1fr 1fr; 
+  }
+
   .lote-form > label:first-child, .lote-form > button { grid-column: 1 / -1; }
 }
 
