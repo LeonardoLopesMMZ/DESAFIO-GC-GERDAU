@@ -10,13 +10,17 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+import io.swagger.v3.oas.annotations.Parameter;
+
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import br.com.squad.codigos.acesso.Acesso;
 import br.com.squad.codigos.catalogo.Unidades;
 import br.com.squad.codigos.consulta.SimilaridadeClient.Candidato;
 import br.com.squad.codigos.solicitacao.Solicitacao;
@@ -29,15 +33,19 @@ public class ConsultaController {
 
     private final SimilaridadeClient similaridade;
     private final SolicitacaoRepository solicitacoes;
+    private final Acesso acesso;
 
-    public ConsultaController(SimilaridadeClient similaridade, SolicitacaoRepository solicitacoes) {
+    public ConsultaController(SimilaridadeClient similaridade, SolicitacaoRepository solicitacoes, Acesso acesso) {
         this.similaridade = similaridade;
         this.solicitacoes = solicitacoes;
+        this.acesso = acesso;
     }
 
     @Operation(summary = "Consultar uma descrição")
     @PostMapping
-    public Resposta consultar(@Valid @RequestBody Pedido p) {
+    public Resposta consultar(@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String auth,
+                              @Valid @RequestBody Pedido p) {
+        Acesso.Sessao quem = acesso.exigir(auth);
         String descricao = p.descricao().trim();
         String unidade = Unidades.codigo(p.unidade());
         if (unidade == null) {
@@ -48,8 +56,8 @@ public class ConsultaController {
         List<Candidato> c = r.candidatos();
         String sugerido = c.isEmpty() ? null : c.get(0).codigo();
         String mostrados = c.stream().map(Candidato::codigo).collect(Collectors.joining(","));
-        Solicitacao s = solicitacoes.save(new Solicitacao(descricao, unidade, p.grupo(), p.solicitante().trim(),
-                r.resultado(), sugerido, mostrados));
+        Solicitacao s = solicitacoes.save(new Solicitacao(descricao, unidade, p.grupo(), quem.nome(),
+                r.resultado(), sugerido, mostrados, quem.metodo()));
         return new Resposta(s.getId(), r.resultado(), r.motivo(), c, r.sugestao());
     }
 
@@ -66,9 +74,7 @@ public class ConsultaController {
                          @Size(max = 40, message = "A descrição deve ter até 40 caracteres") String descricao,
                          @NotBlank(message = "Informe a unidade")
                          @Size(max = 30, message = "A unidade deve ter até 30 caracteres") String unidade,
-                         @Size(max = 40, message = "O grupo deve ter até 40 caracteres") String grupo,
-                         @NotBlank(message = "Informe o comprador")
-                         @Size(max = 60, message = "O nome do comprador deve ter até 60 caracteres") String solicitante) {
+                         @Size(max = 40, message = "O grupo deve ter até 40 caracteres") String grupo) {
     }
 
     public record Resposta(Long solicitacaoId, String resultado, String motivo, List<Candidato> candidatos,

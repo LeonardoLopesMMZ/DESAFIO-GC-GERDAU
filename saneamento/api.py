@@ -90,6 +90,14 @@ class Handler(BaseHTTPRequestHandler):
                            "grupo": str(i.get("grupo") or "")[:40], "oficial": str(i.get("oficial") or "").strip() or None})
         self._responder(201, {"itens": self.buscador.adicionar_varios(limpos) if limpos else []})
 
+    def _agrupar(self, p):
+        itens = p.get("itens")
+        if not isinstance(itens, list) or not 0 < len(itens) <= 500 or not all(
+                isinstance(i, dict) and isinstance(i.get("descricao"), str) and isinstance(i.get("unidade") or "", str) for i in itens):
+            return self._responder(400, {"erro": "envie de 1 a 500 itens com descricao e unidade"})
+        pares = [(i["descricao"][:200], (i.get("unidade") or "").strip().upper()[:5]) for i in itens]
+        self._responder(200, {"grupos": self.buscador.agrupar(pares)})
+
     def do_OPTIONS(self):
         self._responder(204, {})
 
@@ -99,7 +107,7 @@ class Handler(BaseHTTPRequestHandler):
         self._responder(404, {"erro": "caminho não existe"})
 
     def do_POST(self):
-        if self.path not in ("/similares", "/palavras", "/codigos", "/codigos/lote", "/lote", "/lote/ler", "/lote/exportar"):
+        if self.path not in ("/similares", "/palavras", "/codigos", "/codigos/lote", "/lote", "/lote/ler", "/lote/exportar", "/agrupar"):
             return self._responder(404, {"erro": "caminho não existe"})
         try:
             corpo = self._corpo()
@@ -129,6 +137,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._novos(pedido)
         if self.path == "/lote":
             return self._lote(pedido)
+        if self.path == "/agrupar":
+            return self._agrupar(pedido)
         if self.path == "/lote/exportar":
             linhas = pedido.get("linhas")
             if not isinstance(linhas, list) or not all(isinstance(l, dict) for l in linhas):

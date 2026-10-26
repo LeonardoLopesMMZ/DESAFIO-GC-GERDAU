@@ -54,6 +54,10 @@ public class SimilaridadeClient {
         enviar("/codigos/lote", Map.of("itens", itens), Map.class);
     }
 
+    public List<Integer> agrupar(List<Map<String, String>> itens) {
+        return enviar("/agrupar", Map.of("itens", itens), Grupos.class).grupos();
+    }
+
     public byte[] exportar(List<?> linhas, List<String> relatorio) {
         return enviar("/lote/exportar", Map.of("linhas", linhas, "relatorio", relatorio == null ? List.of() : relatorio), byte[].class);
     }
@@ -67,7 +71,7 @@ public class SimilaridadeClient {
             return chamada.get();
         } catch (ResourceAccessException e) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "O serviço de similaridade (Python) está fora do ar. Feche tudo e rode o iniciar.bat de novo.");
+                    "O serviço de similaridade (Python) está fora do ar. Ligue de novo pelo MOKKA.bat.");
         } catch (RestClientResponseException e) {
             String corpo = e.getResponseBodyAsString();
             String msg = corpo.contains("\"erro\"") ? corpo.replaceAll("(?s).*\"erro\"\\s*:\\s*\"(.*?)\".*", "$1") : corpo;
@@ -76,6 +80,9 @@ public class SimilaridadeClient {
     }
 
     public record Planilha(Map<String, String> colunas, List<Map<String, Object>> linhas, List<String> relatorio) {
+    }
+
+    public record Grupos(List<Integer> grupos) {
     }
 
     public record Palavras(List<Palavra> palavras) {

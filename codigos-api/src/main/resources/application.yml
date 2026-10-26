@@ -7,6 +7,9 @@ server:
 similaridade:
   url: ${SIMILARIDADE_URL:http://127.0.0.1:8000}
 
+mokka:
+  so-chave: ${MOKKA_SO_CHAVE:false}
+
 springdoc:
   swagger-ui:
     path: /swagger

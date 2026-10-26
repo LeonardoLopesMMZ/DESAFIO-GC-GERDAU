@@ -19,12 +19,14 @@ public class CodigoServico {
     private String status;
     private String codigoCanonico;
     private String motivo;
+    private String criadoPor;
+    private java.time.LocalDateTime criadoEm;
 
     protected CodigoServico() {
     }
 
     public CodigoServico(String codigo, String descricao, String descricaoLimpa, String descricaoPadrao, String unidade,
-                         String grupo, String categoria, String motivo) {
+                         String grupo, String categoria, String motivo, String criadoPor) {
         this.codigo = codigo;
         this.descricao = descricao;
         this.descricaoLimpa = descricaoLimpa;
@@ -34,6 +36,8 @@ public class CodigoServico {
         this.categoria = categoria;
         this.status = "ATIVO";
         this.motivo = motivo;
+        this.criadoPor = criadoPor;
+        this.criadoEm = java.time.LocalDateTime.now();
     }
 
     public String getCodigo() {
@@ -74,5 +78,13 @@ public class CodigoServico {
 
     public String getMotivo() {
         return motivo;
+    }
+
+    public String getCriadoPor() {
+        return criadoPor;
+    }
+
+    public java.time.LocalDateTime getCriadoEm() {
+        return criadoEm;
     }
 }

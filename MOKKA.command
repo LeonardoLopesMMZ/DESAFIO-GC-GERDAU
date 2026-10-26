@@ -6,7 +6,7 @@ echo "  MOKKA | codigos de servico"
 echo "  =========================="
 BASE=dados/base_codigos_servico.xlsx
 [ -f "saneamento/$BASE" ] || BASE=exemplo/base_exemplo.csv
-JAR=codigos-api/target/codigos-api-0.3.0.jar
+JAR=codigos-api/target/codigos-api-0.4.0.jar
 if ! command -v java >/dev/null; then echo "  Java nao encontrado. Instale o JDK 17 em https://adoptium.net"; read -r; exit 1; fi
 PY=$(command -v python3.12 || command -v python3.13 || command -v python3.11 || command -v python3)
 if [ ! -x saneamento/.venv/bin/python ]; then
@@ -24,7 +24,7 @@ FRONT=""
 [ -f front/index.html ] && FRONT="--spring.web.resources.static-locations[0]=file:../front/ --spring.web.resources.static-locations[1]=classpath:/static/"
 (cd saneamento && exec .venv/bin/python api.py "$BASE") > /tmp/mokka-python.log 2>&1 &
 PID_PY=$!
-(cd codigos-api && exec java -Dfile.encoding=UTF-8 -jar target/codigos-api-0.3.0.jar --spring.sql.init.data-locations=file:../saneamento/saida/data.sql --spring.sql.init.encoding=UTF-8 $FRONT) > /tmp/mokka-java.log 2>&1 &
+(cd codigos-api && exec java -Dfile.encoding=UTF-8 -jar target/codigos-api-0.4.0.jar --spring.sql.init.data-locations=file:../saneamento/saida/data.sql --spring.sql.init.encoding=UTF-8 $FRONT) > /tmp/mokka-java.log 2>&1 &
 PID_JAVA=$!
 trap 'kill $PID_PY $PID_JAVA 2>/dev/null; echo "  MOKKA desligado."' EXIT INT TERM
 echo "  Ligando, leva uns 30 segundos..."
