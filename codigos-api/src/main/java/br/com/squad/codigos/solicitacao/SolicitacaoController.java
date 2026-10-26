@@ -1,12 +1,17 @@
 package br.com.squad.codigos.solicitacao;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -16,11 +21,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import br.com.squad.codigos.acesso.Acesso;
 import br.com.squad.codigos.catalogo.CodigoServico;
 import br.com.squad.codigos.catalogo.CodigoServicoRepository;
 import br.com.squad.codigos.consulta.SimilaridadeClient;
@@ -33,12 +40,14 @@ public class SolicitacaoController {
     private final SolicitacaoRepository solicitacoes;
     private final CodigoServicoRepository codigos;
     private final SimilaridadeClient similaridade;
+    private final Acesso acesso;
 
     public SolicitacaoController(SolicitacaoRepository solicitacoes, CodigoServicoRepository codigos,
-                                 SimilaridadeClient similaridade) {
+                                 SimilaridadeClient similaridade, Acesso acesso) {
         this.solicitacoes = solicitacoes;
         this.codigos = codigos;
         this.similaridade = similaridade;
+        this.acesso = acesso;
     }
 
     @Operation(summary = "Listar as últimas solicitações (filtro opcional por status)")
@@ -50,7 +59,9 @@ public class SolicitacaoController {
     @Operation(summary = "Usar um código existente ou criar um novo")
     @Transactional
     @PostMapping("/{id}/decisao")
-    public Solicitacao decidir(@PathVariable Long id, @Valid @RequestBody Decisao d) {
+    public Solicitacao decidir(@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String auth,
+                               @PathVariable Long id, @Valid @RequestBody Decisao d) {
+        acesso.exigir(auth);
         Solicitacao s = buscar(id, "PENDENTE", "Essa solicitação já foi decidida");
         switch (d.acao()) {
             case "USAR_EXISTENTE" -> {
@@ -77,14 +88,61 @@ public class SolicitacaoController {
     @Operation(summary = "Curador aprova ou recusa a criação")
     @Transactional
     @PostMapping("/{id}/curadoria")
-    public Solicitacao curadoria(@PathVariable Long id, @Valid @RequestBody Curadoria c) {
-        Solicitacao s = buscar(id, "AGUARDANDO_CURADOR", "Essa solicitação não está esperando o curador");
-        if (c.aprovar()) {
-            criarCodigo(s);
-        } else {
-            s.recusar();
+    public Solicitacao curadoria(@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String auth,
+                                 @PathVariable Long id, @Valid @RequestBody Curadoria c) {
+        return curarGrupo(acesso.exigir(auth).nome(), List.of(id), c.aprovar()).get(0);
+    }
+
+    @Operation(summary = "Pedidos do curador agrupados", description = "Pedidos que pedem o mesmo serviço, mesmo escritos de jeitos diferentes, vêm juntos para decidir de uma vez.")
+    @GetMapping("/curador")
+    public List<GrupoCurador> grupos() {
+        List<Solicitacao> pendentes = solicitacoes.findTop500ByStatusOrderById("AGUARDANDO_CURADOR");
+        if (pendentes.isEmpty()) {
+            return List.of();
         }
-        return solicitacoes.save(s);
+        List<Integer> grupo;
+        try {
+            grupo = similaridade.agrupar(pendentes.stream()
+                    .map(s -> Map.of("descricao", s.getDescricaoDigitada(), "unidade", s.getUnidade())).toList());
+        } catch (ResponseStatusException e) {
+            grupo = new ArrayList<>();
+            for (int i = 0; i < pendentes.size(); i++) {
+                grupo.add(i);
+            }
+        }
+        Map<Integer, List<Solicitacao>> juntos = new LinkedHashMap<>();
+        for (int i = 0; i < pendentes.size(); i++) {
+            juntos.computeIfAbsent(grupo.get(i), k -> new ArrayList<>()).add(pendentes.get(i));
+        }
+        return juntos.values().stream().map(l -> new GrupoCurador(l.stream().map(Solicitacao::getId).toList(),
+                l.get(0).getDescricaoDigitada(), l.get(0).getUnidade(), l.get(0).getCodigoSugerido(),
+                l.stream().map(Solicitacao::getSolicitante).distinct().toList(), l)).toList();
+    }
+
+    @Operation(summary = "Curador aprova ou recusa um grupo de pedidos iguais",
+            description = "Aprovar cria um código só e todos os pedidos do grupo passam a usar ele. Recusar manda todos usarem o existente.")
+    @Transactional
+    @PostMapping("/curador/grupo")
+    public List<Solicitacao> curarGrupo(@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String auth,
+                                        @Valid @RequestBody DecisaoGrupo d) {
+        return curarGrupo(acesso.exigir(auth).nome(), d.ids(), d.aprovar());
+    }
+
+    private List<Solicitacao> curarGrupo(String curador, List<Long> ids, boolean aprovar) {
+        List<Solicitacao> lista = ids.stream().distinct()
+                .map(id -> buscar(id, "AGUARDANDO_CURADOR", "A solicitação " + id + " não está esperando o curador")).toList();
+        String codigo = null;
+        for (Solicitacao s : lista) {
+            if (!aprovar) {
+                s.recusar();
+            } else if (codigo == null) {
+                codigo = criarCodigo(s);
+            } else {
+                s.registrarCodigo(codigo);
+            }
+            s.curar(curador);
+        }
+        return solicitacoes.saveAll(lista);
     }
 
     private Solicitacao buscar(Long id, String status, String erro) {
@@ -96,14 +154,15 @@ public class SolicitacaoController {
         return s;
     }
 
-    private void criarCodigo(Solicitacao s) {
+    private String criarCodigo(Solicitacao s) {
         String codigo = String.valueOf(codigos.proximoCodigo());
         String descricao = s.getDescricaoDigitada().toUpperCase();
         String grupo = vazio(s.getGrupo()) ? "Civil" : s.getGrupo();
         SimilaridadeClient.Novo n = similaridade.adicionar(codigo, descricao, s.getUnidade(), grupo);
         codigos.save(new CodigoServico(codigo, descricao, n.descricaoLimpa(), vazio(n.nomePadrao()) ? null : n.nomePadrao(),
-                s.getUnidade(), grupo, n.categoria(), "criado na solicitação " + s.getId()));
+                s.getUnidade(), grupo, n.categoria(), "criado na solicitação " + s.getId(), s.getSolicitante()));
         s.registrarCodigo(codigo);
+        return codigo;
     }
 
     private static boolean vazio(String s) {
@@ -114,5 +173,12 @@ public class SolicitacaoController {
     }
 
     public record Curadoria(@NotNull Boolean aprovar) {
+    }
+
+    public record DecisaoGrupo(@NotEmpty @Size(max = 500) List<Long> ids, @NotNull Boolean aprovar) {
+    }
+
+    public record GrupoCurador(List<Long> ids, String descricao, String unidade, String codigoExistente,
+                               List<String> pediram, List<Solicitacao> pedidos) {
     }
 }

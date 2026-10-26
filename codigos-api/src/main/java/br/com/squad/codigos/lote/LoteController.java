@@ -15,6 +15,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -30,6 +31,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -37,6 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import br.com.squad.codigos.acesso.Acesso;
 import br.com.squad.codigos.catalogo.CodigoServico;
 import br.com.squad.codigos.catalogo.CodigoServicoRepository;
 import br.com.squad.codigos.catalogo.Unidades;
@@ -48,18 +51,20 @@ import br.com.squad.codigos.consulta.SimilaridadeClient;
 public class LoteController {
 
     private static final String INSERIR_CODIGO = "INSERT INTO codigo_servico (codigo, descricao, descricao_limpa, descricao_padrao, "
-            + "unidade, grupo, categoria, status, codigo_canonico, motivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            + "unidade, grupo, categoria, status, codigo_canonico, motivo, criado_por, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     private static final String INSERIR_SOLICITACAO = "INSERT INTO solicitacao (descricao_digitada, unidade, grupo, solicitante, "
-            + "resultado, codigo_sugerido, codigo_escolhido, justificativa, status, criada_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            + "resultado, codigo_sugerido, codigo_escolhido, justificativa, status, criada_em, metodo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     private final SimilaridadeClient similaridade;
     private final CodigoServicoRepository codigos;
     private final JdbcTemplate jdbc;
+    private final Acesso acesso;
 
-    public LoteController(SimilaridadeClient similaridade, CodigoServicoRepository codigos, JdbcTemplate jdbc) {
+    public LoteController(SimilaridadeClient similaridade, CodigoServicoRepository codigos, JdbcTemplate jdbc, Acesso acesso) {
         this.similaridade = similaridade;
         this.codigos = codigos;
         this.jdbc = jdbc;
+        this.acesso = acesso;
     }
 
     @Operation(summary = "Analisar planilha",
@@ -146,7 +151,8 @@ public class LoteController {
                     + "Tudo numa transação só: se algo falhar, nada fica gravado pela metade.")
     @Transactional
     @PostMapping("/importar")
-    public Importacao importar(@Valid @RequestBody PedidoImportacao pedido) {
+    public Importacao importar(@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String auth,
+                               @Valid @RequestBody PedidoImportacao pedido) {
         long inicio = System.currentTimeMillis();
         List<Linha> linhas = pedido.linhas().stream().sorted(Comparator.comparingInt(Linha::linha)).toList();
         Set<String> envolvidos = new HashSet<>();
@@ -164,7 +170,8 @@ public class LoteController {
         List<Map<String, String>> paraSimilaridade = new ArrayList<>();
         List<Linha> saida = new ArrayList<>();
         Timestamp agora = Timestamp.valueOf(LocalDateTime.now());
-        String quem = pedido.solicitante().trim();
+        Acesso.Sessao sessao = acesso.exigir(auth);
+        String quem = sessao.nome();
 
         for (Linha l : linhas) {
             String acao = vazio(l.acao()) ? "IGNORAR" : l.acao();
@@ -203,7 +210,7 @@ public class LoteController {
                     alvo = informado != null ? informado : String.valueOf(codigos.proximoCodigo());
                     String desc = corta(l.descricao().toUpperCase(), 60);
                     novosCodigos.add(new Object[]{alvo, desc, corta(l.descricaoLimpa(), 200), corta(l.nomePadrao(), 40),
-                            l.unidade(), grupo, corta(l.categoria(), 40), "ATIVO", null, corta("importado da planilha, linha " + l.linha(), 80)});
+                            l.unidade(), grupo, corta(l.categoria(), 40), "ATIVO", null, corta("importado da planilha, linha " + l.linha(), 80), corta(quem, 60), agora});
                     paraSimilaridade.add(item(alvo, desc, l.unidade(), grupo, null));
                     existentes.add(alvo);
                     situacao = "Criado";
@@ -216,7 +223,7 @@ public class LoteController {
             if (informado != null && alvo != null && !existentes.contains(informado) && !informado.equals(alvo)) {
                 String desc = corta(l.descricao().toUpperCase(), 60);
                 novosCodigos.add(new Object[]{informado, desc, corta(l.descricaoLimpa(), 200), corta(l.nomePadrao(), 40),
-                        l.unidade(), grupo, corta(l.categoria(), 40), "BLOQUEADO", alvo, corta("importado da planilha: repetido de " + alvo, 80)});
+                        l.unidade(), grupo, corta(l.categoria(), 40), "BLOQUEADO", alvo, corta("importado da planilha: repetido de " + alvo, 80), corta(quem, 60), agora});
                 paraSimilaridade.add(item(informado, desc, l.unidade(), grupo, alvo));
                 existentes.add(informado);
                 situacao += "; o código " + informado + " entrou como repetido de " + alvo;
@@ -226,7 +233,7 @@ public class LoteController {
                 alvoDoCodigo.putIfAbsent(informado, alvo);
             }
             registros.add(new Object[]{corta(l.descricao(), 40), l.unidade(), grupo, corta(quem, 60), l.resultado(),
-                    l.codigoExistente(), alvo, corta("importação em lote, linha " + l.linha(), 200), status, agora});
+                    l.codigoExistente(), alvo, corta("importação em lote, linha " + l.linha(), 200), status, agora, sessao.metodo()});
             saida.add(l.com(alvo, situacao));
         }
 
@@ -304,8 +311,7 @@ public class LoteController {
     public record Importacao(Map<String, Long> resumo, long milissegundos, List<Linha> linhas) {
     }
 
-    public record PedidoImportacao(@NotBlank(message = "Informe quem está importando")
-                                   @Size(max = 60, message = "O nome deve ter até 60 caracteres") String solicitante,
+    public record PedidoImportacao(@Size(max = 60, message = "O nome deve ter até 60 caracteres") String solicitante,
                                    @NotEmpty(message = "Nenhuma linha para importar")
                                    @Size(max = 5000, message = "No máximo 5000 linhas por vez") List<Linha> linhas) {
     }

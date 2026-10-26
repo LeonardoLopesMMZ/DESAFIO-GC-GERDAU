@@ -24,12 +24,15 @@ public class Solicitacao {
     private String justificativa;
     private String status = "PENDENTE";
     private LocalDateTime criadaEm = LocalDateTime.now();
+    private String metodo;
+    private String curador;
+    private LocalDateTime decididaEm;
 
     protected Solicitacao() {
     }
 
     public Solicitacao(String descricaoDigitada, String unidade, String grupo, String solicitante,
-                       String resultado, String codigoSugerido, String candidatos) {
+                       String resultado, String codigoSugerido, String candidatos, String metodo) {
         this.descricaoDigitada = descricaoDigitada;
         this.unidade = unidade;
         this.grupo = grupo;
@@ -37,6 +40,12 @@ public class Solicitacao {
         this.resultado = resultado;
         this.codigoSugerido = codigoSugerido;
         this.candidatos = candidatos;
+        this.metodo = metodo;
+    }
+
+    public void curar(String curador) {
+        this.curador = curador;
+        this.decididaEm = LocalDateTime.now();
     }
 
     public void usarExistente(String codigo) {
@@ -107,5 +116,17 @@ public class Solicitacao {
 
     public LocalDateTime getCriadaEm() {
         return criadaEm;
+    }
+
+    public String getMetodo() {
+        return metodo;
+    }
+
+    public String getCurador() {
+        return curador;
+    }
+
+    public LocalDateTime getDecididaEm() {
+        return decididaEm;
     }
 }

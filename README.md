@@ -6,7 +6,7 @@ Protótipo do Grupo 17 para acabar com os códigos de serviço repetidos no SAP.
 - **REVISAR**: existe um quase igual, e para criar mesmo assim é preciso justificar.
 - **LIBERAR**: é novo, e o código é criado na hora.
 
-Quem insiste em criar um código bloqueado vai para a fila do **curador**. Para a alta demanda, uma **planilha inteira** (até 5000 linhas, mesmo sem tratamento) é analisada de uma vez, entra no banco do jeito certo e volta como um Excel organizado.
+Quem insiste em criar um código bloqueado vai para a fila do **curador**, que recebe os pedidos iguais juntos e decide o grupo de uma vez. Cada pessoa entra com **token**, pelo nome ou com **rosto ou digital** (chave de acesso do aparelho), e cada código guarda quem criou e quem usou. Para a alta demanda, uma **planilha inteira** (até 5000 linhas, mesmo sem tratamento) é analisada de uma vez, entra no banco do jeito certo e volta como um Excel organizado.
 
 | Consulta por voz | Planilha inteira | API (Swagger) |
 | --- | --- | --- |
@@ -84,11 +84,12 @@ Quem tem a base real coloca o arquivo em `saneamento/dados/base_codigos_servico.
 
 | Aba | O que dá para fazer |
 | --- | --- |
-| Consultar e criar | Digitar ou **falar** a descrição. A fala vira texto em maiúsculas, números falados viram dígitos ("cinquenta por cento" vira 50%) e, se passar de 40 caracteres, é abreviada no padrão do SAP (HORA EXTRA vira HE, TÉCNICO DE SEGURANÇA DO TRABALHO vira TST). Palavras de que o sistema não tem certeza aparecem com uma sugestão em cima, para trocar com um clique. Ver os parecidos com a aderência e o que muda em cada um. Usar um existente ou criar um novo. Se houver erro de digitação ou de fala ("SOLDA DOR"), o sistema sugere a correção ("SOLDADOR") e mostra que o código já existe. |
+| Entrar | Botão no canto de cima. **Rosto ou digital**: usa a chave de acesso do aparelho (Windows Hello, Touch ID, Face ID ou o celular pelo QR code); depois de cadastrar, ninguém entra com o seu nome. **Pelo nome**: modo demonstração. A entrada gera um token que vale 8 horas, e toda gravação exige o token. |
+| Consultar e criar | Digitar ou **falar** a descrição. O botão **Anti-ruído** liga um filtro de ruído na voz (corta zumbido, eco e barulho de fundo); em microfone bom pode piorar, por isso liga e desliga. A fala vira texto em maiúsculas, números falados viram dígitos ("cinquenta por cento" vira 50%) e, se passar de 40 caracteres, é abreviada no padrão do SAP (HORA EXTRA vira HE, TÉCNICO DE SEGURANÇA DO TRABALHO vira TST). Palavras de que o sistema não tem certeza aparecem com uma sugestão em cima, para trocar com um clique. Ver os parecidos com a aderência e o que muda em cada um. Usar um existente ou criar um novo. Se houver erro de digitação ou de fala ("SOLDA DOR"), o sistema sugere a correção ("SOLDADOR") e mostra que o código já existe. |
 | Planilha (lote) | Mandar um .xlsx ou .csv bruto, ou colar a lista. Antes de analisar, o sistema arruma a planilha: pula títulos, junta abas, divide texto colado em colunas, tira cabeçalhos repetidos e linhas idênticas e unifica grupos escritos de jeitos diferentes, mostrando um relatório do que fez. Ver linha a linha: já existe, parecido, novo, repetido dentro da própria planilha ou com erro. Trocar a ação de cada linha. Importar tudo numa transação só. Baixar o Excel organizado com as abas Tratado, Pronto para o SAP, Resumo, Relatório e uma aba por grupo. |
 | Unidades | Ver como escrever cada unidade. Na consulta dá para escrever "hora" ou "metro quadrado", e a tela troca por H ou M2. |
-| Catálogo | Ver os números da base, os códigos oficiais com os repetidos de cada um e os códigos criados ou importados. Buscar por número ou texto, também por voz. |
-| Curador | Aprovar ou recusar quem quis criar um código que já existe. |
+| Catálogo | Ver os números da base (inclusive consultas feitas e duplicados evitados), os códigos oficiais com os repetidos de cada um e os códigos criados ou importados. Buscar por número ou texto, também por voz. Clicar em qualquer código abre a **ficha**: quem criou, como entrou (rosto ou nome), quando, fornecedores, repetidos e quem usou. |
+| Curador | Os pedidos que pedem o mesmo serviço, mesmo escritos diferente, aparecem juntos ("3 pedidos iguais"). **Aprovar os 3** cria um código só para todos; **Recusar os 3** manda todos usarem o existente. Dá para decidir um pedido sozinho também. |
 
 A planilha do lote é lida por nome de coluna ("Descrição", "Unidade", "Grupo", "Código", "Fornecedor"), em qualquer ordem. Ela pode ter também as 5 colunas no formato da Gerdau, ou uma coluna só com as descrições. O modelo pode ser baixado na própria aba.
 
@@ -111,17 +112,31 @@ Navegador (HTML + JS)  ->  Java / Spring Boot (porta 8080)  ->  Python (porta 80
   - recebe as consultas e guarda cada decisão (quem, o que foi sugerido, o que foi escolhido e por quê);
   - controla o curador e faz a importação em lote numa transação só;
   - publica a API com Swagger e devolve erros sempre em português, no formato `{"status", "erro", "caminho", "quando"}`.
-- **Banco**: tabelas `base_original` (intocada), `codigo_servico`, `codigo_fornecedor`, `dicionario` e `solicitacao`, mais a sequência `codigo_novo` (a partir de 9000001). Os detalhes estão em [docs/14-modelagem-banco](docs/14-modelagem-banco/README.md).
+- **Banco**: tabelas `base_original` (intocada), `codigo_servico`, `codigo_fornecedor`, `dicionario`, `solicitacao` e `usuario` (nome e chave pública de quem cadastrou rosto ou digital), mais a sequência `codigo_novo` (a partir de 9000001). Os detalhes estão em [docs/14-modelagem-banco](docs/14-modelagem-banco/README.md).
 
 ## API
 
-A documentação completa e testável fica em **http://localhost:8080/swagger** com o sistema ligado.
+A documentação completa e testável fica em **http://localhost:8080/swagger** com o sistema ligado. Para gravar pelo Swagger: chame `POST /api/acesso/entrar` com `{"nome": "Seu nome"}`, copie o `token`, clique em **Authorize** e cole.
+
+### Segurança
+
+- Gravação (consultar, decidir, curador, importar) só com token. Sem token, a resposta é 401.
+- O token é aleatório (256 bits), fica só na memória do servidor e vence em 8 horas. **Sair** apaga na hora.
+- A chave de acesso (rosto ou digital) segue o padrão WebAuthn, o mesmo das passkeys: o aparelho guarda a chave privada e só manda uma assinatura; o servidor confere com a chave pública, o desafio de uso único, o site de origem e o contador da chave. Rosto ou digital nunca saem do aparelho.
+- Depois que alguém cadastra rosto ou digital, aquele nome não entra mais pelo modo nome.
+- Em produção, ligue `MOKKA_SO_CHAVE=true` para aceitar só rosto ou digital.
+- A chave só funciona em `http://localhost` ou em `https`; pelo IP da rede, use a entrada pelo nome.
 
 | Método | Caminho | O que faz |
 | --- | --- | --- |
+| POST | `/api/acesso/entrar` | entra pelo nome e devolve o token (use em **Authorize** no Swagger) |
+| POST | `/api/acesso/chave/desafio`, `/chave/cadastrar`, `/chave/entrar` | cadastro e entrada com rosto ou digital (WebAuthn) |
+| GET | `/api/acesso/eu` | quem é o dono do token |
 | POST | `/api/consultas` | consulta uma descrição; devolve o resultado, os candidatos e a correção sugerida |
 | POST | `/api/solicitacoes/{id}/decisao` | usar um código existente ou criar um novo |
 | POST | `/api/solicitacoes/{id}/curadoria` | o curador aprova ou recusa |
+| GET | `/api/solicitacoes/curador` | pedidos do curador agrupados por serviço |
+| POST | `/api/solicitacoes/curador/grupo` | aprova ou recusa um grupo inteiro |
 | GET | `/api/solicitacoes` | histórico de consultas e decisões |
 | POST | `/api/lotes/analisar` | analisa uma planilha (multipart, campo `arquivo`) |
 | POST | `/api/lotes/importar` | grava as linhas analisadas no banco |
@@ -130,7 +145,7 @@ A documentação completa e testável fica em **http://localhost:8080/swagger** 
 | GET | `/api/codigos/resumo` | totais da base |
 | GET | `/api/codigos/padronizados` | códigos oficiais com os repetidos |
 | GET | `/api/codigos/novos` | códigos criados ou importados |
-| GET | `/api/codigos/{codigo}` | um código e o oficial que vale no lugar dele |
+| GET | `/api/codigos/{codigo}` | ficha do código: quem criou, fornecedores, oficial, repetidos e quem usou |
 | GET | `/api/unidades` | unidades, sinônimos e exemplos |
 
 ## Apresentar sem susto (Teams ou ao vivo)
@@ -148,7 +163,7 @@ A documentação completa e testável fica em **http://localhost:8080/swagger** 
   - Para rodar, use a classe `CodigosApplication` com o argumento `--spring.sql.init.data-locations=file:../saneamento/saida/data.sql`.
   - O serviço Python precisa estar ligado.
 - **Python:** no VS Code, abra a pasta `saneamento` e escolha o interpretador `.venv` que o `MOKKA.bat` criou.
-- **Tela:** é um arquivo só, `codigos-api/src/main/resources/static/index.html`, e a conversão de fala em texto fica em `fala.js` na mesma pasta.
+- **Tela:** fica em `codigos-api/src/main/resources/static/`: `index.html` (estrutura), `style.css` (visual), `app.js` (comportamento) e `fala.js` (conversão de fala em texto). Funciona em celular, tablet e PC: no celular as tabelas viram cartões e as abas vão para baixo.
 
 Depois de mudar o Java, apague a pasta `codigos-api/target` para o `MOKKA.bat` compilar de novo.
 
@@ -175,5 +190,7 @@ python test_padronizar.py
 A documentação de cada etapa está em `saneamento/docs/` (dados) e `docs/` (Java, banco e telas).
 
 ## Equipe
+
+Visual da tela baseado no front da Thirza.
 
 Grupo 17, Desafio GC 2026: Leonardo Lopes, Thales, Thirza Midiã Matos de Oliveira, Bárbara Teixeira Baumgardt, Lukas Leimann.

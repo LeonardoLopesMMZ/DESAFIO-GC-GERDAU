@@ -1,6 +1,6 @@
 # Como testar o MOKKA (passo a passo simples)
 
-São uns 15 minutos. Os resultados abaixo valem para a **base de exemplo** que vem no repositório; com a base real da Gerdau os códigos são outros. Antes de começar, ligue o sistema como explicado no [README](../README.md#rodar-do-zero) e abra http://localhost:8080. Em todos os testes, preencha **Comprador** com o seu nome.
+São uns 15 minutos. Os resultados abaixo valem para a **base de exemplo** que vem no repositório; com a base real da Gerdau os códigos são outros. Antes de começar, ligue o sistema como explicado no [README](../README.md#rodar-do-zero) e abra http://localhost:8080. Na primeira consulta o sistema pede para **entrar**: escreva o seu nome e clique em Entrar (ou use rosto ou digital, teste 13).
 
 Ligar de novo pelo `MOKKA.bat` (opção 1) zera tudo. Faça isso antes de começar, para os números baterem.
 
@@ -34,8 +34,10 @@ Ligar de novo pelo `MOKKA.bat` (opção 1) zera tudo. Faça isso antes de começ
 
 ## 5. Curador
 
-1. Abra a aba **Curador (1)**. O pedido do teste 4 está lá.
-2. Clique em **Recusar**. **Esperado:** *o comprador deve usar o código 9000001*.
+1. Abra a aba **Curador** (o número 1 aparece ao lado). O pedido do teste 4 está lá.
+2. Clique em **Recusar**. **Esperado:** *Recusado: use o 9000001*.
+
+**Pedidos iguais juntos:** consulte `ELETRICISTA HE 100%`, `eletricista hora extra 100%` e `ELETRICISTA - HORA EXTRA 100%`, e em cada um escreva uma justificativa e clique em **Criar código novo**. Na aba **Curador** aparece um cartão só, *3 pedidos iguais*. Clique em **Aprovar os 3**. **Esperado:** *Aprovado: 3 pedidos usam o código 900000X*, um código só para os três.
 
 ## 6. Erro de digitação ou de fala
 
@@ -80,7 +82,7 @@ O que a voz entende:
 3. **Esperado:** *14 linhas analisadas: 3 já existem, 2 parecidos, 3 novos, 3 repetidos dentro da planilha e 3 com erro*. Pelos botões dá para filtrar cada tipo.
    - Linhas 6 e 7 são o mesmo serviço escrito diferente: a 7 aparece como *Mesmo da linha 6*.
    - Linha 13 está sem unidade, linha 14 sem descrição e linha 15 tem a unidade "caixa", que não existe: as três aparecem como erro, com o motivo.
-4. Preencha **Quem está importando** e clique em **Importar no banco**.
+4. Clique em **Importar no banco** e confirme. A importação fica no nome de quem entrou.
 5. **Esperado:**
    - *3 códigos criados, 8 linhas usam código existente e 3 não importadas*.
    - As linhas 6 e 7 ficam com o mesmo código, 9000001.
@@ -90,7 +92,7 @@ O que a voz entende:
    - **Pronto para o SAP:** um código por linha, com nome padrão de até 40 caracteres.
    - **Resumo** e **Relatório** (o que foi arrumado na planilha).
    - Uma aba por grupo, quando a planilha tem mais de um grupo.
-7. Na aba **Catálogo**, o número de *criados ou importados agora* deve ser 5.
+7. Na aba **Catálogo**, o número de *criados agora* deve ser 5.
 
 **Planilha bagunçada de verdade:** na mesma aba, clique em **Baixar exemplo bagunçado** e analise o `exemplo_baguncado.xlsx`. Ele tem título no topo, uma linha vazia, o cabeçalho repetido no meio, uma linha duplicada, "-" e "n/a" no lugar de vazio, duas abas e o grupo escrito de vários jeitos ("civil", "CIVIL ", "Cívil", "facilites", "Eletro mecânica"). **Esperado:** o quadro **O que eu arrumei antes de analisar** lista cada correção, e os grupos viram Civil, Facilities e Eletromecânica. No Excel exportado aparecem também a aba **Relatório** e uma aba por grupo.
 
@@ -134,3 +136,22 @@ cd saneamento
 ```
 
 **Esperado:** uma linha `ok` para cada teste. Os testes que precisam da base real dizem *pulado* quando ela não está em `dados/`.
+
+## 13. Entrar com rosto ou digital
+
+Precisa do Edge ou do Chrome em http://localhost:8080 e de um jeito de confirmar no aparelho: Windows Hello (rosto, digital ou PIN), Touch ID no Mac, ou o celular (o navegador mostra um QR code).
+
+1. Entre pelo nome. Clique no seu nome no canto de cima e em **Cadastrar rosto ou digital**. Confirme no aparelho.
+2. **Esperado:** *Pronto! Da próxima vez, entre com rosto ou digital.*
+3. Clique em **Sair**. Tente entrar com o mesmo nome. **Esperado:** *Esse nome tem rosto ou digital cadastrado.*
+4. Clique em **Entrar com rosto ou digital**. **Esperado:** *Entrada confirmada com rosto ou digital.*
+
+## 14. Ficha do código
+
+Clique em qualquer número de código (na consulta, no catálogo, no curador ou no lote). **Esperado:** abre a ficha com quem criou, se entrou com rosto ou pelo nome, quando, fornecedores, repetidos e a lista de quem usou.
+
+## 15. Anti-ruído e celular
+
+1. Ligue o **Anti-ruído** embaixo da descrição e fale perto de um barulho (ventilador, música baixa). Desligue e repita. Fique com o que acertar mais: depende do microfone.
+2. As barrinhas ao lado mostram o volume enquanto você fala. Se ficarem paradas, o sistema avisa para chegar mais perto.
+3. Abra o endereço da rede no celular. **Esperado:** abas embaixo, tabelas em cartões e nada cortado na lateral.

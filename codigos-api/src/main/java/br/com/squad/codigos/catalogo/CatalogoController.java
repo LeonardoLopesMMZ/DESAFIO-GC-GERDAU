@@ -16,15 +16,20 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import br.com.squad.codigos.solicitacao.Solicitacao;
+import br.com.squad.codigos.solicitacao.SolicitacaoRepository;
+
 @Tag(name = "Catálogo", description = "Busca no catálogo saneado, números da base e grupos padronizados")
 @RestController
 @RequestMapping("/api/codigos")
 public class CatalogoController {
 
     private final CodigoServicoRepository codigos;
+    private final SolicitacaoRepository solicitacoes;
 
-    public CatalogoController(CodigoServicoRepository codigos) {
+    public CatalogoController(CodigoServicoRepository codigos, SolicitacaoRepository solicitacoes) {
         this.codigos = codigos;
+        this.solicitacoes = solicitacoes;
     }
 
     @Operation(summary = "Buscar por número (começo do código) ou texto")
@@ -50,7 +55,8 @@ public class CatalogoController {
         long ativos = codigos.novosPorStatus("ATIVO");
         long bloqueados = codigos.novosPorStatus("BLOQUEADO");
         return new Resumo(codigos.count() - ativos - bloqueados, codigos.countByStatus("ATIVO") - ativos,
-                codigos.countByStatus("BLOQUEADO") - bloqueados, ativos + bloqueados);
+                codigos.countByStatus("BLOQUEADO") - bloqueados, ativos + bloqueados, solicitacoes.count(),
+                solicitacoes.countByStatusIn(List.of("USOU_EXISTENTE", "RECUSADO")));
     }
 
     @Operation(summary = "Códigos oficiais com os repetidos de cada um")
@@ -61,21 +67,23 @@ public class CatalogoController {
                 .toList();
     }
 
-    @Operation(summary = "Detalhe de um código, fornecedores e o oficial que vale no lugar")
+    @Operation(summary = "Ficha do código", description = "Quem criou, quando, os fornecedores, o oficial que vale no lugar, os repetidos e quem usou o código")
     @GetMapping("/{codigo}")
     public Detalhe detalhe(@PathVariable String codigo) {
         CodigoServico c = codigos.findById(codigo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Código não encontrado: " + codigo));
         CodigoServico oficial = c.getCodigoCanonico() == null ? null : codigos.findById(c.getCodigoCanonico()).orElse(null);
-        return new Detalhe(c, codigos.fornecedores(codigo), oficial);
+        return new Detalhe(c, codigos.fornecedores(codigo), oficial, solicitacoes.findTop20ByCodigoEscolhidoOrderByIdDesc(codigo),
+                codigos.findByCodigoCanonicoOrderByCodigo(codigo));
     }
 
-    public record Resumo(long naBase, long oficiais, long repetidos, long criados) {
+    public record Resumo(long naBase, long oficiais, long repetidos, long criados, long consultas, long duplicadosEvitados) {
     }
 
     public record Grupo(CodigoServico oficial, List<CodigoServico> repetidos) {
     }
 
-    public record Detalhe(CodigoServico codigo, List<String> fornecedores, CodigoServico oficial) {
+    public record Detalhe(CodigoServico codigo, List<String> fornecedores, CodigoServico oficial, List<Solicitacao> usos,
+                          List<CodigoServico> repetidos) {
     }
 }
