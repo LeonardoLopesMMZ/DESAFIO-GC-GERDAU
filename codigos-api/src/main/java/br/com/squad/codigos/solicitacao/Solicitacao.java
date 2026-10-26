@@ -25,6 +25,7 @@ public class Solicitacao {
     private String status = "PENDENTE";
     private LocalDateTime criadaEm = LocalDateTime.now();
     private String metodo;
+    private Long retratoId;
     private String curador;
     private LocalDateTime decididaEm;
 
@@ -32,7 +33,7 @@ public class Solicitacao {
     }
 
     public Solicitacao(String descricaoDigitada, String unidade, String grupo, String solicitante,
-                       String resultado, String codigoSugerido, String candidatos, String metodo) {
+                       String resultado, String codigoSugerido, String candidatos, String metodo, Long retratoId) {
         this.descricaoDigitada = descricaoDigitada;
         this.unidade = unidade;
         this.grupo = grupo;
@@ -41,6 +42,7 @@ public class Solicitacao {
         this.codigoSugerido = codigoSugerido;
         this.candidatos = candidatos;
         this.metodo = metodo;
+        this.retratoId = retratoId;
     }
 
     public void curar(String curador) {
@@ -116,6 +118,10 @@ public class Solicitacao {
 
     public LocalDateTime getCriadaEm() {
         return criadaEm;
+    }
+
+    public Long getRetratoId() {
+        return retratoId;
     }
 
     public String getMetodo() {

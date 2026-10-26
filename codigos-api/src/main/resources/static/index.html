@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#003366">
 <title>MOKKA · Códigos de serviço</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
 <div id="carregando" aria-hidden="true"></div>
@@ -32,7 +32,7 @@
     </div>
     <div class="topo-acoes">
       <a href="/swagger" target="_blank" rel="noopener" title="API (Swagger)"><svg><use href="#i-api"/></svg><span class="texto">API</span></a>
-      <button type="button" id="usuario"><svg><use href="#i-pessoa"/></svg><span id="usuario-nome">Entrar</span></button>
+      <button type="button" id="usuario"><img id="usuario-foto" class="retrato oculto" alt=""><svg id="usuario-icone"><use href="#i-pessoa"/></svg><span id="usuario-nome">Entrar</span></button>
     </div>
   </div>
 </header>
@@ -203,7 +203,8 @@
     <button type="button" data-fechar>Fechar</button>
   </div>
   <div class="janela-corpo">
-    <button type="button" class="principal botao-chave" id="entrar-chave"><svg><use href="#i-rosto"/></svg>Entrar com rosto ou digital</button>
+    <button type="button" class="principal botao-chave" id="entrar-rosto"><svg><use href="#i-rosto"/></svg>Entrar com o rosto</button>
+    <button type="button" class="botao-chave" id="entrar-chave"><svg><use href="#i-curador"/></svg>Chave do Windows (Hello, digital ou PIN)</button>
     <div class="ou">ou pelo nome</div>
     <form class="linha-entrar" id="form-entrar">
       <input id="entrar-nome" maxlength="60" placeholder="Seu nome" autocomplete="name" required>
@@ -219,9 +220,26 @@
     <button type="button" data-fechar>Fechar</button>
   </div>
   <div class="janela-corpo">
-    <p class="info" id="conta-info"></p>
-    <button type="button" class="principal botao-chave" id="cadastrar-chave"><svg><use href="#i-rosto"/></svg>Cadastrar rosto ou digital</button>
+    <div class="conta-topo">
+      <img id="conta-foto" class="retrato grande oculto" alt="">
+      <p class="info" id="conta-info"></p>
+    </div>
+    <button type="button" class="principal botao-chave" id="cadastrar-rosto"><svg><use href="#i-rosto"/></svg>Cadastrar meu rosto</button>
+    <button type="button" class="botao-chave" id="cadastrar-chave"><svg><use href="#i-curador"/></svg>Cadastrar a chave do Windows</button>
     <button type="button" class="perigo" id="sair">Sair</button>
+  </div>
+</dialog>
+
+<dialog id="janela-rosto">
+  <div class="janela-topo">
+    <h2 id="rosto-titulo">Rosto</h2>
+    <button type="button" data-fechar>Fechar</button>
+  </div>
+  <div class="janela-corpo rosto">
+    <div class="camera" id="rosto-camera"><video id="rosto-video" playsinline muted></video><svg class="anel" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="47"/><circle class="progresso" cx="50" cy="50" r="47" pathLength="1"/></svg></div>
+    <p class="info" id="rosto-info" role="status"></p>
+    <button type="button" class="principal oculto" id="rosto-de-novo">Tentar de novo</button>
+    <p class="dica">A foto fica guardada pequena (uns 5 KB) e aparece em tudo o que você fizer.</p>
   </div>
 </dialog>
 
@@ -233,7 +251,8 @@
   <div class="janela-corpo ficha" id="ficha"></div>
 </dialog>
 
-<script src="fala.js"></script>
-<script src="app.js"></script>
+<script src="fala.js?v=6"></script>
+<script src="app.js?v=6"></script>
+<script src="rosto.js?v=6"></script>
 </body>
 </html>

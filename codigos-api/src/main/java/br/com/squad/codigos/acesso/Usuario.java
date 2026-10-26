@@ -18,6 +18,8 @@ public class Usuario {
     private String chavePublica;
     private Integer algoritmo;
     private long contador;
+    private String rosto;
+    private Long retratoId;
     private LocalDateTime criadoEm = LocalDateTime.now();
 
     protected Usuario() {
@@ -36,6 +38,23 @@ public class Usuario {
 
     public void atualizarContador(long contador) {
         this.contador = contador;
+    }
+
+    public void cadastrarRosto(String rosto, Long retratoId) {
+        this.rosto = rosto;
+        this.retratoId = retratoId;
+    }
+
+    public boolean temRosto() {
+        return rosto != null;
+    }
+
+    public String getRosto() {
+        return rosto;
+    }
+
+    public Long getRetratoId() {
+        return retratoId;
     }
 
     public boolean temChave() {

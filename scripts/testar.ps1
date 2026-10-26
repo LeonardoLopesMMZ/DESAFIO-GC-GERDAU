@@ -68,6 +68,27 @@ Teste 'Entrada com token' {
   "token valido ate $($r.expira); sem token a gravacao e recusada"
 }
 
+Teste 'Entrada pelo rosto (servidor)' {
+  $tokenAntes = $script:token
+  try {
+    $script:token = (Json '/api/acesso/entrar' @{ nome = 'Teste rosto ' + (Get-Random) }).token
+    $rnd = New-Object Random
+    $d = 1..128 | ForEach-Object { [math]::Round($rnd.NextDouble() * 0.4 - 0.2, 5) }
+    $foto = '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA0JCgsKCA0LCgsODg0PEyAVExISEyccHhcgLikxMC4pLSwzOko+MzZGNywtQFdBRkxOUlNSMj5aYVpQYEpRUk//2wBDAQ4ODhMREyYVFSZPNS01T09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0//wAARCAAQABADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDiqKKK9M84/9k='
+    Json '/api/acesso/rosto/cadastrar' @{ descritor = $d; foto = $foto } | Out-Null
+    $script:token = ''
+    $r = Json '/api/acesso/rosto/entrar' @{ descritor = $d; foto = $foto }
+    if ($r.metodo -ne 'ROSTO' -or -not $r.retrato_id) { throw 'nao entrou pelo rosto' }
+    $img = Invoke-WebRequest -UseBasicParsing ($site + '/api/acesso/retratos/' + $r.retrato_id) -Headers @{ Authorization = "Bearer $($r.token)" }
+    if ($img.Content[0] -ne 0xFF -or $img.Content[1] -ne 0xD8) { throw 'a foto voltou com defeito' }
+    $outro = 1..128 | ForEach-Object { [math]::Round($rnd.NextDouble() * 0.4 - 0.2, 5) }
+    $codigo = 0
+    try { Json '/api/acesso/rosto/entrar' @{ descritor = $outro; foto = $foto } | Out-Null } catch { $codigo = [int]$_.Exception.Response.StatusCode }
+    if ($codigo -ne 401) { throw "rosto de outra pessoa deveria ser recusado (veio $codigo)" }
+    "reconheceu, guardou a foto no banco ($($img.Content.Length) bytes) e recusou outro rosto"
+  } finally { $script:token = $tokenAntes }
+}
+
 Teste 'Consulta de codigo que ja existe (BLOQUEAR)' {
   $r = Json '/api/consultas' @{ descricao = 'ELETRICISTA HORA EXTRA 100%'; unidade = 'hora' }
   if ($r.resultado -ne 'BLOQUEAR') { throw "veio $($r.resultado)" }

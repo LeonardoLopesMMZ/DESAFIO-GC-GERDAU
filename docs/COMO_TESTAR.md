@@ -1,6 +1,6 @@
 # Como testar o MOKKA (passo a passo simples)
 
-São uns 15 minutos. Os resultados abaixo valem para a **base de exemplo** que vem no repositório; com a base real da Gerdau os códigos são outros. Antes de começar, ligue o sistema como explicado no [README](../README.md#rodar-do-zero) e abra http://localhost:8080. Na primeira consulta o sistema pede para **entrar**: escreva o seu nome e clique em Entrar (ou use rosto ou digital, teste 13).
+São uns 15 minutos. Os resultados abaixo valem para a **base de exemplo** que vem no repositório; com a base real da Gerdau os códigos são outros. Antes de começar, ligue o sistema como explicado no [README](../README.md#rodar-do-zero) e abra http://localhost:8080. Na primeira consulta o sistema pede para **entrar**: escreva o seu nome e clique em Entrar (ou use o rosto, teste 13).
 
 Ligar de novo pelo `MOKKA.bat` (opção 1) zera tudo. Faça isso antes de começar, para os números baterem.
 
@@ -137,18 +137,22 @@ cd saneamento
 
 **Esperado:** uma linha `ok` para cada teste. Os testes que precisam da base real dizem *pulado* quando ela não está em `dados/`.
 
-## 13. Entrar com rosto ou digital
+## 13. Entrar com o rosto
 
-Precisa do Edge ou do Chrome em http://localhost:8080 e de um jeito de confirmar no aparelho: Windows Hello (rosto, digital ou PIN), Touch ID no Mac, ou o celular (o navegador mostra um QR code).
+Precisa de uma webcam e do Edge ou do Chrome em http://localhost:8080. Na primeira vez, o navegador pede a câmera: clique em **Permitir**.
 
-1. Entre pelo nome. Clique no seu nome no canto de cima e em **Cadastrar rosto ou digital**. Confirme no aparelho.
-2. **Esperado:** *Pronto! Da próxima vez, entre com rosto ou digital.*
-3. Clique em **Sair**. Tente entrar com o mesmo nome. **Esperado:** *Esse nome tem rosto ou digital cadastrado.*
-4. Clique em **Entrar com rosto ou digital**. **Esperado:** *Entrada confirmada com rosto ou digital.*
+1. Entre pelo nome. Clique no seu nome no canto de cima e em **Cadastrar meu rosto**. Olhe para a câmera até o anel amarelo fechar.
+2. **Esperado:** *Rosto cadastrado!* e a sua foto aparece no botão de cima.
+3. Clique em **Sair**. Tente entrar com o mesmo nome. **Esperado:** *Esse nome tem rosto cadastrado. Use Entrar com o rosto.*
+4. Clique em **Entrar com o rosto**. **Esperado:** *Olá! Você entrou pelo rosto.*
+5. Peça para outra pessoa tentar entrar com o rosto. **Esperado:** *Não reconheci o rosto.*
+6. Crie um código e abra a ficha dele. **Esperado:** em **Criado por** aparece a foto do momento em que você entrou.
+
+A **chave do Windows** (Windows Hello, digital ou PIN) funciona do mesmo jeito: **Cadastrar a chave do Windows** e depois **Chave do Windows** na tela de entrada.
 
 ## 14. Ficha do código
 
-Clique em qualquer número de código (na consulta, no catálogo, no curador ou no lote). **Esperado:** abre a ficha com quem criou, se entrou com rosto ou pelo nome, quando, fornecedores, repetidos e a lista de quem usou.
+Clique em qualquer número de código (na consulta, no catálogo, no curador ou no lote). **Esperado:** abre a ficha com quem criou (com a foto, se entrou pelo rosto), como entrou, quando, fornecedores, repetidos e a lista de quem usou.
 
 ## 15. Anti-ruído e celular
 

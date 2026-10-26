@@ -1,6 +1,8 @@
 package br.com.squad.codigos.acesso;
 
 import java.net.URI;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
@@ -13,6 +15,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -37,15 +40,22 @@ public class Acesso {
     private final Map<String, Sessao> sessoes = new ConcurrentHashMap<>();
     private final Map<String, Instant> desafios = new ConcurrentHashMap<>();
     private final UsuarioRepository usuarios;
+    private final RetratoRepository retratos;
     private final ObjectMapper json = new ObjectMapper();
     private final boolean soChave;
 
-    public Acesso(UsuarioRepository usuarios, @Value("${mokka.so-chave:false}") boolean soChave) {
+    public static final double LIMITE_ROSTO = 0.5;
+    private static final double ROSTO_DE_OUTRO = 0.45;
+    private static final int TAMANHO_DESCRITOR = 128;
+    private static final int MAX_FOTO = 20_000;
+
+    public Acesso(UsuarioRepository usuarios, RetratoRepository retratos, @Value("${mokka.so-chave:false}") boolean soChave) {
         this.usuarios = usuarios;
+        this.retratos = retratos;
         this.soChave = soChave;
     }
 
-    public record Sessao(String token, String nome, String metodo, Instant expira) {
+    public record Sessao(String token, String nome, String metodo, Long retratoId, Instant expira) {
     }
 
     public Sessao exigir(String autorizacao) {
@@ -66,6 +76,10 @@ public class Acesso {
         return usuarios.findByNomeIgnoreCase(nome).map(Usuario::temChave).orElse(false);
     }
 
+    public Usuario usuario(String nome) {
+        return usuarios.findByNomeIgnoreCase(nome).orElse(null);
+    }
+
     public boolean soChave() {
         return soChave;
     }
@@ -78,9 +92,12 @@ public class Acesso {
         Usuario u = usuarios.findByNomeIgnoreCase(nome).orElseGet(() -> usuarios.save(new Usuario(nome)));
         if (u.temChave()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Esse nome tem rosto ou digital cadastrado. Use Entrar com chave de acesso.");
+                    "Esse nome tem chave do Windows cadastrada. Use Entrar com a chave do Windows.");
         }
-        return nova(u.getNome(), "NOME");
+        if (u.temRosto()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Esse nome tem rosto cadastrado. Use Entrar com o rosto.");
+        }
+        return nova(u.getNome(), "NOME", null);
     }
 
     public String desafio() {
@@ -139,7 +156,7 @@ public class Acesso {
         }
         u.atualizarContador(contador);
         usuarios.save(u);
-        return nova(u.getNome(), "CHAVE");
+        return nova(u.getNome(), "CHAVE", null);
     }
 
     private String conferirCliente(byte[] cliente, String tipo, String origem) {
@@ -170,9 +187,106 @@ public class Acesso {
         }
     }
 
-    private Sessao nova(String nome, String metodo) {
+    @Transactional
+    public void cadastrarRosto(Sessao s, List<Double> descritor, String foto) {
+        float[] d = descritor(descritor);
+        byte[] jpg = foto(foto);
+        for (Usuario outro : usuarios.findByRostoIsNotNull()) {
+            if (!outro.getNome().equalsIgnoreCase(s.nome()) && distancia(d, ler(outro.getRosto())) < ROSTO_DE_OUTRO) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Esse rosto já está cadastrado para " + outro.getNome() + ".");
+            }
+        }
+        Retrato r = retratos.save(new Retrato(s.nome(), "CADASTRO", null, jpg));
+        Usuario u = usuarios.findByNomeIgnoreCase(s.nome()).orElseGet(() -> new Usuario(s.nome()));
+        u.cadastrarRosto(escrever(d), r.getId());
+        usuarios.save(u);
+    }
+
+    @Transactional
+    public Sessao entrarComRosto(List<Double> descritor, String foto) {
+        float[] d = descritor(descritor);
+        byte[] jpg = foto(foto);
+        Usuario melhor = null;
+        double menor = Double.MAX_VALUE;
+        for (Usuario u : usuarios.findByRostoIsNotNull()) {
+            double dist = distancia(d, ler(u.getRosto()));
+            if (dist < menor) {
+                menor = dist;
+                melhor = u;
+            }
+        }
+        if (melhor == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Ninguém cadastrou o rosto ainda. Entre pelo nome e cadastre o seu.");
+        }
+        if (menor > LIMITE_ROSTO) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Não reconheci o rosto. Olhe de frente, com luz no rosto, e tente de novo.");
+        }
+        Retrato r = retratos.save(new Retrato(melhor.getNome(), "ENTRADA", Math.round(menor * 1000) / 1000.0, jpg));
+        return nova(melhor.getNome(), "ROSTO", r.getId());
+    }
+
+    public byte[] retrato(long id) {
+        return retratos.findById(id).map(Retrato::getFoto)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Foto não encontrada."));
+    }
+
+    static double distancia(float[] a, float[] b) {
+        double soma = 0;
+        for (int i = 0; i < a.length; i++) {
+            double x = a[i] - b[i];
+            soma += x * x;
+        }
+        return Math.sqrt(soma);
+    }
+
+    private static float[] descritor(List<Double> v) {
+        if (v == null || v.size() != TAMANHO_DESCRITOR) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Leitura do rosto inválida.");
+        }
+        float[] d = new float[TAMANHO_DESCRITOR];
+        for (int i = 0; i < d.length; i++) {
+            Double x = v.get(i);
+            if (x == null || !Double.isFinite(x) || Math.abs(x) > 2) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Leitura do rosto inválida.");
+            }
+            d[i] = x.floatValue();
+        }
+        return d;
+    }
+
+    private static byte[] foto(String base64) {
+        byte[] b;
+        try {
+            b = Base64.getDecoder().decode(base64.replaceFirst("^data:image/jpeg;base64,", ""));
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Foto inválida.");
+        }
+        if (b.length < 4 || b.length > MAX_FOTO || (b[0] & 0xff) != 0xFF || (b[1] & 0xff) != 0xD8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A foto deve ser um JPEG de até 20 KB.");
+        }
+        return b;
+    }
+
+    private static String escrever(float[] d) {
+        ByteBuffer b = ByteBuffer.allocate(d.length * 4).order(ByteOrder.LITTLE_ENDIAN);
+        for (float x : d) {
+            b.putFloat(x);
+        }
+        return B64.encodeToString(b.array());
+    }
+
+    private static float[] ler(String s) {
+        ByteBuffer b = ByteBuffer.wrap(D64.decode(s)).order(ByteOrder.LITTLE_ENDIAN);
+        float[] d = new float[TAMANHO_DESCRITOR];
+        for (int i = 0; i < d.length; i++) {
+            d[i] = b.getFloat();
+        }
+        return d;
+    }
+
+    private Sessao nova(String nome, String metodo, Long retratoId) {
         sessoes.values().removeIf(s -> s.expira().isBefore(Instant.now()));
-        Sessao s = new Sessao(B64.encodeToString(bytes(32)), nome, metodo, Instant.now().plus(VALIDADE));
+        Sessao s = new Sessao(B64.encodeToString(bytes(32)), nome, metodo, retratoId, Instant.now().plus(VALIDADE));
         sessoes.put(s.token(), s);
         return s;
     }

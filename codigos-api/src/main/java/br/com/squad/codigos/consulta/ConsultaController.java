@@ -57,7 +57,7 @@ public class ConsultaController {
         String sugerido = c.isEmpty() ? null : c.get(0).codigo();
         String mostrados = c.stream().map(Candidato::codigo).collect(Collectors.joining(","));
         Solicitacao s = solicitacoes.save(new Solicitacao(descricao, unidade, p.grupo(), quem.nome(),
-                r.resultado(), sugerido, mostrados, quem.metodo()));
+                r.resultado(), sugerido, mostrados, quem.metodo(), quem.retratoId()));
         return new Resposta(s.getId(), r.resultado(), r.motivo(), c, r.sugestao());
     }
 
