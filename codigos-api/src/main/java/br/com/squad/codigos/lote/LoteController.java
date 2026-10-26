@@ -53,7 +53,7 @@ public class LoteController {
     private static final String INSERIR_CODIGO = "INSERT INTO codigo_servico (codigo, descricao, descricao_limpa, descricao_padrao, "
             + "unidade, grupo, categoria, status, codigo_canonico, motivo, criado_por, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     private static final String INSERIR_SOLICITACAO = "INSERT INTO solicitacao (descricao_digitada, unidade, grupo, solicitante, "
-            + "resultado, codigo_sugerido, codigo_escolhido, justificativa, status, criada_em, metodo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            + "resultado, codigo_sugerido, codigo_escolhido, justificativa, status, criada_em, metodo, retrato_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     private final SimilaridadeClient similaridade;
     private final CodigoServicoRepository codigos;
@@ -233,7 +233,7 @@ public class LoteController {
                 alvoDoCodigo.putIfAbsent(informado, alvo);
             }
             registros.add(new Object[]{corta(l.descricao(), 40), l.unidade(), grupo, corta(quem, 60), l.resultado(),
-                    l.codigoExistente(), alvo, corta("importação em lote, linha " + l.linha(), 200), status, agora, sessao.metodo()});
+                    l.codigoExistente(), alvo, corta("importação em lote, linha " + l.linha(), 200), status, agora, sessao.metodo(), sessao.retratoId()});
             saida.add(l.com(alvo, situacao));
         }
 

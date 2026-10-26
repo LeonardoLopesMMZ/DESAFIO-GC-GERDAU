@@ -92,12 +92,40 @@ async function chamar(url, corpo, opcoes = {}) {
   return dados;
 }
 
+const COMO = { ROSTO: "pelo rosto", CHAVE: "com a chave do Windows", NOME: "pelo nome" };
+
+const fotos = new Map();
+function mostrarRetrato(img, id, local) {
+  img.classList.add("oculto");
+  img.removeAttribute("src");
+  if (local) { img.src = local; img.classList.remove("oculto"); return img; }
+  if (!id || !sessao) return img;
+  let p = fotos.get(id);
+  if (!p) {
+    p = fetch("/api/acesso/retratos/" + id, { headers: { Authorization: "Bearer " + sessao.token } })
+      .then(r => r.ok ? r.blob() : Promise.reject(new Error())).then(b => URL.createObjectURL(b));
+    fotos.set(id, p);
+    p.catch(() => fotos.delete(id));
+  }
+  p.then(u => { img.src = u; img.classList.remove("oculto"); }, () => {});
+  return img;
+}
+
+function retrato(id, classe) {
+  const img = document.createElement("img");
+  img.className = "retrato " + (classe || "");
+  img.alt = "";
+  return mostrarRetrato(img, id);
+}
+
 function definirSessao(s) {
   sessao = s;
   guardado.sessao(s);
   $("usuario-nome").textContent = s ? s.nome.split(" ")[0] : "Entrar";
   $("usuario").classList.toggle("logado", !!s);
-  $("usuario").title = s ? `${s.nome} · ${s.metodo === "CHAVE" ? "entrou com rosto ou digital" : "entrou pelo nome"}` : "Entrar";
+  $("usuario").title = s ? `${s.nome} · entrou ${COMO[s.metodo] || ""}` : "Entrar";
+  mostrarRetrato($("usuario-foto"), s && s.retrato_id, s && s.foto_local);
+  $("usuario-icone").classList.toggle("oculto", !!(s && (s.retrato_id || s.foto_local)));
 }
 
 const temChave = !!window.PublicKeyCredential && window.isSecureContext && !!navigator.credentials;
@@ -107,7 +135,8 @@ function pedirEntrada() {
   if (sessao) return Promise.resolve(sessao);
   const j = $("janela-entrar");
   $("entrar-chave").classList.toggle("oculto", !temChave);
-  $("entrar-info").textContent = temChave ? "" : "Rosto ou digital só funciona abrindo por http://localhost:8080 ou https.";
+  $("entrar-info").classList.remove("erro-texto");
+  $("entrar-info").textContent = window.isSecureContext ? "" : "Rosto e chave do Windows só funcionam abrindo por http://localhost:8080 ou https.";
   if (!j.open) j.showModal();
   setTimeout(() => $("entrar-nome").focus(), 50);
   return new Promise((ok, erro) => esperandoEntrada.push({ ok, erro }));
@@ -117,7 +146,7 @@ function entrou(s) {
   definirSessao(s);
   $("janela-entrar").close();
   esperandoEntrada.splice(0).forEach(p => p.ok(s));
-  aviso(`Olá, ${s.nome.split(" ")[0]}! ${s.metodo === "CHAVE" ? "Entrada confirmada com rosto ou digital." : "Você entrou pelo nome."}`, "LIBERAR");
+  aviso(`Olá, ${s.nome.split(" ")[0]}! Você entrou ${COMO[s.metodo] || ""}.`, "LIBERAR");
   pendentes();
 }
 
@@ -162,8 +191,12 @@ $("usuario").addEventListener("click", async () => {
   if (!sessao) { pedirEntrada().catch(() => {}); return; }
   try { definirSessao(Object.assign({}, sessao, await chamar("/api/acesso/eu"))); } catch (e) { return; }
   $("conta-nome").textContent = sessao.nome;
-  $("conta-info").textContent = (sessao.metodo === "CHAVE" ? "Entrou com rosto ou digital." : "Entrou pelo nome.")
-    + (sessao.tem_chave ? " Rosto ou digital cadastrado." : "") + " A sessão vale até " + quando(sessao.expira) + ".";
+  $("conta-info").classList.remove("erro-texto");
+  $("conta-info").textContent = `Entrou ${COMO[sessao.metodo] || ""}.`
+    + (sessao.tem_rosto ? " Rosto cadastrado." : "") + (sessao.tem_chave ? " Chave do Windows cadastrada." : "")
+    + " A sessão vale até " + quando(sessao.expira) + ".";
+  mostrarRetrato($("conta-foto"), sessao.retrato_id, sessao.foto_local);
+  $("cadastrar-rosto").innerHTML = `<svg><use href="#i-rosto"/></svg>${sessao.tem_rosto ? "Cadastrar o rosto de novo" : "Cadastrar meu rosto"}`;
   $("cadastrar-chave").classList.toggle("oculto", !temChave || sessao.tem_chave);
   $("janela-conta").showModal();
 });
@@ -186,7 +219,7 @@ $("cadastrar-chave").addEventListener("click", async () => {
       algoritmo: r.getPublicKeyAlgorithm(), client_data_json: b64(r.clientDataJSON) });
     definirSessao(Object.assign({}, sessao, s));
     $("janela-conta").close();
-    aviso("Pronto! Da próxima vez, entre com rosto ou digital. Pelo nome, ninguém mais entra como você.", "LIBERAR");
+    aviso("Pronto! Da próxima vez, entre com a chave do Windows. Pelo nome, ninguém mais entra como você.", "LIBERAR");
   } catch (e) { $("conta-info").textContent = erroChave(e); $("conta-info").classList.add("erro-texto"); }
   botao.classList.remove("ocupado");
 });
@@ -333,7 +366,13 @@ async function ficha(codigo) {
     item("Categoria", c.categoria);
     item("Situação", situacao(c));
     if (d.oficial) item("Use no lugar", botaoCodigo(d.oficial.codigo));
-    item("Criado por", c.criado_por ? c.criado_por + (criou && criou.metodo === "CHAVE" ? " (rosto ou digital)" : criou ? " (pelo nome)" : "") : "base original da Gerdau");
+    if (c.criado_por) {
+      const quem = document.createElement("span");
+      quem.className = "pessoa";
+      if (criou && criou.retrato_id) quem.append(retrato(criou.retrato_id, "medio"));
+      quem.append(c.criado_por + (criou && COMO[criou.metodo] ? ", entrou " + COMO[criou.metodo] : ""));
+      item("Criado por", quem);
+    } else item("Criado por", "base original da Gerdau");
     item("Criado em", quando(c.criado_em));
     item("Origem", c.motivo);
     item("Fornecedores", d.fornecedores.length ? d.fornecedores.length + ": " + d.fornecedores.slice(0, 6).join(", ") + (d.fornecedores.length > 6 ? "…" : "") : "");
@@ -346,7 +385,12 @@ async function ficha(codigo) {
     }
     const h = document.createElement("h3"), ol = document.createElement("ol");
     h.textContent = "Quem usou";
-    d.usos.forEach(u => { const li = document.createElement("li"); li.textContent = `${u.solicitante} ${STATUS[u.status] || u.status} · ${quando(u.criada_em)}${u.metodo === "CHAVE" ? " · rosto/digital" : ""}${u.curador ? " · curador " + u.curador : ""}`; ol.appendChild(li); });
+    d.usos.forEach(u => {
+      const li = document.createElement("li");
+      if (u.retrato_id) li.append(retrato(u.retrato_id, "mini"));
+      li.append(`${u.solicitante} ${STATUS[u.status] || u.status} · ${quando(u.criada_em)}${u.metodo === "ROSTO" ? " · pelo rosto" : u.metodo === "CHAVE" ? " · chave do Windows" : ""}${u.curador ? " · curador " + u.curador : ""}`);
+      ol.appendChild(li);
+    });
     if (!d.usos.length) { const li = document.createElement("li"); li.textContent = "Ninguém usou pelo MOKKA ainda."; ol.appendChild(li); }
     corpo.append(h, ol);
   } catch (e) { corpo.textContent = e.message; }
