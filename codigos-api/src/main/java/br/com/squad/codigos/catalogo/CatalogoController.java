@@ -67,6 +67,12 @@ public class CatalogoController {
                 .toList();
     }
 
+    @Operation(summary = "Catálogo leve para usar sem conexão", description = "Código, descrição e unidade dos códigos ativos. A tela guarda no computador para consultar mesmo se o servidor cair.")
+    @GetMapping("/leve")
+    public List<List<String>> leve() {
+        return codigos.findByStatus("ATIVO").stream().map(c -> List.of(c.getCodigo(), c.getDescricao(), c.getUnidade())).toList();
+    }
+
     @Operation(summary = "Ficha do código", description = "Quem criou, quando, os fornecedores, o oficial que vale no lugar, os repetidos e quem usou o código")
     @GetMapping("/{codigo}")
     public Detalhe detalhe(@PathVariable String codigo) {
