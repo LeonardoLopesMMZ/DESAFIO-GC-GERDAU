@@ -117,7 +117,7 @@ Para testar volume, mande uma planilha com até 5000 linhas: com a base real, 50
 | Consulte com a unidade `caixa` | *Unidade não conhecida: caixa. Veja a aba Unidades.* |
 | No lote, mande um PDF | *Formato .pdf não aceito. Envie .xlsx ou .csv.* |
 | No Swagger, mande `{}` em /api/consultas | mensagem dizendo qual campo falta |
-| Feche a janela "Similaridade - Python" e consulte | *O serviço de similaridade (Python) está fora do ar...* |
+| Feche a janela "Similaridade - Python" e consulte | a consulta funciona e o aviso termina com *modo reserva* |
 | Abra http://localhost:8080/api/nada | *Endereço não existe. Veja a lista em /swagger.* |
 
 ## 11. Acesso por outro computador da mesma rede
@@ -159,3 +159,10 @@ Clique em qualquer número de código (na consulta, no catálogo, no curador ou 
 1. Ligue o **Anti-ruído** embaixo da descrição e fale perto de um barulho (ventilador, música baixa). Desligue e repita. Fique com o que acertar mais: depende do microfone.
 2. As barrinhas ao lado mostram o volume enquanto você fala. Se ficarem paradas, o sistema avisa para chegar mais perto.
 3. Abra o endereço da rede no celular. **Esperado:** abas embaixo, tabelas em cartões e nada cortado na lateral.
+
+## 16. Sistema caiu no meio do uso
+
+1. Com o site aberto, feche a janela **"Aplicacao - Java"** na barra de tarefas.
+2. Consulte `VIGILANTE NOTURNO 12X36`. **Esperado:** a faixa amarela *Sem conexão com o servidor* e o resultado com *modo local*.
+3. Escreva uma justificativa e clique em **Criar código novo**. **Esperado:** *Pedido de código novo guardado neste computador*.
+4. Ligue de novo pelo `MOKKA.bat` e volte para a aba, sem fechar. **Esperado:** em alguns segundos, *1 pedido(s) guardado(s) neste computador foram enviados ao sistema* (se pedir, entre de novo).

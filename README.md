@@ -152,6 +152,17 @@ A documentação completa e testável fica em **http://localhost:8080/swagger** 
 | GET | `/api/codigos/{codigo}` | ficha do código: quem criou, fornecedores, oficial, repetidos e quem usou |
 | GET | `/api/unidades` | unidades, sinônimos e exemplos |
 
+## Se alguma coisa cair
+
+O sistema não para e não mostra erro de banco:
+
+| O que caiu | O que acontece |
+| --- | --- |
+| Python (janela "Similaridade") | O Java faz a consulta direto no banco (**modo reserva**): acha os iguais e parecidos pelas palavras e cria o código normalmente. Os códigos criados nesse tempo são passados ao Python sozinhos quando ele voltar. Só a planilha em lote espera o Python. |
+| Java ou o banco (janela "Aplicacao") | A tela continua abrindo, porque fica guardada no navegador, e passa para o **modo local**. A consulta usa o catálogo guardado no computador, e "usar este" ou "criar código" ficam numa fila no navegador. Aparece uma faixa amarela com quantos pedidos estão guardados. Quando o sistema volta, a fila é enviada sozinha (se pedir, entre de novo). |
+
+Para o catálogo ficar guardado, basta abrir o site uma vez com o sistema ligado.
+
 ## Apresentar sem susto (Teams ou ao vivo)
 
 - **Ligue 5 minutos antes** com o `MOKKA.bat` e deixe a aba aberta. Tudo roda no próprio computador e não depende de internet, menos a voz.
@@ -177,7 +188,7 @@ Depois de mudar o Java, apague a pasta `codigos-api/target` para o `MOKKA.bat` c
 | --- | --- | --- |
 | "Java não encontrado" | JDK não instalado ou fora do PATH | Instale o Temurin 17 e abra o `MOKKA.bat` de novo |
 | Falha ao preparar o Python | sem internet ou Python 3.14+ sem pacotes prontos | Instale o Python 3.12 e apague `saneamento/.venv` |
-| "O serviço de similaridade está fora do ar" | a janela do Python foi fechada | Ligue de novo pelo `MOKKA.bat` |
+| Aviso "modo reserva" ou faixa amarela "Sem conexão" | o Python ou o Java caiu; o sistema continua funcionando | Ligue de novo pelo `MOKKA.bat`; o que ficou guardado é enviado sozinho |
 | O botão Falar está cinza | Firefox, ou página aberta pelo IP | Use o Edge, o Chrome ou o Safari em `http://localhost:8080` |
 | "O Brave bloqueia o reconhecimento de voz" | o Brave desliga o serviço de voz do Google | Abra no Edge (o `MOKKA.bat` já abre nele), no Chrome ou no Safari |
 | "O reconhecimento de voz precisa de internet" | sem internet | Digite a descrição |

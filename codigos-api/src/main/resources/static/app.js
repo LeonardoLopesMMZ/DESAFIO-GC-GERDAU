@@ -81,14 +81,19 @@ async function chamar(url, corpo, opcoes = {}) {
   rede(1);
   let r;
   try { r = await fetch(url, corpo ? { method: "POST", headers: cabecalho, body: JSON.stringify(corpo) } : { headers: cabecalho }); }
-  catch (e) { throw new Error("Sem resposta do sistema. Ligue de novo pelo MOKKA.bat."); }
+  catch (e) {
+    if (opcoes.semLocal) throw Object.assign(new Error("Sem conexão com o servidor."), { rede: true });
+    return modoLocal(url, corpo);
+  }
   finally { rede(-1); }
+  if (r.status >= 500 && !opcoes.semLocal && /^\/api\/(consultas|solicitacoes\/[^/]+\/decisao)/.test(url)) return modoLocal(url, corpo);
+  if (semConexao && r.ok) ficarSemConexao(false);
   const dados = await r.json().catch(() => ({}));
   if (r.status === 401 && !opcoes.semToken && !opcoes.silencioso && !url.startsWith("/api/acesso/chave")) {
     definirSessao(null);
     pedirEntrada().catch(() => {});
   }
-  if (!r.ok) throw new Error(dados.erro || dados.message || "Erro " + r.status);
+  if (!r.ok) throw Object.assign(new Error(dados.erro || dados.message || "Erro " + r.status), { entrar: r.status === 401 });
   return dados;
 }
 
@@ -146,7 +151,9 @@ function entrou(s) {
   definirSessao(s);
   $("janela-entrar").close();
   esperandoEntrada.splice(0).forEach(p => p.ok(s));
-  aviso(`Olá, ${s.nome.split(" ")[0]}! Você entrou ${COMO[s.metodo] || ""} na conta nº ${s.conta_id}.`, "LIBERAR");
+  aviso(s.local ? `Olá, ${s.nome.split(" ")[0]}! Sem conexão com o servidor: você está usando o MOKKA neste computador.`
+    : `Olá, ${s.nome.split(" ")[0]}! Você entrou ${COMO[s.metodo] || ""} na conta nº ${s.conta_id}.`, "LIBERAR");
+  if (fila().length) enviarFila();
   pendentes();
 }
 
@@ -237,8 +244,10 @@ async function decidir(acao, codigo) {
     const s = await chamar(`/api/solicitacoes/${atual.solicitacao_id}/decisao`, { acao, codigo, justificativa: $("justificativa").value });
     const texto = { USOU_EXISTENTE: `Pronto: use o código ${s.codigo_escolhido}.`,
                     CRIADO: `Código ${s.codigo_escolhido} criado e já está no catálogo.`,
-                    AGUARDANDO_CURADOR: "Enviado ao curador: já existe código igual." }[s.status];
-    aviso(texto, s.status === "AGUARDANDO_CURADOR" ? "REVISAR" : "LIBERAR");
+                    AGUARDANDO_CURADOR: "Enviado ao curador: já existe código igual.",
+                    GUARDADO_LOCAL: acao === "USAR_EXISTENTE" ? `Guardado neste computador: use o código ${codigo}. Envio ao sistema quando ele voltar.`
+                      : "Pedido de código novo guardado neste computador. Envio ao sistema quando ele voltar." }[s.status];
+    aviso(texto, s.status === "AGUARDANDO_CURADOR" || s.status === "GUARDADO_LOCAL" ? "REVISAR" : "LIBERAR");
     if (s.status === "CRIADO") $("aviso").appendChild(botaoCodigo(s.codigo_escolhido));
     document.querySelectorAll("#resultado button:not(.cod)").forEach(b => b.disabled = true);
     historico();
@@ -273,6 +282,7 @@ function conferirUnidade() {
 async function carregarUnidades() {
   try {
     unidades = await chamar("/api/unidades");
+    if (unidades.length) guardado.gravar("mokka-unidades", unidades);
     $("unidades").replaceChildren(...unidades.map(u => { const o = document.createElement("option"); o.value = u.codigo; o.label = u.nome; return o; }));
     const corpo = $("lista-unidades");
     corpo.replaceChildren();
@@ -584,7 +594,10 @@ $("consulta").addEventListener("submit", async e => {
   try {
     await pedirEntrada();
     botao.classList.add("ocupado");
-    mostrar(await chamar("/api/consultas", { descricao: $("descricao").value, unidade: $("unidade").value, grupo: $("grupo").value }));
+    const pedido = { descricao: $("descricao").value, unidade: $("unidade").value, grupo: $("grupo").value };
+    const r = await chamar("/api/consultas", pedido);
+    r.pedido = pedido;
+    mostrar(r);
     historico();
   } catch (err) { aviso(err.message, "erro"); }
   botao.classList.remove("ocupado");
@@ -1063,7 +1076,7 @@ async function iniciar() {
   const s = guardado.sessao();
   if (s && s.token) {
     sessao = s;
-    try { definirSessao(Object.assign({}, s, await chamar("/api/acesso/eu", null, { silencioso: true }))); } catch (e) { definirSessao(null); }
+    try { definirSessao(Object.assign({}, s, await chamar("/api/acesso/eu", null, { silencioso: true }))); } catch (e) { if (!semConexao) definirSessao(null); }
   }
   definirSessao(sessao);
   historico();
@@ -1072,5 +1085,6 @@ async function iniciar() {
   const destino = { "#catalogo": "aba-catalogo", "#planilha": "aba-lote", "#curador": "aba-curador", "#unidades": "aba-unidades" }[location.hash];
   if (destino) abrir(destino);
   testeVoz();
+  prepararModoLocal();
 }
 iniciar();

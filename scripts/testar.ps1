@@ -150,6 +150,22 @@ Teste 'Excel organizado (exportar)' {
   "$([math]::Round($tam / 1KB)) KB"
 }
 
+Teste 'Modo reserva (Python desligado)' {
+  $p = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+  if (-not $p) { throw 'o Python nao estava ligado' }
+  Stop-Process -Id $p.OwningProcess -Force
+  Start-Sleep -Seconds 1
+  try {
+    $r = Json '/api/consultas' @{ descricao = 'ELETRICISTA HORA EXTRA 100%'; unidade = 'hora' }
+    if ((Texto $r.motivo) -notmatch 'modo reserva') { throw "veio: $(Texto $r.motivo)" }
+    "Python desligado e a consulta respondeu pelo banco ($($r.resultado))"
+  } finally {
+    $base = if (Test-Path (Join-Path $raiz 'saneamento\dados\base_codigos_servico.xlsx')) { 'dados\base_codigos_servico.xlsx' } else { 'exemplo\base_exemplo.csv' }
+    Start-Process -FilePath (Join-Path $raiz 'saneamento\.venv\Scripts\python.exe') -ArgumentList 'api.py', $base -WorkingDirectory (Join-Path $raiz 'saneamento') -WindowStyle Minimized
+    for ($i = 0; $i -lt 60; $i++) { try { Invoke-RestMethod 'http://127.0.0.1:8000/saude' | Out-Null; break } catch { Start-Sleep -Seconds 2 } }
+  }
+}
+
 Teste 'Swagger (API)' {
   $r = Invoke-WebRequest ($site + '/swagger-ui/index.html') -UseBasicParsing
   if ($r.StatusCode -ne 200) { throw "status $($r.StatusCode)" }

@@ -19,8 +19,10 @@ import org.springframework.web.server.ResponseStatusException;
 public class SimilaridadeClient {
 
     private final RestClient http;
+    private final Reserva reserva;
 
-    public SimilaridadeClient(RestClient.Builder builder, @Value("${similaridade.url}") String url) {
+    public SimilaridadeClient(RestClient.Builder builder, @Value("${similaridade.url}") String url, Reserva reserva) {
+        this.reserva = reserva;
         SimpleClientHttpRequestFactory tempo = new SimpleClientHttpRequestFactory();
         tempo.setConnectTimeout(3_000);
         tempo.setReadTimeout(180_000);
@@ -28,12 +30,17 @@ public class SimilaridadeClient {
     }
 
     public Resposta buscar(String descricao, String unidade) {
-        return enviar("/similares", Map.of("descricao", descricao, "unidade", unidade, "limite", 10), Resposta.class);
+        return comReserva(() -> enviar("/similares", Map.of("descricao", descricao, "unidade", unidade, "limite", 10), Resposta.class),
+                () -> reserva.buscar(descricao, unidade));
     }
 
     public Novo adicionar(String codigo, String descricao, String unidade, String grupo) {
-        return enviar("/codigos", Map.of("codigo", codigo, "descricao", descricao, "unidade", unidade,
-                "grupo", grupo == null ? "" : grupo), Novo.class);
+        return comReserva(() -> {
+            Novo n = enviar("/codigos", Map.of("codigo", codigo, "descricao", descricao, "unidade", unidade,
+                    "grupo", grupo == null ? "" : grupo), Novo.class);
+            reserva.lembrar(codigo, descricao, unidade);
+            return n;
+        }, () -> reserva.adicionar(codigo, descricao, unidade, grupo));
     }
 
     public Planilha lerPlanilha(byte[] arquivo, String nome) {
@@ -43,7 +50,7 @@ public class SimilaridadeClient {
     }
 
     public Palavras palavras(String texto) {
-        return enviar("/palavras", Map.of("texto", texto), Palavras.class);
+        return comReserva(() -> enviar("/palavras", Map.of("texto", texto), Palavras.class), () -> new Palavras(List.of()));
     }
 
     public Analises analisarLote(List<Map<String, String>> itens) {
@@ -51,11 +58,38 @@ public class SimilaridadeClient {
     }
 
     public void adicionarVarios(List<Map<String, String>> itens) {
-        enviar("/codigos/lote", Map.of("itens", itens), Map.class);
+        comReserva(() -> {
+            enviar("/codigos/lote", Map.of("itens", itens), Map.class);
+            itens.stream().filter(m -> m.get("oficial") == null).forEach(m -> reserva.lembrar(m.get("codigo"), m.get("descricao"), m.get("unidade")));
+            return null;
+        }, () -> {
+            reserva.guardar(itens);
+            return null;
+        });
     }
 
     public List<Integer> agrupar(List<Map<String, String>> itens) {
-        return enviar("/agrupar", Map.of("itens", itens), Grupos.class).grupos();
+        return comReserva(() -> enviar("/agrupar", Map.of("itens", itens), Grupos.class).grupos(), () -> reserva.agrupar(itens));
+    }
+
+    private <T> T comReserva(java.util.function.Supplier<T> python, java.util.function.Supplier<T> banco) {
+        List<Map<String, String>> pendentes = reserva.pendentes();
+        if (!pendentes.isEmpty()) {
+            try {
+                http.post().uri("/codigos/lote").body(Map.of("itens", pendentes)).retrieve().toBodilessEntity();
+                reserva.enviados(pendentes);
+            } catch (RuntimeException e) {
+                return banco.get();
+            }
+        }
+        try {
+            return python.get();
+        } catch (ResponseStatusException e) {
+            if (e.getStatusCode().value() == HttpStatus.SERVICE_UNAVAILABLE.value()) {
+                return banco.get();
+            }
+            throw e;
+        }
     }
 
     public byte[] exportar(List<?> linhas, List<String> relatorio) {

@@ -23,6 +23,8 @@ public interface CodigoServicoRepository extends JpaRepository<CodigoServico, St
 
     long countByStatus(String status);
 
+    List<CodigoServico> findByStatus(String status);
+
     @Query("select count(c) from CodigoServico c where (c.motivo like 'criado%' or c.motivo like 'importado%') and c.status = :status")
     long novosPorStatus(@Param("status") String status);
 
