@@ -108,13 +108,13 @@ public class AcessoController {
         Usuario u = acesso.usuario(s.nome());
         boolean temRosto = u != null && u.temRosto();
         Long foto = s.retratoId() != null ? s.retratoId() : temRosto ? u.getRetratoId() : null;
-        return new Entrada(s.token(), s.nome(), s.metodo(), acesso.temChave(s.nome()), temRosto, acesso.soChave(), foto, s.expira());
+        return new Entrada(s.token(), u == null ? null : u.getId(), s.nome(), s.metodo(), acesso.temChave(s.nome()), temRosto, acesso.soChave(), foto, s.expira());
     }
 
     public record PedidoNome(@NotBlank(message = "Informe o nome") @Size(max = 60, message = "O nome deve ter até 60 caracteres") String nome) {
     }
 
-    public record Entrada(String token, String nome, String metodo, boolean temChave, boolean temRosto, boolean soChave, Long retratoId, Instant expira) {
+    public record Entrada(String token, Long contaId, String nome, String metodo, boolean temChave, boolean temRosto, boolean soChave, Long retratoId, Instant expira) {
     }
 
     public record Rosto(@NotNull(message = "Falta a leitura do rosto") @Size(min = 128, max = 128, message = "A leitura do rosto deve ter 128 números") List<Double> descritor,
