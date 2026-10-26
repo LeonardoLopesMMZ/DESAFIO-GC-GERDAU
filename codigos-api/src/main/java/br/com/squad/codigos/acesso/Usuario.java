@@ -61,6 +61,10 @@ public class Usuario {
         return credencialId != null;
     }
 
+    public Long getId() {
+        return id;
+    }
+
     public String getNome() {
         return nome;
     }

@@ -146,7 +146,7 @@ function entrou(s) {
   definirSessao(s);
   $("janela-entrar").close();
   esperandoEntrada.splice(0).forEach(p => p.ok(s));
-  aviso(`Olá, ${s.nome.split(" ")[0]}! Você entrou ${COMO[s.metodo] || ""}.`, "LIBERAR");
+  aviso(`Olá, ${s.nome.split(" ")[0]}! Você entrou ${COMO[s.metodo] || ""} na conta nº ${s.conta_id}.`, "LIBERAR");
   pendentes();
 }
 
@@ -190,7 +190,7 @@ $("entrar-chave").addEventListener("click", async () => {
 $("usuario").addEventListener("click", async () => {
   if (!sessao) { pedirEntrada().catch(() => {}); return; }
   try { definirSessao(Object.assign({}, sessao, await chamar("/api/acesso/eu"))); } catch (e) { return; }
-  $("conta-nome").textContent = sessao.nome;
+  $("conta-nome").textContent = `${sessao.nome} · conta nº ${sessao.conta_id}`;
   $("conta-info").classList.remove("erro-texto");
   $("conta-info").textContent = `Entrou ${COMO[sessao.metodo] || ""}.`
     + (sessao.tem_rosto ? " Rosto cadastrado." : "") + (sessao.tem_chave ? " Chave do Windows cadastrada." : "")
