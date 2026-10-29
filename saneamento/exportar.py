@@ -4,6 +4,7 @@ from pathlib import Path
 import pandas as pd
 
 from deduplicar import deduplicar, ler
+from limpar import caber40
 from padronizar import ABREV
 
 SAIDA = Path("saida")
@@ -19,7 +20,8 @@ def montar_tabelas(caminho):
     oficial = dp.codigo.astype(str) == dp.codigo_oficial.astype(str)
     cs = pd.DataFrame({
         "codigo": dp.codigo.astype(str), "descricao": dp.descricao, "descricao_limpa": dp.descricao_limpa,
-        "descricao_padrao": dp.nome_padrao_sugerido.replace("", None), "unidade": dp.unidade, "grupo": dp.grupo,
+        "descricao_padrao": [n or caber40(l) or None for n, l in zip(dp.nome_padrao_sugerido, dp.descricao_limpa)],
+        "unidade": dp.unidade, "grupo": dp.grupo,
         "categoria": dp.categoria, "status": oficial.map({True: "ATIVO", False: "BLOQUEADO"}),
         "codigo_canonico": dp.codigo_oficial.astype(str).where(~oficial, None), "motivo": dp.motivo})
     cs = cs.assign(_o=oficial.values).sort_values(["_o", "codigo"], ascending=[False, True]).drop(columns="_o")

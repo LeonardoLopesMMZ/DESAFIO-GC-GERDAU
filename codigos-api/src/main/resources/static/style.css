@@ -276,6 +276,7 @@ button:not(.principal).ocupado::after { border-color: rgba(0, 51, 102, .25); bor
 
 .mic { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; color: var(--azul); white-space: nowrap; }
 .mic svg { width: 18px; height: 18px; }
+.mic.sem-voz { opacity: .55; }
 .mic.ouvindo { color: #fff; background: var(--vermelho); border-color: var(--vermelho); animation: onda 1.3s ease-out infinite; }
 @keyframes onda { 0% { box-shadow: 0 0 0 0 rgba(180, 35, 24, .45); } 100% { box-shadow: 0 0 0 14px rgba(180, 35, 24, 0); } }
 
@@ -475,7 +476,7 @@ details.historico .rolagem { margin-top: 8px; }
 .vazio { padding: 18px 0; color: var(--fraco); }
 
 dialog { width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0; border: 0; border-radius: 14px; box-shadow: 0 24px 60px rgba(0, 31, 66, .35); color: var(--texto); }
-dialog::backdrop { background: rgba(0, 31, 66, .45); backdrop-filter: blur(2px); }
+dialog::backdrop { background: rgba(0, 31, 66, .45); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
 dialog[open] { animation: surgir .25s ease both; }
 .janela-topo { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 18px; color: #fff; background: var(--azul); border-bottom: 3px solid var(--amarelo); }
 .janela-topo h2 { margin: 0; color: #fff; font-size: 17px; }
@@ -508,6 +509,52 @@ dialog[open] { animation: surgir .25s ease both; }
 #carregando { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: var(--amarelo); box-shadow: 0 0 8px rgba(255, 204, 0, .8); z-index: 50; opacity: 0; transition: opacity .2s; }
 body.carregando #carregando { opacity: 1; animation: carrega 1.4s ease-in-out infinite; }
 @keyframes carrega { 0% { width: 0; left: 0; } 50% { width: 60%; left: 20%; } 100% { width: 0; left: 100%; } }
+
+.raio-topo { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 14px; }
+.notas { display: flex; align-items: center; justify-content: space-around; gap: 10px; }
+.nota { position: relative; display: grid; justify-items: center; width: min(220px, 40%); }
+.nota svg { width: 100%; overflow: visible; }
+.nota path { fill: none; stroke-width: 11; stroke-linecap: round; }
+.nota .trilho { stroke: var(--linha); }
+.nota .arco { stroke: var(--vermelho); stroke-dasharray: 100; stroke-dashoffset: 100; transition: stroke-dashoffset 1.4s cubic-bezier(.2, .8, .2, 1), stroke .4s; }
+.nota.media .arco { stroke: var(--amarelo); }
+.nota.boa .arco { stroke: var(--verde); }
+.nota b { margin-top: -38px; font-size: clamp(30px, 5vw, 46px); line-height: 1; color: var(--azul); font-variant-numeric: tabular-nums; }
+.nota span { margin-top: 6px; font-size: 13px; font-weight: 700; color: var(--fraco); }
+.notas .seta { font-size: 30px; color: var(--amarelo); font-weight: 800; animation: flutua 2.4s ease-in-out infinite; }
+.economia { display: grid; gap: 6px; align-content: start; border-top: 4px solid var(--amarelo); }
+.economia .rotulo { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--fraco); }
+.economia b { font-size: clamp(26px, 4vw, 36px); color: var(--verde); font-variant-numeric: tabular-nums; }
+.economia .info { margin: 0; }
+.linha-custo { display: flex; align-items: center; gap: 10px; }
+.linha-custo input { min-height: 0; padding: 0; border: 0; box-shadow: none; accent-color: var(--azul); }
+.linha-custo output { min-width: 70px; font-weight: 800; color: var(--azul); font-size: 14px; }
+.criterios { display: grid; gap: 12px; }
+.criterio { display: grid; grid-template-columns: minmax(0, 1.2fr) auto minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 6px 14px; animation: surgir .4s ease both; animation-delay: calc(var(--i) * 80ms); }
+.criterio .nome { font-weight: 700; font-size: 14px; }
+.criterio .peso { font-size: 11px; color: var(--fraco); }
+.criterio .barra { position: relative; height: 22px; border-radius: 6px; background: var(--linha); overflow: hidden; }
+.criterio .barra i { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 6px; transition: width 1.2s cubic-bezier(.2, .8, .2, 1); }
+.criterio .antes i { background: #f3b4ae; }
+.criterio .depois i { background: #7fd3a6; transition-delay: .35s; }
+.criterio .barra em { position: relative; padding-left: 8px; font-size: 12px; font-style: normal; font-weight: 700; line-height: 22px; color: var(--texto); }
+.constelacao { position: relative; padding: 10px; overflow: hidden; background: radial-gradient(ellipse at center, #f6f9fc, #fff 70%); }
+.constelacao svg { display: block; width: 100%; height: auto; }
+.bolha-familia { cursor: pointer; animation: aparece .5s cubic-bezier(.2, .8, .2, 1.3) both; animation-delay: calc(var(--i) * 25ms); }
+.bolha-familia circle { stroke: #fff; stroke-width: 2; opacity: .9; transition: opacity .2s, stroke-width .2s; }
+.bolha-familia:hover circle { opacity: 1; stroke: var(--amarelo); stroke-width: 4; }
+.bolha-familia text { fill: #fff; font-size: 13px; font-weight: 800; text-anchor: middle; pointer-events: none; }
+.bolha-familia text.escuro { fill: var(--azul); }
+.dica-bolha { min-height: 20px; margin: 6px 4px 0; font-size: 13px; color: var(--fraco); transition: color .2s; }
+.dica-bolha.ativa { color: var(--azul); font-weight: 700; }
+.legenda { display: flex; flex-wrap: wrap; gap: 14px; margin: 6px 4px 0; font-size: 13px; color: var(--fraco); }
+.legenda i { display: inline-block; width: 12px; height: 12px; margin-right: 6px; border-radius: 50%; vertical-align: -1px; }
+.grupos-raio { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; }
+.grupo-raio { display: grid; gap: 6px; padding: 14px 16px; background: var(--cartao); border: 1px solid var(--borda); border-radius: var(--raio); box-shadow: var(--sombra); }
+.grupo-raio b { color: var(--azul); }
+.grupo-raio span { font-size: 13px; color: var(--fraco); }
+.grupo-raio .barra { height: 8px; border-radius: 8px; background: var(--linha); overflow: hidden; }
+.grupo-raio .barra i { display: block; height: 100%; width: 0; border-radius: 8px; transition: width 1.2s cubic-bezier(.2, .8, .2, 1); }
 
 @media (max-width: 960px) {
   #consulta { 
@@ -569,6 +616,9 @@ body.carregando #carregando { opacity: 1; animation: carrega 1.4s ease-in-out in
   .rolagem td.acao { grid-template-columns: 1fr; }
   .rolagem td.acao::before { display: none; }
   .rolagem td.acao button, .rolagem td.acao select { width: 100%; }
+  .raio-topo { grid-template-columns: 1fr; }
+  .criterio { grid-template-columns: 1fr auto; }
+  .criterio .barra { grid-column: 1 / -1; }
   .ficha dl { grid-template-columns: 1fr; gap: 0; }
   .ficha dd { margin-bottom: 8px; }
   dialog { width: 100vw; max-width: 100vw; margin: auto 0 0; border-radius: 16px 16px 0 0; }

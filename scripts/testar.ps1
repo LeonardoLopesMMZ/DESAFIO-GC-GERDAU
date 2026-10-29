@@ -166,6 +166,12 @@ Teste 'Modo reserva (Python desligado)' {
   }
 }
 
+Teste 'Raio-X do catalogo' {
+  $r = Invoke-RestMethod ($site + '/api/raio-x')
+  if ($r.nota_depois -lt $r.nota_antes) { throw "a nota piorou: $($r.nota_antes) -> $($r.nota_depois)" }
+  "nota $($r.nota_antes) -> $($r.nota_depois), $($r.familias.Count) familias de duplicados"
+}
+
 Teste 'Swagger (API)' {
   $r = Invoke-WebRequest ($site + '/swagger-ui/index.html') -UseBasicParsing
   if ($r.StatusCode -ne 200) { throw "status $($r.StatusCode)" }

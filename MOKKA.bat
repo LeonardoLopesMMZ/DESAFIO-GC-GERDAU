@@ -8,6 +8,8 @@ set "VENV=%PY_DIR%\.venv"
 set "APP=%~dp0codigos-api"
 set "JAR=%APP%\target\codigos-api-0.4.0.jar"
 set "SITE=http://localhost:8080"
+set "FERR=%~dp0.ferramentas"
+set "JAVA=java"
 set "FRONT="
 if exist "%~dp0front\index.html" set "FRONT=--spring.web.resources.static-locations[0]=file:../front/ --spring.web.resources.static-locations[1]=classpath:/static/"
 set "BASE=dados\base_codigos_servico.xlsx"
@@ -67,7 +69,7 @@ start "" msedge "%SITE%%~1"
 exit /b 0
 
 :ligar
-where java >nul 2>nul || (echo    Java nao encontrado. Instale o JDK 17 ou mais novo em https://adoptium.net & exit /b 1)
+where java >nul 2>nul || call :baixar_java || exit /b 1
 call :parar
 if not exist "%VENV%\Scripts\python.exe" call :preparar_python || exit /b 1
 echo    Montando o catalogo a partir da base...
@@ -83,7 +85,7 @@ if not exist "%JAR%" (
 echo    Ligando o servico de similaridade (Python)...
 start "Similaridade - Python (nao feche)" /min /d "%PY_DIR%" "%VENV%\Scripts\python.exe" api.py "%BASE%"
 echo    Ligando a aplicacao (Java)...
-start "Aplicacao - Java (nao feche)" /min /d "%APP%" java -Dfile.encoding=UTF-8 -jar "%JAR%" --spring.sql.init.data-locations=file:../saneamento/saida/data.sql --spring.sql.init.encoding=UTF-8 %FRONT%
+start "Aplicacao - Java (nao feche)" /min /d "%APP%" "%JAVA%" -Dfile.encoding=UTF-8 -jar "%JAR%" --spring.sql.init.data-locations=file:../saneamento/saida/data.sql --spring.sql.init.encoding=UTF-8 %FRONT%
 echo    Esperando os dois ligarem, leva uns 30 segundos...
 set /a N=0
 :esperar
@@ -118,12 +120,38 @@ exit /b 0
 powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 8000,8080 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"
 exit /b 0
 
+:baixar_java
+for /f "delims=" %%j in ('dir /b /s "%FERR%\jdk\java.exe" 2^>nul') do set "JAVA=%%j"
+if not "%JAVA%"=="java" goto java_pronto
+echo    Primeira vez: baixando o Java 17, uns 190 MB, so desta vez...
+if not exist "%FERR%\jdk" mkdir "%FERR%\jdk"
+curl.exe -fL --retry 3 -o "%FERR%\jdk.zip" "https://api.adoptium.net/v3/binary/latest/17/ga/windows/x64/jdk/hotspot/normal/eclipse" || (echo    Nao consegui baixar o Java. Confira a internet. & exit /b 1)
+tar -xf "%FERR%\jdk.zip" -C "%FERR%\jdk" || (echo    O Java baixado veio com defeito. & exit /b 1)
+del "%FERR%\jdk.zip"
+for /f "delims=" %%j in ('dir /b /s "%FERR%\jdk\java.exe" 2^>nul') do set "JAVA=%%j"
+if "%JAVA%"=="java" (echo    O Java baixado veio com defeito. & exit /b 1)
+:java_pronto
+for %%d in ("%JAVA%\..\..") do set "JAVA_HOME=%%~fd"
+set "PATH=%JAVA_HOME%\bin;%PATH%"
+exit /b 0
+
+:baixar_python
+if exist "%FERR%\python\python.exe" (set "PYBASE="%FERR%\python\python.exe"" & exit /b 0)
+echo    Primeira vez: baixando o Python 3.12, uns 25 MB, so desta vez...
+if not exist "%FERR%" mkdir "%FERR%"
+curl.exe -fL --retry 3 -o "%FERR%\python.tar.gz" "https://github.com/astral-sh/python-build-standalone/releases/download/20250317/cpython-3.12.9+20250317-x86_64-pc-windows-msvc-install_only.tar.gz" || (echo    Nao consegui baixar o Python. Confira a internet. & exit /b 1)
+tar -xzf "%FERR%\python.tar.gz" -C "%FERR%" || (echo    O Python baixado veio com defeito. & exit /b 1)
+del "%FERR%\python.tar.gz"
+set PYBASE="%FERR%\python\python.exe"
+exit /b 0
+
 :preparar_python
 set "PYBASE="
 if exist "%USERPROFILE%\miniconda3\python.exe" set PYBASE="%USERPROFILE%\miniconda3\python.exe"
 if not defined PYBASE if exist "%USERPROFILE%\anaconda3\python.exe" set PYBASE="%USERPROFILE%\anaconda3\python.exe"
 if not defined PYBASE for %%V in (3.13 3.12 3.14 3.11) do if not defined PYBASE py -%%V -c "" >nul 2>nul && set "PYBASE=py -%%V"
-if not defined PYBASE set "PYBASE=python"
+if not defined PYBASE python -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" >nul 2>nul && set "PYBASE=python"
+if not defined PYBASE call :baixar_python || exit /b 1
 echo    Primeira vez: preparando o Python (precisa de internet, so desta vez)...
 %PYBASE% -m venv "%VENV%" || (echo    Nao consegui criar o ambiente Python. Instale o Python 3.11 a 3.13 em https://python.org & exit /b 1)
 "%VENV%\Scripts\python.exe" -m pip install -q --disable-pip-version-check pandas numpy scikit-learn openpyxl || (rmdir /s /q "%VENV%" & echo    Falhou a instalacao das bibliotecas. Confira a internet e rode de novo. & exit /b 1)

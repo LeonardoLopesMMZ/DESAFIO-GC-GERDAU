@@ -18,12 +18,14 @@ Estes são os passos exatos para quem nunca abriu o projeto.
 
 ### 1. Instale (uma vez só)
 
+Só o navegador é obrigatório (e o Git, para baixar pelo terminal). **Se faltar o Java ou o Python, o `MOKKA.bat` (Windows) e o `MOKKA.command` (Mac e Linux) baixam os dois sozinhos na primeira vez**, para a pasta `.ferramentas` do projeto, sem mexer no resto do computador. Quem já tem pode usar os seus:
+
 | Programa | Versão | Onde baixar |
 | --- | --- | --- |
 | Git | qualquer | https://git-scm.com |
 | Java (JDK) | 17 ou mais novo | https://adoptium.net (Temurin 17) |
 | Python | 3.11, 3.12 ou 3.13 | https://www.python.org/downloads (marque "Add python.exe to PATH") |
-| Navegador | Chrome ou Edge | a voz só funciona nesses dois |
+| Navegador | Chrome, Edge, Safari ou Firefox | a voz funciona no Chrome, no Edge e no Safari; no Firefox, digite |
 
 Para conferir, abra o terminal (PowerShell no Windows) e rode `git --version`, `java -version` e `python --version`.
 
@@ -58,7 +60,7 @@ Na primeira vez ele faz três coisas, que levam de 3 a 5 minutos e precisam de i
 
 Depois disso o sistema liga em uns 30 segundos, também sem internet.
 
-**Mac (Safari) ou Linux:** no Terminal, rode `bash MOKKA.command`. No Mac também dá para dar dois cliques no arquivo; se o Mac bloquear, rode antes `chmod +x MOKKA.command`. Ele faz o mesmo que a opção 1 e abre o Safari; para desligar, feche a janela do Terminal. Precisa de Java 17 e Python 3.11 a 3.13 (`brew install openjdk@17 python@3.12`). Para a voz funcionar no Safari, ative o Ditado em Ajustes do Sistema > Teclado > Ditado.
+**Mac (MacBook) ou Linux:** no Terminal, rode `bash MOKKA.command` (no Mac também dá para dar dois cliques no arquivo; se o Mac bloquear, clique com o botão direito > Abrir). **Não precisa instalar nada:** se o computador não tiver Java 17 ou Python 3.10 a 3.13, o `MOKKA.command` baixa os dois sozinho na primeira vez (uns 220 MB, para a pasta `.ferramentas`) e abre o site no navegador padrão. Para desligar, feche a janela do Terminal. Para a voz no Safari, ative o Ditado em Ajustes do Sistema > Teclado > Ditado; no Chrome do Mac a voz funciona direto.
 
 ### 4. Teste
 
@@ -89,6 +91,7 @@ Quem tem a base real coloca o arquivo em `saneamento/dados/base_codigos_servico.
 | Planilha (lote) | Mandar um .xlsx ou .csv bruto, ou colar a lista. Antes de analisar, o sistema arruma a planilha: pula títulos, junta abas, divide texto colado em colunas, tira cabeçalhos repetidos e linhas idênticas e unifica grupos escritos de jeitos diferentes, mostrando um relatório do que fez. Ver linha a linha: já existe, parecido, novo, repetido dentro da própria planilha ou com erro. Trocar a ação de cada linha. Importar tudo numa transação só. Baixar o Excel organizado com as abas Tratado, Pronto para o SAP, Resumo, Relatório e uma aba por grupo. |
 | Unidades | Ver como escrever cada unidade. Na consulta dá para escrever "hora" ou "metro quadrado", e a tela troca por H ou M2. |
 | Catálogo | Ver os números da base (inclusive consultas feitas e duplicados evitados), os códigos oficiais com os repetidos de cada um e os códigos criados ou importados. Buscar por número ou texto, também por voz. Clicar em qualquer código abre a **ficha**: quem criou, com a foto de quando entrou pelo rosto, como entrou, quando, fornecedores, repetidos e quem usou. |
+| Raio-X | A nota de saúde da base de 0 a 100, antes (planilha da Gerdau) e depois (catálogo do MOKKA), com os critérios; a constelação das famílias de códigos repetidos (clique numa bolha para ver a ficha); os números por grupo; e a economia estimada, com o custo de um código duplicado ajustável. |
 | Curador | Os pedidos que pedem o mesmo serviço, mesmo escritos diferente, aparecem juntos ("3 pedidos iguais"). **Aprovar os 3** cria um código só para todos; **Recusar os 3** manda todos usarem o existente. Dá para decidir um pedido sozinho também. |
 
 A planilha do lote é lida por nome de coluna ("Descrição", "Unidade", "Grupo", "Código", "Fornecedor"), em qualquer ordem. Ela pode ter também as 5 colunas no formato da Gerdau, ou uma coluna só com as descrições. O modelo pode ser baixado na própria aba.
@@ -147,6 +150,8 @@ A documentação completa e testável fica em **http://localhost:8080/swagger** 
 | POST | `/api/lotes/exportar` | devolve o Excel organizado |
 | GET | `/api/codigos?busca=` | busca no catálogo |
 | GET | `/api/codigos/resumo` | totais da base |
+| GET | `/api/raio-x` | nota de saúde antes e depois, critérios, famílias de duplicados e números por grupo |
+| GET | `/api/codigos/leve` | catálogo leve que a tela guarda para funcionar sem conexão |
 | GET | `/api/codigos/padronizados` | códigos oficiais com os repetidos |
 | GET | `/api/codigos/novos` | códigos criados ou importados |
 | GET | `/api/codigos/{codigo}` | ficha do código: quem criou, fornecedores, oficial, repetidos e quem usou |
