@@ -13,7 +13,7 @@ from scipy.sparse import vstack
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from deduplicar import deduplicar, forma_canonica, ler
-from limpar import nome_padrao
+from limpar import caber40, nome_padrao
 from padronizar import categorizar, ler_atributos, normalizar
 from regua import comparar, preparar
 
@@ -210,7 +210,7 @@ class Buscador:
         for (descricao, unidade), n5, r, rep in zip(itens, n5s, saida, repete):
             _, categoria, nome = self.atributos(descricao, unidade) if n5 else ("", "", "")
             top = r["candidatos"][0] if r["candidatos"] else None
-            resultado.append({"descricao_limpa": n5, "nome_padrao": (nome or n5)[:40], "categoria": categoria,
+            resultado.append({"descricao_limpa": n5, "nome_padrao": nome or caber40(n5), "categoria": categoria,
                               "resultado": r["resultado"], "motivo": r["motivo"],
                               "repete_item": None if rep is None else int(rep),
                               "codigo_existente": top and top["codigo"], "descricao_existente": top and top["descricao"],

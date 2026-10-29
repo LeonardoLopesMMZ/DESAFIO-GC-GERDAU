@@ -255,7 +255,7 @@ async function decidir(acao, codigo) {
   } catch (e) { aviso(e.message, "erro"); }
 }
 
-const ABAS = ["aba-consulta", "aba-lote", "aba-unidades", "aba-catalogo", "aba-curador"];
+const ABAS = ["aba-consulta", "aba-lote", "aba-unidades", "aba-catalogo", "aba-raio-x", "aba-curador"];
 function abrir(id) {
   document.querySelectorAll("nav.abas button").forEach(b => b.classList.toggle("ativa", b.dataset.aba === id));
   ABAS.forEach(a => { $(a).classList.toggle("oculto", a !== id); $(a).classList.remove("entrar"); });
@@ -264,6 +264,7 @@ function abrir(id) {
   esconderAviso();
   if (id === "aba-catalogo" && !$("busca").value.trim()) catalogo();
   if (id === "aba-curador") pendentes();
+  if (id === "aba-raio-x") carregarRaioX();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 document.querySelectorAll("nav.abas button").forEach(b => b.addEventListener("click", () => abrir(b.dataset.aba)));
@@ -500,7 +501,7 @@ function mostrar(r) {
     b.type = "button";
     b.className = "principal";
     b.textContent = "Sim, consultar assim";
-    b.onclick = () => { $("descricao").value = s.descricao; contarCaracteres(); $("consulta").requestSubmit(); };
+    b.onclick = () => { $("descricao").value = s.descricao; contarCaracteres(); enviarFormulario($("consulta")); };
     a.appendChild(b);
   }
   const corpo = $("candidatos");
@@ -614,6 +615,9 @@ $("criar").addEventListener("click", () => {
 
 const Reconhecedor = window.SpeechRecognition || window.webkitSpeechRecognition;
 const celular = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const SAFARI = /Safari\//.test(navigator.userAgent) && !/Chrome|Chromium|CriOS|Edg|OPR|FxiOS/.test(navigator.userAgent);
+const FIREFOX = /Firefox\/|FxiOS/.test(navigator.userAgent);
+const enviarFormulario = f => f.requestSubmit ? f.requestSubmit() : f.dispatchEvent(new Event("submit", { cancelable: true }));
 const aceitaFiltro = !!Reconhecedor && typeof Reconhecedor.available === "function";
 let ouvindo = null;
 let audio = null;
@@ -698,8 +702,12 @@ function prepararMic(botao, aoOuvir) {
   botao.innerHTML = '<svg><use href="#i-mic"/></svg><span>Falar</span>';
   botao.title = "Falar";
   if (!Reconhecedor || !window.isSecureContext) {
-    botao.disabled = true;
-    botao.title = !Reconhecedor ? "Use o Edge, o Chrome ou o Safari para falar." : "O microfone só funciona em http://localhost:8080 neste computador.";
+    botao.classList.add("sem-voz");
+    botao.title = !Reconhecedor ? "Este navegador não tem reconhecimento de voz." : "O microfone só funciona em http://localhost:8080 neste computador.";
+    botao.addEventListener("click", () => aviso(!Reconhecedor
+      ? (FIREFOX ? "O Firefox ainda não tem reconhecimento de voz. Para falar, abra no Chrome, no Edge ou no Safari; aqui, digite a descrição."
+        : "Este navegador não tem reconhecimento de voz. Para falar, abra no Chrome, no Edge ou no Safari; aqui, digite a descrição.")
+      : "O microfone só funciona abrindo por http://localhost:8080 no computador que liga o MOKKA. Aqui, digite a descrição.", "REVISAR"));
     return;
   }
   botao.addEventListener("click", async () => {
@@ -715,8 +723,8 @@ function prepararMic(botao, aoOuvir) {
     botao.querySelector("span").textContent = "Ouvindo";
     aviso("Pode falar. Ex.: \"soldador hora extra cinquenta por cento, unidade hora\".", "");
     const usarFiltro = filtro.checked && aceitaFiltro;
-    if (usarFiltro || !celular) {
-      try { audio = await abrirAudio(usarFiltro); $("nivel").classList.add("ativo"); medir(); } catch (e) { audio = null; }
+    if (usarFiltro) {
+      try { audio = await abrirAudio(true); $("nivel").classList.add("ativo"); medir(); } catch (e) { audio = null; }
     }
     if (!navigator.onLine && Reconhecedor.available) {
       try { if (await Reconhecedor.available({ langs: ["pt-BR"], processLocally: true }) === "available") r.processLocally = true; } catch (e) {}
@@ -727,7 +735,8 @@ function prepararMic(botao, aoOuvir) {
     };
     r.onerror = e => {
       const msg = { "not-allowed": "O navegador bloqueou o microfone. Clique no cadeado da barra de endereço e permita.",
-                    "service-not-allowed": "O navegador bloqueou o microfone. Clique no cadeado da barra de endereço e permita.",
+                    "service-not-allowed": SAFARI ? "No Mac, ative o Ditado em Ajustes do Sistema › Teclado › Ditado e permita o microfone para o Safari."
+                      : "O navegador bloqueou o microfone. Clique no cadeado da barra de endereço e permita.",
                     "no-speech": "Não ouvi nada. Tente de novo, mais perto do microfone.",
                     "audio-capture": "Nenhum microfone encontrado.",
                     "network": "A voz do navegador precisa de internet e só funciona no Edge, no Chrome ou no Safari." }[e.error];
@@ -742,7 +751,16 @@ function prepararMic(botao, aoOuvir) {
     };
     try {
       if (usarFiltro && audio) r.start(audio.trilha); else r.start();
-    } catch (e) { fecharAudio(); r.onend(); aviso("Não consegui ligar o microfone: " + e.message, "erro"); }
+    } catch (e) { fecharAudio(); r.onend(); aviso("Não consegui ligar o microfone: " + e.message, "erro"); return; }
+    if (!usarFiltro && !celular && !SAFARI) {
+      abrirAudio(false).then(a => {
+        if (!a) return;
+        if (ouvindo !== r || audio) { a.stream.getTracks().forEach(t => t.stop()); a.ctx.close().catch(() => {}); return; }
+        audio = a;
+        $("nivel").classList.add("ativo");
+        medir();
+      }).catch(() => {});
+    }
   });
 }
 
@@ -865,7 +883,7 @@ function trocarPalavra(indice, tamanho, nova) {
   fecharOpcoes();
   desenharPalavras();
   [...$("palavras").querySelectorAll(".palavra")].find(c => c.textContent === nova)?.classList.add("trocada");
-  if (sessao) $("consulta").requestSubmit();
+  if (sessao) enviarFormulario($("consulta"));
 }
 
 async function prepararPalavras(f, outras, duvidas, confianca) {
@@ -904,7 +922,7 @@ prepararMic($("mic-descricao"), async (alternativas, final, confianca) => {
   $("ultimo-ouvido").textContent = "Ouvi: \"" + alternativas[0] + "\" → " + melhor.texto + (melhor.unidade ? " · " + melhor.unidade : "");
   pedidoDeCriar = melhor.acao === "criar";
   await prepararPalavras(melhor, outras, duvidas, confianca);
-  $("consulta").requestSubmit();
+  enviarFormulario($("consulta"));
 });
 
 document.addEventListener("click", fecharOpcoes);
@@ -1082,9 +1100,9 @@ async function iniciar() {
   historico();
   pendentes();
   carregarUnidades();
-  const destino = { "#catalogo": "aba-catalogo", "#planilha": "aba-lote", "#curador": "aba-curador", "#unidades": "aba-unidades" }[location.hash];
+  const destino = { "#catalogo": "aba-catalogo", "#planilha": "aba-lote", "#curador": "aba-curador", "#unidades": "aba-unidades", "#raio-x": "aba-raio-x" }[location.hash];
   if (destino) abrir(destino);
   testeVoz();
   prepararModoLocal();
 }
-iniciar();
+addEventListener("DOMContentLoaded", iniciar);
