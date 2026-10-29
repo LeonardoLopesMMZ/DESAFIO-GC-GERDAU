@@ -1,3 +1,4 @@
+import re
 import sys
 from pathlib import Path
 
@@ -14,6 +15,32 @@ TIPO = {"Hora normal": "HORA NORMAL", "HE Seg-Sab": "HE SEG-SAB", "HE Dom/Fer": 
 CURTO = {"TECNICO SEGURANCA TRABALHO": "TEC SEG TRABALHO", "ENGENHEIRO SEGURANCA TRABALHO": "ENG SEG TRABALHO",
          "AUXILIAR SERVICOS GERAIS": "AUX SERV GERAIS", "PLANEJADOR/TEC PLANEJAMENTO": "PLANEJADOR",
          "ENCANADOR/BOMBEIRO HIDRAULICO": "ENCANADOR", "PORTEIRO/CONTROLADOR ACESSO": "CONTROLADOR ACESSO"}
+CURTOS = [("TECNICO DE SEGURANCA DO TRABALHO", "TST"), ("TECNICO SEGURANCA TRABALHO", "TST"),
+          ("AUXILIAR DE SERVICOS GERAIS", "ASG"), ("ADICIONAL NOTURNO", "AD NOT"), ("HORA EXTRA", "HE"), ("HORA NORMAL", "HN"),
+          ("SEGUNDA A SABADO", "SEG A SAB"), ("DOMINGO E FERIADO", "DOM/FER"), ("DESMOBILIZACAO", "DESMOB"),
+          ("MOBILIZACAO", "MOB"), ("PERICULOSIDADE", "PERIC"), ("INSALUBRIDADE", "INSAL"), ("MANUTENCAO", "MANUT"),
+          ("INSTALACAO", "INST"), ("DISPOSICAO", "DISP"), ("ENCARREGADO", "ENCARREG"), ("SUPERVISOR", "SUPERV"),
+          ("COORDENADOR", "COORD"), ("PLANEJAMENTO", "PLANEJ"), ("CALDEIREIRO", "CALD"), ("ALMOXARIFE", "ALMOX"),
+          ("ASSISTENTE", "ASSIST"), ("ESPECIALIZADO", "ESPEC"), ("CONSERVACAO", "CONSERV"), ("ENGENHEIRO", "ENG"),
+          ("TRANSPORTE", "TRANSP"), ("GALVANIZADO", "GALV"), ("GALVANIZADA", "GALV"), ("TUBULACAO", "TUBU"),
+          ("RECEPCIONISTA", "RECEP"), ("ALPINISTA", "ALPIN"), ("AUXILIAR", "AUX"), ("AJUDANTE", "AJUD"), ("MECANICO", "MEC"),
+          ("OPERADOR", "OP"), ("OFICIAL", "OF"), ("TECNICO", "TEC"), ("SEGURANCA", "SEGUR"), ("TRABALHO", "TRAB"),
+          ("VIGILANTE", "VIG"), ("LIMPEZA", "LIMP"), ("MAQUINA", "MAQ"), ("SERVICOS", "SERV"), ("CONCRETO", "CONC"),
+          ("DIAMETRO", "DIAM"), ("NOTURNO", "NOT"), ("ADICIONAL", "ADIC"), ("CAIXA", "CX")]
+
+
+def caber40(texto):
+    t = " ".join(str(texto or "").upper().split())
+    for longo, curto in CURTOS:
+        if len(t) <= 40:
+            return t
+        t = re.sub(rf"\b{longo}\b", curto, t, count=1)
+    for miuda in (" DE ", " DA ", " DO ", " DAS ", " DOS ", " E ", " EM "):
+        while len(t) > 40 and miuda in f" {t} ":
+            t = f" {t} ".replace(miuda, " ", 1).strip()
+    if len(t) > 40:
+        t = t[:41].rsplit(" ", 1)[0] if " " in t[:41] else t[:40]
+    return t
 
 
 def nome_padrao(r):

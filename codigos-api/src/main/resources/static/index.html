@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#003366">
 <title>MOKKA · Códigos de serviço</title>
-<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 <div id="carregando" aria-hidden="true"></div>
@@ -18,6 +18,7 @@
   <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
   <symbol id="i-pessoa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
   <symbol id="i-rosto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M9 10v1M15 10v1M12 10v3h-1M9.5 16a4 4 0 0 0 5 0"/></symbol>
+  <symbol id="i-raio" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></symbol>
   <symbol id="i-api" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m8 7-5 5 5 5M16 7l5 5-5 5"/></symbol>
 </svg>
 
@@ -43,6 +44,7 @@
     <button type="button" data-aba="aba-lote"><svg><use href="#i-planilha"/></svg>Planilha</button>
     <button type="button" data-aba="aba-catalogo"><svg><use href="#i-catalogo"/></svg>Catálogo</button>
     <button type="button" data-aba="aba-unidades"><svg><use href="#i-regua"/></svg>Unidades</button>
+    <button type="button" data-aba="aba-raio-x"><svg><use href="#i-raio"/></svg>Raio-X</button>
     <button type="button" data-aba="aba-curador" id="botao-curador"><svg><use href="#i-curador"/></svg>Curador <span class="contador oculto" id="qtd-curador"></span></button>
   </div>
 </nav>
@@ -128,6 +130,7 @@
     <div class="links">
       <a href="/modelo_lote.xlsx" download>Baixar modelo</a>
       <a href="/exemplo_baguncado.xlsx" download>Baixar exemplo bagunçado</a>
+      <a href="/casos_teste.xlsx" download>Baixar casos de teste</a>
     </div>
     <form class="lote-form cartao" id="form-lote">
       <label>Excel ou CSV (até 5000 linhas)
@@ -188,6 +191,43 @@
       <thead><tr><th>SAP</th><th>O que é</th><th>Pode escrever</th><th>Exemplo</th><th>Ativos</th><th></th></tr></thead>
       <tbody id="lista-unidades"></tbody>
     </table></div>
+  </section>
+
+  <section id="aba-raio-x" class="oculto">
+    <h2>Raio-X do catálogo</h2>
+    <p class="dica">A nota mede a saúde da base de códigos de 0 a 100. Antes: a planilha da Gerdau como veio. Depois: o catálogo tratado pelo MOKKA.</p>
+    <div class="raio-topo">
+      <div class="notas cartao">
+        <div class="nota" id="nota-antes">
+          <svg viewBox="0 0 120 68" aria-hidden="true"><path class="trilho" d="M10 60a50 50 0 0 1 100 0"/><path class="arco" d="M10 60a50 50 0 0 1 100 0" pathLength="100"/></svg>
+          <b>0</b><span>Base original</span>
+        </div>
+        <div class="seta" aria-hidden="true">→</div>
+        <div class="nota" id="nota-depois">
+          <svg viewBox="0 0 120 68" aria-hidden="true"><path class="trilho" d="M10 60a50 50 0 0 1 100 0"/><path class="arco" d="M10 60a50 50 0 0 1 100 0" pathLength="100"/></svg>
+          <b>0</b><span>Com o MOKKA</span>
+        </div>
+      </div>
+      <div class="economia cartao">
+        <span class="rotulo">Economia estimada</span>
+        <b id="economia-valor">R$ 0</b>
+        <span id="economia-texto" class="info"></span>
+        <label>Custo de um código duplicado (cadastro, aprovação, conferência e manutenção no SAP)
+          <span class="linha-custo"><input type="range" id="custo" min="50" max="1000" step="50" value="250"><output id="custo-valor">R$ 250</output></span>
+        </label>
+      </div>
+    </div>
+    <h2>O que mudou</h2>
+    <div class="criterios cartao" id="criterios"></div>
+    <h2>Constelação dos duplicados</h2>
+    <p class="dica">Cada bolha é um código oficial; quanto maior, mais códigos repetidos apontavam para ele. Clique para ver a ficha.</p>
+    <div class="constelacao cartao">
+      <svg id="constelacao" role="img" aria-label="Famílias de códigos repetidos"></svg>
+      <p class="dica-bolha" id="dica-bolha">Passe o mouse em uma bolha</p>
+      <div class="legenda" id="legenda"></div>
+    </div>
+    <h2>Por grupo</h2>
+    <div class="grupos-raio" id="grupos-raio"></div>
   </section>
 
   <section id="aba-curador" class="oculto">
@@ -252,9 +292,10 @@
   <div class="janela-corpo ficha" id="ficha"></div>
 </dialog>
 
-<script src="fala.js?v=9"></script>
-<script src="local.js?v=9"></script>
-<script src="app.js?v=9"></script>
-<script src="rosto.js?v=9"></script>
+<script src="fala.js?v=10"></script>
+<script src="local.js?v=10"></script>
+<script src="app.js?v=10"></script>
+<script src="rosto.js?v=10"></script>
+<script src="raiox.js?v=10"></script>
 </body>
 </html>

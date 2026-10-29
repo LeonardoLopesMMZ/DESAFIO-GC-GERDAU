@@ -166,3 +166,20 @@ Clique em qualquer número de código (na consulta, no catálogo, no curador ou 
 2. Consulte `VIGILANTE NOTURNO 12X36`. **Esperado:** a faixa amarela *Sem conexão com o servidor* e o resultado com *modo local*.
 3. Escreva uma justificativa e clique em **Criar código novo**. **Esperado:** *Pedido de código novo guardado neste computador*.
 4. Ligue de novo pelo `MOKKA.bat` e volte para a aba, sem fechar. **Esperado:** em alguns segundos, *1 pedido(s) guardado(s) neste computador foram enviados ao sistema* (se pedir, entre de novo).
+
+## 17. Raio-X do catálogo
+
+1. Abra a aba **Raio-X**.
+2. **Esperado:** dois medidores que se enchem, *Base original* e *Com o MOKKA*, com a nota de cada um; as barras de antes e depois de cada critério; a constelação de bolhas; e os números por grupo.
+3. Passe o mouse numa bolha. **Esperado:** aparece o código, a descrição e quantos repetidos apontavam para ele. Clique: abre a ficha.
+4. Arraste o **custo de um código duplicado**. **Esperado:** a economia estimada muda na hora.
+
+## 18. Planilha de casos de teste
+
+1. Na aba **Planilha**, clique em **Baixar casos de teste** e analise o arquivo.
+2. Compare cada linha com a coluna **Resultado esperado** da planilha: iguais, minúsculas, "SV-" na frente, letras trocadas, unidade por extenso, unidade diferente, novos, repetido na própria planilha, erros e grupos escritos errado.
+
+## 19. Mac e outros navegadores
+
+1. No Mac, rode `bash MOKKA.command`. **Esperado:** na primeira vez ele baixa o Java e o Python se faltar, e depois abre o site.
+2. No Safari, ative o Ditado e teste o **Falar**. No Firefox, o botão **Falar** explica que lá não tem voz; o resto funciona igual.
