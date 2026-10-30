@@ -1,5 +1,6 @@
 import re
 import sys
+import unicodedata
 from pathlib import Path
 
 import pandas as pd
@@ -15,30 +16,78 @@ TIPO = {"Hora normal": "HORA NORMAL", "HE Seg-Sab": "HE SEG-SAB", "HE Dom/Fer": 
 CURTO = {"TECNICO SEGURANCA TRABALHO": "TEC SEG TRABALHO", "ENGENHEIRO SEGURANCA TRABALHO": "ENG SEG TRABALHO",
          "AUXILIAR SERVICOS GERAIS": "AUX SERV GERAIS", "PLANEJADOR/TEC PLANEJAMENTO": "PLANEJADOR",
          "ENCANADOR/BOMBEIRO HIDRAULICO": "ENCANADOR", "PORTEIRO/CONTROLADOR ACESSO": "CONTROLADOR ACESSO"}
-CURTOS = [("TECNICO DE SEGURANCA DO TRABALHO", "TST"), ("TECNICO SEGURANCA TRABALHO", "TST"),
-          ("AUXILIAR DE SERVICOS GERAIS", "ASG"), ("ADICIONAL NOTURNO", "AD NOT"), ("HORA EXTRA", "HE"), ("HORA NORMAL", "HN"),
-          ("SEGUNDA A SABADO", "SEG A SAB"), ("DOMINGO E FERIADO", "DOM/FER"), ("DESMOBILIZACAO", "DESMOB"),
-          ("MOBILIZACAO", "MOB"), ("PERICULOSIDADE", "PERIC"), ("INSALUBRIDADE", "INSAL"), ("MANUTENCAO", "MANUT"),
-          ("INSTALACAO", "INST"), ("DISPOSICAO", "DISP"), ("ENCARREGADO", "ENCARREG"), ("SUPERVISOR", "SUPERV"),
-          ("COORDENADOR", "COORD"), ("PLANEJAMENTO", "PLANEJ"), ("CALDEIREIRO", "CALD"), ("ALMOXARIFE", "ALMOX"),
-          ("ASSISTENTE", "ASSIST"), ("ESPECIALIZADO", "ESPEC"), ("CONSERVACAO", "CONSERV"), ("ENGENHEIRO", "ENG"),
-          ("TRANSPORTE", "TRANSP"), ("GALVANIZADO", "GALV"), ("GALVANIZADA", "GALV"), ("TUBULACAO", "TUBU"),
-          ("RECEPCIONISTA", "RECEP"), ("ALPINISTA", "ALPIN"), ("AUXILIAR", "AUX"), ("AJUDANTE", "AJUD"), ("MECANICO", "MEC"),
-          ("OPERADOR", "OP"), ("OFICIAL", "OF"), ("TECNICO", "TEC"), ("SEGURANCA", "SEGUR"), ("TRABALHO", "TRAB"),
-          ("VIGILANTE", "VIG"), ("LIMPEZA", "LIMP"), ("MAQUINA", "MAQ"), ("SERVICOS", "SERV"), ("CONCRETO", "CONC"),
-          ("DIAMETRO", "DIAM"), ("NOTURNO", "NOT"), ("ADICIONAL", "ADIC"), ("CAIXA", "CX")]
+FRASES = [("TECNICO DE SEGURANCA DO TRABALHO", "TST"), ("TECNICO EM SEGURANCA DO TRABALHO", "TST"),
+          ("TECNICO SEGURANCA TRABALHO", "TST"), ("AUXILIAR DE SERVICOS GERAIS", "ASG"), ("AUXILIAR SERVICOS GERAIS", "ASG"),
+          ("ADICIONAL NOTURNO", "AD NOT"), ("HORA EXTRA", "HE"), ("HORA NORMAL", "HN"), ("SEGUNDA A SABADO", "SEG A SAB"),
+          ("DOMINGO E FERIADO", "DOM/FER"), ("DOMINGOS E FERIADOS", "DOM/FER"), ("DOMINGO FERIADO", "DOM/FER")]
+PALAVRAS = {"PERICULOSIDADE": "PERIC", "INSALUBRIDADE": "INSAL", "ESPECIALIZADO": "ESPEC", "ESPECIALIZADA": "ESPEC",
+            "RECEPCIONISTA": "RECEP", "EXTRAORDINARIA": "EXTRA", "DESMOBILIZACAO": "DESMOB", "INSTRUMENTISTA": "INSTRUM",
+            "PLANEJAMENTO": "PLANEJ", "MOBILIZACAO": "MOB", "ENCARREGADO": "ENCARREG", "ENCARREGADA": "ENCARREG",
+            "CALDEIREIRO": "CALD", "COORDENADOR": "COORD", "CONSERVACAO": "CONSERV", "GALVANIZADO": "GALV",
+            "GALVANIZADA": "GALV", "MANUTENCAO": "MANUT", "DISPOSICAO": "DISP", "INSTALACAO": "INST",
+            "TRANSPORTE": "TRANSP", "SUPERVISOR": "SUPERV", "ENGENHEIRO": "ENG", "ALMOXARIFE": "ALMOX",
+            "ASSISTENTE": "ASSIST", "TUBULACAO": "TUBU", "MOTORISTA": "MOTORI", "SEGURANCA": "SEGUR", "ALPINISTA": "ALPIN",
+            "ADICIONAL": "ADIC", "VIGILANTE": "VIG", "PERICULOSO": "PERIC", "PERICULOSA": "PERIC", "INSALUBRE": "INSAL",
+            "AUXILIAR": "AUX", "AJUDANTE": "AJUD", "MECANICO": "MEC", "OPERADOR": "OP", "OFICIAL": "OF", "TECNICO": "TEC",
+            "TECNICA": "TEC", "TRABALHO": "TRAB", "RESIDUAL": "RESID", "EVENTUAL": "EVENTU", "LIMPEZA": "LIMP",
+            "MAQUINA": "MAQ", "SERVICOS": "SERV", "CONCRETO": "CONC", "DIAMETRO": "DIAM", "NOTURNO": "NOT",
+            "NOTURNA": "NOT", "CAIXA": "CX"}
+RESERVADAS = set(PALAVRAS.values()) | {"ELET", "ELETR", "PERI", "MANU", "MANT", "PLAN", "CORD", "NORM", "DISPOS", "SERVIC",
+                                       "CONCR", "INSALUB", "PERICUL", "EXTRAORD", "NOTUR", "NOTURN", "EVENTUA", "HNOT",
+                                       "HINS", "HEXTRA"}
+CURTAS = {"COM": "C/", "SEM": "S/", "PARA": "P/"}
+MINIMAS = {"DE", "DA", "DO", "DAS", "DOS", "E", "EM", "NO", "NA"}
+CARGO = re.compile(r"^(ELETRICISTA|SOLDADOR|PEDREIRO|PINTOR|CARPINTEIRO|ENCANADOR|MONTADOR|MARTELETEIRO|MACARIQUEIRO|"
+                   r"JARDINEIRO|TORNEIRO|ARMADOR|TELHADISTA|VIDRACEIRO|SERRALHEIRO|INSPETOR|SERVENTE|ANDAIME|ANDAIMISTA|"
+                   r"RESGATISTA|ZELADOR|DEDETIZADOR|ANALISTA|PROJETISTA|LAMINADOR|CONTROLADOR|PORTEIRO|BOMBEIRO|MECANICA|"
+                   r"ELETRICA|CIVIL)$")
+
+
+def _sem_acento(t):
+    return unicodedata.normalize("NFKD", t).encode("ascii", "ignore").decode()
+
+
+def encurtar(palavra):
+    s = _sem_acento(palavra)
+    if len(s) < 7 or not s.isalpha() or len(s) != len(palavra):
+        return None
+    for n in range(4, min(8, len(s) - 2)):
+        if s[n] in "AEIOU" and s[n - 1] not in "AEIOU" and s[:n] not in RESERVADAS:
+            return palavra[:n]
+    return None
 
 
 def caber40(texto):
     t = " ".join(str(texto or "").upper().split())
-    for longo, curto in CURTOS:
-        if len(t) <= 40:
-            return t
-        t = re.sub(rf"\b{longo}\b", curto, t, count=1)
-    for miuda in (" DE ", " DA ", " DO ", " DAS ", " DOS ", " E ", " EM "):
-        while len(t) > 40 and miuda in f" {t} ":
-            t = f" {t} ".replace(miuda, " ", 1).strip()
-    if len(t) > 40:
+    cabe = lambda: len(t) <= 40
+    for longo, curto in FRASES:
+        if cabe():
+            break
+        m = re.search(rf"\b{longo.replace(' ', r'\s+')}\b", _sem_acento(t))
+        if m and len(_sem_acento(t)) == len(t):
+            t = t[:m.start()] + curto + t[m.end():]
+    p = t.split()
+    for i in range(len(p) - 1, 0, -1):
+        if cabe():
+            break
+        w = _sem_acento(p[i])
+        if w in CURTAS:
+            p[i] = CURTAS[w]
+            t = " ".join(p)
+        elif w in MINIMAS and i < len(p) - 1:
+            del p[i]
+            t = " ".join(p)
+    for troca in (lambda w: PALAVRAS.get(_sem_acento(w)),
+                  lambda w: None if CARGO.match(_sem_acento(w)) else encurtar(w),
+                  encurtar):
+        for i in sorted(range(len(p)), key=lambda i: -len(p[i])):
+            if cabe():
+                break
+            novo = troca(p[i])
+            if novo and len(novo) < len(p[i]):
+                p[i] = novo
+                t = " ".join(p)
+    if not cabe():
         t = t[:41].rsplit(" ", 1)[0] if " " in t[:41] else t[:40]
     return t
 

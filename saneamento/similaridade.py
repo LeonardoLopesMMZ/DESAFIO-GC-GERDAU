@@ -76,18 +76,22 @@ class Buscador:
         m.sort(key=lambda c: (-round(SequenceMatcher(None, w, c).ratio(), 1), -self.freq[c]))
         return m[:3]
 
+    def _conhecida(self, t):
+        return all(x in self.vocab or not x.isalpha() for x in normalizar(t)["n5"].split())
+
     def corrigir(self, descricao):
-        toks = normalizar(descricao)["n5"].split()
+        toks = normalizar(descricao)["n4"].split()
         saida, correcoes, i = [], [], 0
         while i < len(toks):
             t = toks[i]
             prox = toks[i + 1] if i + 1 < len(toks) else ""
-            if prox and t.isalpha() and prox.isalpha() and t + prox in self.vocab and (t not in self.vocab or prox not in self.vocab):
+            if prox and t.isalpha() and prox.isalpha() and not (self._conhecida(t) and self._conhecida(prox)) \
+                    and normalizar(t + prox)["n5"] and self._conhecida(t + prox):
                 saida.append(t + prox)
                 correcoes.append({"de": f"{t} {prox}", "para": t + prox})
                 i += 2
                 continue
-            if len(t) >= 4 and t.isalpha() and t not in self.vocab:
+            if len(t) >= 4 and t.isalpha() and not self._conhecida(t):
                 m = get_close_matches(t, self._lista, n=1, cutoff=0.8)
                 if m:
                     saida.append(m[0])
