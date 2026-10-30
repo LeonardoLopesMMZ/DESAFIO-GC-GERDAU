@@ -9,6 +9,10 @@ similaridade:
 
 mokka:
   so-chave: ${MOKKA_SO_CHAVE:false}
+  segredo: ${MOKKA_SEGREDO:}
+  admins: ${MOKKA_ADMINS:Leonardo Lopes,Thales,Thirza,Bárbara,Lukas}
+  chave-fotos: ${MOKKA_CHAVE_FOTOS:../.ferramentas/chave-fotos.key}
+  dados: ${MOKKA_DADOS:}
 
 springdoc:
   swagger-ui:
@@ -53,12 +57,13 @@ spring:
     activate:
       on-profile: postgres
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/codigos}
-    username: ${DB_USER:codigos}
-    password: ${DB_PASSWORD:codigos}
+    url: ${DB_URL:jdbc:postgresql://127.0.0.1:5433/mokka}
+    username: ${DB_USER:mokka_app}
+    password: ${DB_PASSWORD:}
   sql:
     init:
-      mode: never
+      mode: always
+      continue-on-error: false
   h2:
     console:
       enabled: false

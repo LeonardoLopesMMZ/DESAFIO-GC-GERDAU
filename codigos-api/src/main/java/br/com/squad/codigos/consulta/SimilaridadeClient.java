@@ -21,12 +21,13 @@ public class SimilaridadeClient {
     private final RestClient http;
     private final Reserva reserva;
 
-    public SimilaridadeClient(RestClient.Builder builder, @Value("${similaridade.url}") String url, Reserva reserva) {
+    public SimilaridadeClient(RestClient.Builder builder, @Value("${similaridade.url}") String url,
+                              @Value("${mokka.segredo:}") String segredo, Reserva reserva) {
         this.reserva = reserva;
         SimpleClientHttpRequestFactory tempo = new SimpleClientHttpRequestFactory();
         tempo.setConnectTimeout(3_000);
         tempo.setReadTimeout(180_000);
-        this.http = builder.baseUrl(url).requestFactory(tempo).build();
+        this.http = builder.baseUrl(url).requestFactory(tempo).defaultHeader("X-Mokka-Segredo", segredo).build();
     }
 
     public Resposta buscar(String descricao, String unidade) {

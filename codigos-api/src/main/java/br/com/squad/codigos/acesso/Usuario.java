@@ -20,6 +20,7 @@ public class Usuario {
     private long contador;
     private String rosto;
     private Long retratoId;
+    private String perfil = "COMPRADOR";
     private LocalDateTime criadoEm = LocalDateTime.now();
 
     protected Usuario() {
@@ -83,5 +84,17 @@ public class Usuario {
 
     public long getContador() {
         return contador;
+    }
+
+    public String getPerfil() {
+        return perfil;
+    }
+
+    public void mudarPerfil(String perfil) {
+        this.perfil = perfil;
+    }
+
+    public LocalDateTime getCriadoEm() {
+        return criadoEm;
     }
 }

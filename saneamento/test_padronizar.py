@@ -100,11 +100,13 @@ def test_api_devolve_candidatos():
     import json
     import threading
     import urllib.request
-    from api import servir
+    from api import SEGREDO, servir
     servidor = servir(BASE, porta=0)
     threading.Thread(target=servidor.serve_forever, daemon=True).start()
     url = f"http://127.0.0.1:{servidor.server_address[1]}/similares"
-    abrir = urllib.request.build_opener(urllib.request.ProxyHandler({})).open
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    opener.addheaders = [("X-Mokka-Segredo", SEGREDO)]
+    abrir = opener.open
     pedido = urllib.request.Request(url, data=json.dumps({"descricao": "MEC.MANUT.NORM", "unidade": "H"}).encode(),
                                     headers={"Content-Type": "application/json"})
     r = json.loads(abrir(pedido).read())

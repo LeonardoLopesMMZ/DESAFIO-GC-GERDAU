@@ -113,7 +113,8 @@ async function enviarFila() {
 
 async function guardarCatalogo() {
   try {
-    const r = await fetch("/api/codigos/leve");
+    if (!sessao || !sessao.token) return;
+    const r = await fetch("/api/codigos/leve", { headers: { Authorization: "Bearer " + sessao.token } });
     if (r.ok) guardado.gravar(CATALOGO, await r.json());
   } catch (e) {}
 }
@@ -121,7 +122,7 @@ async function guardarCatalogo() {
 async function vigiar() {
   if (!semConexao && !fila().length) return;
   try {
-    const r = await fetch("/api/unidades", { cache: "no-store" });
+    const r = await fetch("/api/sistema", { cache: "no-store" });
     if (!r.ok) throw new Error();
   } catch (e) { ficarSemConexao(true); return; }
   if (semConexao) {
@@ -139,7 +140,6 @@ function prepararModoLocal() {
       navigator.serviceWorker.register("sw.js").then(() => caches.open("mokka")).then(c => c.addAll(arquivos)).catch(() => {});
     }, { once: true });
   }
-  guardarCatalogo();
   setInterval(vigiar, 5000);
   avisarModoLocal();
 }

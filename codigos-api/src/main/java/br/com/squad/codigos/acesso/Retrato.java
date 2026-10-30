@@ -33,6 +33,10 @@ public class Retrato {
         return id;
     }
 
+    public String getNome() {
+        return nome;
+    }
+
     public byte[] getFoto() {
         return foto;
     }

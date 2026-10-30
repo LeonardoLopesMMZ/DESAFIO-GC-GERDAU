@@ -40,6 +40,12 @@ public class CodigoServico {
         this.criadoEm = java.time.LocalDateTime.now();
     }
 
+    public void desfazer(String oficial, String motivo) {
+        this.status = "BLOQUEADO";
+        this.codigoCanonico = oficial;
+        this.motivo = motivo;
+    }
+
     public String getCodigo() {
         return codigo;
     }
