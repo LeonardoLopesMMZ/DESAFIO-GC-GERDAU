@@ -14,38 +14,69 @@ const TROCAS = [
   [/\bpara\b/g, "p/"], [/\bcom\b/g, "c/"]
 ];
 
-const ABREVIAR = [
-  ["TECNICO DE SEGURANCA DO TRABALHO", "TST"], ["TECNICO EM SEGURANCA DO TRABALHO", "TST"],
-  ["AUXILIAR DE SERVICOS GERAIS", "ASG"], ["ADICIONAL NOTURNO", "AD NOT"],
+const FRASES = [
+  ["TECNICO DE SEGURANCA DO TRABALHO", "TST"], ["TECNICO EM SEGURANCA DO TRABALHO", "TST"], ["TECNICO SEGURANCA TRABALHO", "TST"],
+  ["AUXILIAR DE SERVICOS GERAIS", "ASG"], ["AUXILIAR SERVICOS GERAIS", "ASG"], ["ADICIONAL NOTURNO", "AD NOT"],
   ["HORA EXTRA", "HE"], ["HORA NORMAL", "HN"], ["SEGUNDA A SABADO", "SEG A SAB"], ["DOMINGO E FERIADO", "DOM/FER"],
-  ["DESMOBILIZACAO", "DESMOB"], ["MOBILIZACAO", "MOB"], ["PERICULOSIDADE", "PERIC"], ["INSALUBRIDADE", "INSAL"],
-  ["MANUTENCAO", "MANUT"], ["INSTALACAO", "INST"], ["DISPOSICAO", "DISP"], ["ENCARREGADO", "ENCARREG"],
-  ["SUPERVISOR", "SUPERV"], ["COORDENADOR", "COORD"], ["PLANEJAMENTO", "PLANEJ"], ["CALDEIREIRO", "CALD"],
-  ["ALMOXARIFE", "ALMOX"], ["ASSISTENTE", "ASSIST"], ["ESPECIALIZADO", "ESPEC"], ["CONSERVACAO", "CONSERV"],
-  ["ENGENHEIRO", "ENG"], ["TRANSPORTE", "TRANSP"], ["GALVANIZADO", "GALV"], ["GALVANIZADA", "GALV"], ["TUBULACAO", "TUBU"],
-  ["RECEPCIONISTA", "RECEP"], ["ALPINISTA", "ALPIN"], ["AUXILIAR", "AUX"], ["AJUDANTE", "AJUD"],
-  ["MECANICO", "MEC"], ["OPERADOR", "OP"], ["OFICIAL", "OF"], ["TECNICO", "TEC"], ["SEGURANCA", "SEGUR"],
-  ["TRABALHO", "TRAB"], ["VIGILANTE", "VIG"], ["LIMPEZA", "LIMP"], ["MAQUINA", "MAQ"], ["SERVICOS", "SERV"],
-  ["CONCRETO", "CONC"], ["DIAMETRO", "DIAM"], ["NOTURNO", "NOT"], ["ADICIONAL", "ADIC"], ["CAIXA", "CX"]
+  ["DOMINGOS E FERIADOS", "DOM/FER"], ["DOMINGO FERIADO", "DOM/FER"]
 ];
-const MINIMAS = [" DE ", " DA ", " DO ", " DAS ", " DOS ", " E ", " EM "];
+const PALAVRAS = {
+  PERICULOSIDADE: "PERIC", INSALUBRIDADE: "INSAL", ESPECIALIZADO: "ESPEC", ESPECIALIZADA: "ESPEC", RECEPCIONISTA: "RECEP",
+  EXTRAORDINARIA: "EXTRA", DESMOBILIZACAO: "DESMOB", INSTRUMENTISTA: "INSTRUM", PLANEJAMENTO: "PLANEJ", MOBILIZACAO: "MOB",
+  ENCARREGADO: "ENCARREG", ENCARREGADA: "ENCARREG", CALDEIREIRO: "CALD", COORDENADOR: "COORD",
+  CONSERVACAO: "CONSERV", GALVANIZADO: "GALV", GALVANIZADA: "GALV", MANUTENCAO: "MANUT", DISPOSICAO: "DISP",
+  INSTALACAO: "INST", TRANSPORTE: "TRANSP", SUPERVISOR: "SUPERV", ENGENHEIRO: "ENG", ALMOXARIFE: "ALMOX",
+  ASSISTENTE: "ASSIST", TUBULACAO: "TUBU", MOTORISTA: "MOTORI", SEGURANCA: "SEGUR", ALPINISTA: "ALPIN",
+  ADICIONAL: "ADIC", VIGILANTE: "VIG", PERICULOSO: "PERIC", PERICULOSA: "PERIC", INSALUBRE: "INSAL",
+  AUXILIAR: "AUX", AJUDANTE: "AJUD", MECANICO: "MEC", OPERADOR: "OP", OFICIAL: "OF", TECNICO: "TEC", TECNICA: "TEC",
+  TRABALHO: "TRAB", RESIDUAL: "RESID", EVENTUAL: "EVENTU", LIMPEZA: "LIMP", MAQUINA: "MAQ", SERVICOS: "SERV",
+  CONCRETO: "CONC", DIAMETRO: "DIAM", NOTURNO: "NOT", NOTURNA: "NOT", CAIXA: "CX"
+};
+const RESERVADAS = new Set([...Object.values(PALAVRAS), "ELET", "ELETR", "PERI", "MANU", "MANT", "PLAN", "CORD", "NORM",
+  "DISPOS", "SERVIC", "CONCR", "INSALUB", "PERICUL", "EXTRAORD", "NOTUR", "NOTURN", "EVENTUA", "HNOT", "HINS", "HEXTRA"]);
+const CURTAS = { COM: "C/", SEM: "S/", PARA: "P/" };
+const MINIMAS = ["DE", "DA", "DO", "DAS", "DOS", "E", "EM", "NO", "NA"];
+const VOGAL = /[AEIOU]/;
+const CARGO = /^(ELETRICISTA|SOLDADOR|PEDREIRO|PINTOR|CARPINTEIRO|ENCANADOR|MONTADOR|MARTELETEIRO|MACARIQUEIRO|JARDINEIRO|TORNEIRO|ARMADOR|TELHADISTA|VIDRACEIRO|SERRALHEIRO|INSPETOR|SERVENTE|ANDAIME|ANDAIMISTA|RESGATISTA|ZELADOR|DEDETIZADOR|ANALISTA|PROJETISTA|LAMINADOR|CONTROLADOR|PORTEIRO|BOMBEIRO|MECANICA|ELETRICA|CIVIL)$/;
+
+function encurtar(palavra) {
+  const s = semAcento(palavra);
+  if (s.length < 7 || !/^[A-Z]+$/.test(s)) return null;
+  for (let n = 4; n <= 7 && n < s.length - 2; n++) {
+    if (VOGAL.test(s[n]) && !VOGAL.test(s[n - 1]) && !RESERVADAS.has(s.slice(0, n))) return palavra.slice(0, n);
+  }
+  return null;
+}
 
 function caber40(texto) {
   let t = texto.toUpperCase().replace(/\s+/g, " ").trim();
   const original = t;
-  const base = () => semAcento(t);
-  for (const [longo, curto] of ABREVIAR) {
-    if (t.length <= 40) break;
-    const re = new RegExp("\\b" + longo.replace(/ /g, "\\s+") + "\\b");
-    const m = base().match(re);
+  const cabe = () => t.length <= 40;
+  for (const [longo, curto] of FRASES) {
+    if (cabe()) break;
+    const m = semAcento(t).match(new RegExp("\\b" + longo.replace(/ /g, "\\s+") + "\\b"));
     if (m) t = t.slice(0, m.index) + curto + t.slice(m.index + m[0].length);
   }
-  for (const p of MINIMAS) {
-    while (t.length > 40 && (" " + t + " ").includes(p)) t = (" " + t + " ").replace(p, " ").trim();
+  let p = t.split(" ");
+  for (let i = p.length - 1; i > 0 && !cabe(); i--) {
+    const w = semAcento(p[i]);
+    if (CURTAS[w]) { p[i] = CURTAS[w]; t = p.join(" "); }
+    else if (MINIMAS.includes(w) && i < p.length - 1) { p.splice(i, 1); t = p.join(" "); }
   }
-  const cortou = t.length > 40;
+  const trocar = troca => {
+    const ordem = p.map((w, i) => [w, i]).sort((x, y) => y[0].length - x[0].length);
+    for (const [w, i] of ordem) {
+      if (cabe()) return;
+      const novo = troca(w);
+      if (novo && novo.length < w.length) { p[i] = novo; t = p.join(" "); }
+    }
+  };
+  trocar(w => PALAVRAS[semAcento(w)]);
+  trocar(w => !CARGO.test(semAcento(w)) && encurtar(w));
+  trocar(encurtar);
+  const cortou = !cabe();
   if (cortou) t = t.slice(0, 40).trim();
-  return { texto: t, abreviou: t !== original && !cortou, cortou };
+  return { texto: t, abreviou: t !== original && !cortou, cortou, original };
 }
 
 const COMANDOS = /^(buscar|busca|procurar|procura|consultar|consulta|pesquisar|pesquisa|criar|cria|cadastrar|novo c[oó]digo( de)?)\s+/;

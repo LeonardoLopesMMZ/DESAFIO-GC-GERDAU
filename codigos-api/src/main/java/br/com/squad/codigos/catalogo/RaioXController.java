@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "Raio-X", description = "Saúde do catálogo antes e depois do MOKKA, famílias de duplicados e números para estimar a economia")
+@Tag(name = "Raio-X", description = "Saúde do catálogo antes e depois do MOKKA, famílias de duplicados e o ganho no serviço")
 @RestController
 @RequestMapping("/api/raio-x")
 public class RaioXController {
@@ -35,6 +35,7 @@ public class RaioXController {
         Long repetidosBase = jdbc.queryForObject("select count(*) from codigo_servico where status = 'BLOQUEADO' "
                 + "and (motivo is null or (motivo not like 'criado%' and motivo not like 'importado%'))", Long.class);
         Long evitados = jdbc.queryForObject("select count(*) from solicitacao where status in ('USOU_EXISTENTE', 'RECUSADO')", Long.class);
+        Long aprendidas = jdbc.queryForObject("select coalesce(sum(votos), 0) from aprendizado", Long.class);
         long repetidos = repetidosBase == null ? 0 : repetidosBase;
 
         List<Criterio> criterios = new ArrayList<>();
@@ -58,7 +59,7 @@ public class RaioXController {
                         + "group by grupo order by count(*) desc",
                 (r, i) -> new PorGrupo(r.getString(1), r.getLong(2), r.getLong(3)));
         return new RaioX(Math.round(notaAntes), Math.round(notaDepois), criterios, baseTotal, repetidos,
-                evitados == null ? 0 : evitados, familias, grupos);
+                evitados == null ? 0 : evitados, aprendidas == null ? 0 : aprendidas, familias, grupos);
     }
 
     private static Criterio criterio(String nome, int peso, List<String[]> antes, List<String[]> depois, Predicate<String> ok) {
@@ -80,6 +81,6 @@ public class RaioXController {
     }
 
     public record RaioX(long notaAntes, long notaDepois, List<Criterio> criterios, long codigosNaBase, long repetidosAchados,
-                        long duplicadosEvitados, List<Familia> familias, List<PorGrupo> grupos) {
+                        long duplicadosEvitados, long decisoesAprendidas, List<Familia> familias, List<PorGrupo> grupos) {
     }
 }
