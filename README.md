@@ -13,7 +13,7 @@ Grupo 17 · Desafio GC 2026 · Gerdau · Instituto Caldeira
 ![Testes](https://img.shields.io/badge/teste%20geral-29%20de%2029-2EA44F)
 ![Windows, Mac e Linux](https://img.shields.io/badge/roda%20em-Windows%20%C2%B7%20Mac%20%C2%B7%20Linux-555555)
 
-[Rodar do zero](#rodar-do-zero) · [O que o sistema faz](#o-que-o-sistema-faz) · [Como funciona](#como-funciona-por-dentro) · [Segurança](#segurança) · [API](#api) · [Testes](#testes-automáticos) · [Equipe](#equipe)
+[Rodar do zero](#rodar-do-zero) · [O que o sistema faz](#o-que-o-sistema-faz) · [Como funciona](#como-funciona-por-dentro) · [Segurança](#segurança) · [API](#api) · [Testes](#testes-automáticos) · [Entregas](#entregas) · [Equipe](#equipe)
 
 </div>
 
@@ -147,7 +147,7 @@ Navegador (HTML + JS)  ->  Java / Spring Boot (porta 8080)  ->  Python (porta 80
 ```
 
 - **Python** (`saneamento/`):
-  - limpa e padroniza as descrições, com 118 abreviações e o limite de 40 caracteres;
+  - limpa e padroniza as descrições, com 136 abreviações tiradas da própria base e o limite de 40 caracteres;
   - acha os repetidos da base e compara textos com TF-IDF de pedaços de 2 a 4 letras, mais uma régua de regras: cargo, tipo de hora, percentual, unidade;
   - corrige palavras erradas comparando com o vocabulário do catálogo;
   - lê e escreve Excel.
@@ -278,7 +278,22 @@ cd saneamento
 python test_padronizar.py
 ```
 
-A documentação de cada etapa está em `saneamento/docs/` (dados) e `docs/` (Java, banco e telas).
+Para medir a similaridade com a base real (430 pares conferidos à mão, consultas com erro de escrita e serviços que não existem):
+
+```
+cd saneamento
+python validar.py
+```
+
+## Entregas
+
+| Entrega | Etapas | Onde |
+| --- | --- | --- |
+| Entrega 2 | 01 a 08 (dados) e 09 a 14 (Java e banco) | [`saneamento/docs/`](saneamento/docs/) e [`docs/09-...` a `docs/14-...`](docs/) |
+| Entrega 3 · evolução, integração e validação | 15 a 23 | [`docs/ENTREGA_3.md`](docs/ENTREGA_3.md) |
+| Entrega final · MVP, catálogo final, repositório e pitch | 24 a 28 | [`docs/ENTREGA_FINAL.md`](docs/ENTREGA_FINAL.md) |
+
+Destaques da validação: **0 serviços diferentes tratados como iguais** em 256 pares conferidos à mão (145 deles com 80% ou mais de texto igual), **89% das consultas com erro de escrita ou de fala** levadas ao código certo (na V1, 0%) e **15 de 15** serviços novos liberados sem sugestão falsa.
 
 ## Equipe
 

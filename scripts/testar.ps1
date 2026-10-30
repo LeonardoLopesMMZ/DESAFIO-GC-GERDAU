@@ -240,8 +240,9 @@ Teste 'Curador junta pedidos iguais' {
     $ids += $s.id
   }
   if ($ids.Count -lt 2) { throw 'a base nao tem PEDREIRO HORA NORMAL para testar' }
-  $g = @(Ler '/api/solicitacoes/curador') | Where-Object { $_.ids -contains $ids[0] }
-  if (@($g.ids).Count -ne $ids.Count) { throw "esperava $($ids.Count) juntos, veio $(@($g.ids).Count)" }
+  $g = Ler '/api/solicitacoes/curador' | ForEach-Object { $_ } | Where-Object { @($_.ids) -contains $ids[0] } | Select-Object -First 1
+  $fora = @($ids | Where-Object { @($g.ids) -notcontains $_ })
+  if ($fora.Count) { throw "esperava os $($ids.Count) juntos, ficaram separados: $($fora -join ', ')" }
   $script:grupo = $ids
   "$($ids.Count) pedidos escritos diferente viraram 1 grupo; sugestao: $($g.sugestao.acao) com $($g.sugestao.certeza)% de certeza"
 }
@@ -297,7 +298,7 @@ Teste 'Modo reserva (Python desligado)' {
   Stop-Process -Id $p.OwningProcess -Force
   Start-Sleep -Seconds 1
   try {
-    $r = Json '/api/consultas' @{ descricao = 'ELETRICISTA HORA EXTRA 100%'; unidade = 'hora' }
+    $r = Json '/api/consultas' @{ descricao = 'MECANICO MANUTENCAO HORA NORMAL'; unidade = 'hora' }
     if ((Texto $r.motivo) -notmatch 'modo reserva') { throw "veio: $(Texto $r.motivo)" }
     "Python desligado e a consulta respondeu pelo banco ($($r.resultado))"
   } finally {
