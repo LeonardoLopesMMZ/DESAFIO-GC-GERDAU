@@ -75,6 +75,8 @@ O que a voz entende:
 | "buscar ..." ou "criar ..." no começo | comando |
 | frase com mais de 40 caracteres | abreviada no padrão do SAP: HORA EXTRA vira HE, TÉCNICO DE SEGURANÇA DO TRABALHO vira TST, MANUTENÇÃO vira MANUT |
 
+Digitando também: escreva *ENCARREGADO DE MANUTENÇÃO MECÂNICA HORA EXTRA 50% SEGUNDA A SÁBADO* (mais de 40). **Esperado:** o contador fica amarelo e avisa; ao clicar em **Consultar**, o campo vira `ENCARREG MANUT MECÂNICA HE 50% SEG A SAB` e aparece o antes e o depois.
+
 ## 8. Planilha inteira (lote)
 
 1. Aba **Planilha (lote)**, clique em **Baixar modelo de planilha** e salve o `modelo_lote.xlsx`. Ela tem 14 linhas bagunçadas de propósito.
@@ -172,7 +174,7 @@ Clique em qualquer número de código (na consulta, no catálogo, no curador ou 
 1. Abra a aba **Raio-X**.
 2. **Esperado:** dois medidores que se enchem, *Base original* e *Com o MOKKA*, com a nota de cada um; as barras de antes e depois de cada critério; a constelação de bolhas; e os números por grupo.
 3. Passe o mouse numa bolha. **Esperado:** aparece o código, a descrição e quantos repetidos apontavam para ele. Clique: abre a ficha.
-4. Arraste o **custo de um código duplicado**. **Esperado:** a economia estimada muda na hora.
+4. **Esperado:** o cartão **Ganho no serviço** mostra quanto a lista do comprador ficou menor, quantos repetidos saíram do caminho, quantos duplicados foram barrados e quantas decisões ensinaram o MOKKA. Faça uma consulta e use um código existente: o número de duplicados barrados sobe.
 
 ## 18. Planilha de casos de teste
 

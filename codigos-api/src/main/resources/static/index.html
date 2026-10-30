@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#003366">
 <title>MOKKA · Códigos de serviço</title>
-<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
 <div id="carregando" aria-hidden="true"></div>
@@ -70,7 +70,7 @@
         <li><q>eletricista hora extra cem por cento, unidade hora</q><span>→ <b class="res BLOQUEAR">Já existe</b></span></li>
         <li><q>vigilante noturno doze por trinta e seis, unidade hora</q><span>→ <b class="res REVISAR">Parecido</b></span></li>
         <li><q>criar operador de drone para inspeção, unidade hora</q><span>→ <b class="res LIBERAR">Novo</b></span></li>
-        <li><q>técnico de segurança do trabalho hora extra cem por cento domingo e feriado</q><span>→ abrevia para caber em 40</span></li>
+        <li><q>técnico de segurança do trabalho hora extra cem por cento domingo e feriado</q><span>→ abrevia no padrão do SAP</span></li>
       </ol>
       <p class="info" id="ultimo-ouvido"></p>
     </div>
@@ -78,7 +78,7 @@
     <form id="consulta" class="cartao" autocomplete="off">
       <label>Descrição do serviço
         <span class="campo-voz">
-          <input id="descricao" maxlength="40" required placeholder="Digite ou fale, ex.: soldador HE 50%">
+          <input id="descricao" maxlength="120" required placeholder="Digite ou fale, ex.: soldador HE 50%">
           <button type="button" class="mic" id="mic-descricao"></button>
         </span>
         <span class="rodape-campo">
@@ -218,13 +218,16 @@
           <b>0</b><span>Com o MOKKA</span>
         </div>
       </div>
-      <div class="economia cartao">
-        <span class="rotulo">Economia estimada</span>
-        <b id="economia-valor">R$ 0</b>
-        <span id="economia-texto" class="info"></span>
-        <label>Custo de um código duplicado (cadastro, aprovação, conferência e manutenção no SAP)
-          <span class="linha-custo"><input type="range" id="custo" min="50" max="1000" step="50" value="250"><output id="custo-valor">R$ 250</output></span>
-        </label>
+      <div class="ganho cartao">
+        <span class="rotulo">Ganho no serviço</span>
+        <b><span id="ganho-lista">0</span>% menor</b>
+        <span class="info">é a lista que o comprador percorre para achar o código, sem os repetidos</span>
+        <ul class="ganhos">
+          <li><b id="ganho-repetidos">0</b><span>códigos repetidos saem do caminho do comprador</span></li>
+          <li><b id="ganho-antes">0</b><span id="ganho-antes-texto">era repetido; agora nenhum código novo nasce repetido</span></li>
+          <li><b id="ganho-evitados">0</b><span>duplicados barrados nas consultas</span></li>
+          <li><b id="ganho-aprendeu">0</b><span>decisões do curador e dos compradores que ensinaram o MOKKA</span></li>
+        </ul>
       </div>
     </div>
     <h2>O que mudou</h2>
@@ -345,10 +348,10 @@
   <div class="janela-corpo ficha" id="ficha"></div>
 </dialog>
 
-<script src="fala.js?v=12"></script>
-<script src="local.js?v=12"></script>
-<script src="app.js?v=12"></script>
-<script src="rosto.js?v=12"></script>
-<script src="raiox.js?v=12"></script>
+<script src="fala.js?v=13"></script>
+<script src="local.js?v=13"></script>
+<script src="app.js?v=13"></script>
+<script src="rosto.js?v=13"></script>
+<script src="raiox.js?v=13"></script>
 </body>
 </html>
