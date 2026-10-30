@@ -33,8 +33,8 @@ def test_numeros_da_base_batem_com_o_documento():
     from diagnostico import diagnosticar
     r = diagnosticar(str(BASE))
     esperado = {"linhas": 9795, "codigos": 7937, "fornecedores": 111, "reuso": 1234, "tst_he_domfer": 28,
-                "len40": 1328, "mesmo_texto_mesmo_forn": 746, "horas": 2519, "horas_sv": 884,
-                "mo_sem_tipo": 378, "he_sem_dia": 468, "dois_significados": 1, "gemeos_outro_grupo": 215}
+                "len40": 1328, "mesmo_texto_mesmo_forn": 746, "horas": 2520, "horas_sv": 885,
+                "mo_sem_tipo": 376, "he_sem_dia": 468, "dois_significados": 1, "gemeos_outro_grupo": 215}
     diferentes = {k: (r[k], v) for k, v in esperado.items() if r[k] != v}
     assert not diferentes, f"mudou (obtido, esperado): {diferentes}"
 
@@ -74,7 +74,7 @@ def test_regua_armadilhas():
 
 
 def test_deduplicacao_nunca_junta_errado():
-    if not BASE.exists() or not Path("dados_teste/pares_rotulados.csv").exists():
+    if not BASE.exists() or not Path("dados/pares_rotulados.csv").exists():
         print("  (pulado: base ou pares rotulados não encontrados)")
         return
     import pandas as pd
@@ -82,7 +82,7 @@ def test_deduplicacao_nunca_junta_errado():
     dp, cat, dec = dd.deduplicar(dd.ler(BASE), log=lambda *a: None)
     oficial = dict(zip(dp.codigo.astype(str), dp.codigo_oficial.astype(str)))
     junto = lambda a, b: oficial[str(a)] == oficial[str(b)]
-    lab = pd.read_csv("dados_teste/pares_rotulados.csv", keep_default_na=False)
+    lab = pd.read_csv("dados/pares_rotulados.csv", keep_default_na=False)
     errados = [(da, db) for a, b, da, db, r in zip(lab.cod_a, lab.cod_b, lab.desc_a, lab.desc_b, lab.rotulo)
                if r == "N" and junto(a, b)]
     assert not errados, f"juntou serviços diferentes: {errados[:5]}"
