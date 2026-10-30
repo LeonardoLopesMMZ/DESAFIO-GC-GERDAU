@@ -1,5 +1,4 @@
 const CORES_GRUPO = { "Civil": "#003366", "Facilities": "#0b74b8", "Eletromecânica": "#ffcc00" };
-const dinheiro = v => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 let raioX = null;
 
 function medidor(id, nota) {
@@ -10,15 +9,14 @@ function medidor(id, nota) {
   caixa.classList.toggle("media", nota >= 70 && nota < 90);
 }
 
-function calcularEconomia() {
-  if (!raioX) return;
-  const custo = Number($("custo").value);
-  const total = raioX.repetidos_achados + raioX.duplicados_evitados;
-  $("custo-valor").textContent = dinheiro(custo);
-  $("economia-valor").textContent = dinheiro(total * custo);
-  $("economia-texto").textContent = `${raioX.repetidos_achados.toLocaleString("pt-BR")} códigos repetidos achados na base`
-    + (raioX.duplicados_evitados ? ` + ${raioX.duplicados_evitados} duplicados evitados agora` : "")
-    + `, cada um a ${dinheiro(custo)}.`;
+function mostrarGanho(r) {
+  const base = r.codigos_na_base, rep = r.repetidos_achados;
+  contar($("ganho-lista"), base ? Math.round(100 * rep / base) : 0);
+  contar($("ganho-repetidos"), rep);
+  $("ganho-antes").textContent = rep ? `1 em ${Math.round(base / rep)}` : "0";
+  $("ganho-antes-texto").textContent = rep ? "códigos da base era repetido; agora nenhum código novo nasce repetido" : "códigos repetidos na base";
+  contar($("ganho-evitados"), r.duplicados_evitados);
+  contar($("ganho-aprendeu"), r.decisoes_aprendidas);
 }
 
 function desenharCriterios(lista) {
@@ -116,8 +114,7 @@ async function carregarRaioX() {
     desenharCriterios(raioX.criterios);
     desenharConstelacao(raioX.familias);
     desenharGrupos(raioX.grupos);
-    calcularEconomia();
+    mostrarGanho(raioX);
   } catch (e) { aviso(e.message, "erro"); }
 }
 
-$("custo").addEventListener("input", calcularEconomia);

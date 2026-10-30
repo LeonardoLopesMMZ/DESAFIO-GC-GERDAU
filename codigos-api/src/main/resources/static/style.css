@@ -284,6 +284,7 @@ button:not(.principal).ocupado::after { border-color: rgba(0, 51, 102, .25); bor
 .rodape-campo { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 12px; font-weight: 400; }
 .conta { min-height: 18px; font-size: 12px; font-weight: 400; color: var(--fraco); font-variant-numeric: tabular-nums; }
 .conta.cheio { color: var(--vermelho); font-weight: 700; }
+.conta.passou { color: #8a6d00; font-weight: 700; }
 .erro-texto { color: var(--vermelho) !important; }
 
 .mic { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; color: var(--azul); white-space: nowrap; }
@@ -588,13 +589,13 @@ body.carregando #carregando { opacity: 1; animation: carrega 1.4s ease-in-out in
 .nota b { margin-top: -38px; font-size: clamp(30px, 5vw, 46px); line-height: 1; color: var(--azul); font-variant-numeric: tabular-nums; }
 .nota span { margin-top: 6px; font-size: 13px; font-weight: 700; color: var(--fraco); }
 .notas .seta { font-size: 30px; color: var(--amarelo); font-weight: 800; animation: flutua 2.4s ease-in-out infinite; }
-.economia { display: grid; gap: 6px; align-content: start; border-top: 4px solid var(--amarelo); }
-.economia .rotulo { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--fraco); }
-.economia b { font-size: clamp(26px, 4vw, 36px); color: var(--verde); font-variant-numeric: tabular-nums; }
-.economia .info { margin: 0; }
-.linha-custo { display: flex; align-items: center; gap: 10px; }
-.linha-custo input { min-height: 0; padding: 0; border: 0; box-shadow: none; accent-color: var(--azul); }
-.linha-custo output { min-width: 70px; font-weight: 800; color: var(--azul); font-size: 14px; }
+.ganho { display: grid; gap: 6px; align-content: start; border-top: 4px solid var(--amarelo); }
+.ganho .rotulo { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--fraco); }
+.ganho > b { font-size: clamp(26px, 4vw, 36px); color: var(--verde); font-variant-numeric: tabular-nums; }
+.ganho .info { margin: 0; }
+.ganhos { display: grid; gap: 8px; margin: 6px 0 0; padding: 10px 0 0; list-style: none; border-top: 1px solid var(--linha); }
+.ganhos li { display: grid; grid-template-columns: 78px 1fr; align-items: baseline; gap: 10px; font-size: 13px; color: var(--fraco); }
+.ganhos b { font-size: 18px; color: var(--azul); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .criterios { display: grid; gap: 12px; }
 .criterio { display: grid; grid-template-columns: minmax(0, 1.2fr) auto minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 6px 14px; animation: surgir .4s ease both; animation-delay: calc(var(--i) * 80ms); }
 .criterio .nome { font-weight: 700; font-size: 14px; }

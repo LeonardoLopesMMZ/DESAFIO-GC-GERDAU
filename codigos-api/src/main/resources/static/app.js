@@ -858,8 +858,9 @@ function maiusculas(campo) {
 
 function contarCaracteres() {
   const n = $("descricao").value.length;
-  $("conta").textContent = n + "/40";
-  $("conta").classList.toggle("cheio", n >= 40);
+  $("conta").textContent = n > 40 ? `${n}/40 · ao consultar, abrevio no padrão do SAP` : n + "/40";
+  $("conta").classList.toggle("cheio", n === 40);
+  $("conta").classList.toggle("passou", n > 40);
 }
 
 $("descricao").addEventListener("input", e => {
@@ -875,6 +876,12 @@ $("consulta").addEventListener("submit", async e => {
   const botao = $("consulta").querySelector("button.principal");
   try {
     await pedirEntrada();
+    if ($("descricao").value.length > 40) {
+      const r = caber40($("descricao").value);
+      $("descricao").value = r.texto;
+      contarCaracteres();
+      aviso(r.cortou ? `Mesmo abreviando passou de 40; cortei o final, confira: ${r.texto}` : `Abreviei para caber nos 40 do SAP: ${r.original} → ${r.texto}`, r.cortou ? "REVISAR" : "");
+    }
     botao.classList.add("ocupado");
     const pedido = { descricao: $("descricao").value, unidade: $("unidade").value, grupo: $("grupo").value };
     const r = await chamar("/api/consultas", pedido);
