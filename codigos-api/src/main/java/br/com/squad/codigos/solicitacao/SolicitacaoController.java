@@ -28,9 +28,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import br.com.squad.codigos.acesso.Acesso;
+import br.com.squad.codigos.aprendizado.Aprendizado;
 import br.com.squad.codigos.catalogo.CodigoServico;
 import br.com.squad.codigos.catalogo.CodigoServicoRepository;
 import br.com.squad.codigos.consulta.SimilaridadeClient;
+import br.com.squad.codigos.sistema.Auditoria;
 
 @Tag(name = "Solicitações e curador", description = "Decisão do comprador depois da consulta e decisão do curador")
 @RestController
@@ -41,13 +43,17 @@ public class SolicitacaoController {
     private final CodigoServicoRepository codigos;
     private final SimilaridadeClient similaridade;
     private final Acesso acesso;
+    private final Aprendizado aprendizado;
+    private final Auditoria auditoria;
 
     public SolicitacaoController(SolicitacaoRepository solicitacoes, CodigoServicoRepository codigos,
-                                 SimilaridadeClient similaridade, Acesso acesso) {
+                                 SimilaridadeClient similaridade, Acesso acesso, Aprendizado aprendizado, Auditoria auditoria) {
         this.solicitacoes = solicitacoes;
         this.codigos = codigos;
         this.similaridade = similaridade;
         this.acesso = acesso;
+        this.aprendizado = aprendizado;
+        this.auditoria = auditoria;
     }
 
     @Operation(summary = "Listar as últimas solicitações (filtro opcional por status)")
@@ -61,7 +67,7 @@ public class SolicitacaoController {
     @PostMapping("/{id}/decisao")
     public Solicitacao decidir(@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String auth,
                                @PathVariable Long id, @Valid @RequestBody Decisao d) {
-        acesso.exigir(auth);
+        Acesso.Sessao quem = acesso.exigir(auth);
         Solicitacao s = buscar(id, "PENDENTE", "Essa solicitação já foi decidida");
         switch (d.acao()) {
             case "USAR_EXISTENTE" -> {
@@ -69,6 +75,7 @@ public class SolicitacaoController {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe o código escolhido");
                 }
                 s.usarExistente(d.codigo().trim());
+                aprendizado.votar(s.getDescricaoDigitada(), s.getUnidade(), s.getCodigoEscolhido(), Aprendizado.IGUAL, quem.nome(), 1);
             }
             case "CRIAR_NOVO" -> {
                 if (!"LIBERAR".equals(s.getResultado()) && vazio(d.justificativa())) {
@@ -90,7 +97,7 @@ public class SolicitacaoController {
     @PostMapping("/{id}/curadoria")
     public Solicitacao curadoria(@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String auth,
                                  @PathVariable Long id, @Valid @RequestBody Curadoria c) {
-        return curarGrupo(acesso.exigir(auth).nome(), List.of(id), c.aprovar()).get(0);
+        return curarGrupo(acesso.exigirPerfil(auth, "CURADOR").nome(), List.of(id), c.aprovar()).get(0);
     }
 
     @Operation(summary = "Pedidos do curador agrupados", description = "Pedidos que pedem o mesmo serviço, mesmo escritos de jeitos diferentes, vêm juntos para decidir de uma vez.")
@@ -114,9 +121,13 @@ public class SolicitacaoController {
         for (int i = 0; i < pendentes.size(); i++) {
             juntos.computeIfAbsent(grupo.get(i), k -> new ArrayList<>()).add(pendentes.get(i));
         }
-        return juntos.values().stream().map(l -> new GrupoCurador(l.stream().map(Solicitacao::getId).toList(),
-                l.get(0).getDescricaoDigitada(), l.get(0).getUnidade(), l.get(0).getCodigoSugerido(),
-                l.stream().map(Solicitacao::getSolicitante).distinct().toList(), l)).toList();
+        return juntos.values().stream().map(l -> {
+            List<String> pediram = l.stream().map(Solicitacao::getSolicitante).distinct().toList();
+            String justificativa = l.stream().map(Solicitacao::getJustificativa).filter(j -> !vazio(j)).findFirst().orElse(null);
+            return new GrupoCurador(l.stream().map(Solicitacao::getId).toList(), l.get(0).getDescricaoDigitada(), l.get(0).getUnidade(),
+                    l.get(0).getCodigoSugerido(), pediram, l, aprendizado.sugerir(l.get(0).getDescricaoDigitada(), l.get(0).getUnidade(),
+                    l.get(0).getCodigoSugerido(), justificativa, pediram.size()));
+        }).toList();
     }
 
     @Operation(summary = "Curador aprova ou recusa um grupo de pedidos iguais",
@@ -125,7 +136,29 @@ public class SolicitacaoController {
     @PostMapping("/curador/grupo")
     public List<Solicitacao> curarGrupo(@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String auth,
                                         @Valid @RequestBody DecisaoGrupo d) {
-        return curarGrupo(acesso.exigir(auth).nome(), d.ids(), d.aprovar());
+        return curarGrupo(acesso.exigirPerfil(auth, "CURADOR").nome(), d.ids(), d.aprovar());
+    }
+
+    @Operation(summary = "Desfazer a decisão do curador", description = "Os pedidos voltam a esperar o curador. Se a decisão criou um código, ele vira repetido do código que já existia, e o MOKKA esquece o que tinha aprendido com ela.")
+    @Transactional
+    @PostMapping("/curador/desfazer")
+    public List<Solicitacao> desfazer(@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String auth,
+                                      @Valid @RequestBody Desfazer d) {
+        String curador = acesso.exigirPerfil(auth, "CURADOR").nome();
+        List<Solicitacao> lista = d.ids().stream().distinct().map(id -> solicitacoes.findById(id)
+                .filter(s -> s.getCurador() != null && ("CRIADO".equals(s.getStatus()) || "RECUSADO".equals(s.getStatus())))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "A solicitação " + id + " não tem decisão do curador para desfazer"))).toList();
+        for (Solicitacao s : lista) {
+            boolean aprovou = "CRIADO".equals(s.getStatus());
+            aprendizado.votar(s.getDescricaoDigitada(), s.getUnidade(), s.getCodigoSugerido(), aprovou ? Aprendizado.DIFERENTE : Aprendizado.IGUAL, curador, -1);
+            if (aprovou) {
+                codigos.findById(s.getCodigoEscolhido()).filter(c -> ("criado na solicitação " + s.getId()).equals(c.getMotivo()))
+                        .ifPresent(c -> c.desfazer(s.getCodigoSugerido(), "desfeito por " + curador));
+            }
+            auditoria.registrar(curador, "DESFEZ", "solicitação " + s.getId(), (aprovou ? "aprovação, código " : "recusa, código ") + s.getCodigoEscolhido());
+            s.voltarAoCurador();
+        }
+        return solicitacoes.saveAll(lista);
     }
 
     private List<Solicitacao> curarGrupo(String curador, List<Long> ids, boolean aprovar) {
@@ -141,6 +174,8 @@ public class SolicitacaoController {
                 s.registrarCodigo(codigo);
             }
             s.curar(curador);
+            aprendizado.votar(s.getDescricaoDigitada(), s.getUnidade(), s.getCodigoSugerido(), aprovar ? Aprendizado.DIFERENTE : Aprendizado.IGUAL, curador, 1);
+            auditoria.registrar(curador, aprovar ? "APROVOU" : "RECUSOU", "solicitação " + s.getId(), "código " + s.getCodigoEscolhido());
         }
         return solicitacoes.saveAll(lista);
     }
@@ -162,6 +197,7 @@ public class SolicitacaoController {
         codigos.save(new CodigoServico(codigo, descricao, n.descricaoLimpa(), vazio(n.nomePadrao()) ? null : n.nomePadrao(),
                 s.getUnidade(), grupo, n.categoria(), "criado na solicitação " + s.getId(), s.getSolicitante()));
         s.registrarCodigo(codigo);
+        auditoria.registrar(s.getSolicitante(), "CRIOU_CODIGO", codigo, descricao);
         return codigo;
     }
 
@@ -178,7 +214,10 @@ public class SolicitacaoController {
     public record DecisaoGrupo(@NotEmpty @Size(max = 500) List<Long> ids, @NotNull Boolean aprovar) {
     }
 
+    public record Desfazer(@NotEmpty @Size(max = 500) List<Long> ids) {
+    }
+
     public record GrupoCurador(List<Long> ids, String descricao, String unidade, String codigoExistente,
-                               List<String> pediram, List<Solicitacao> pedidos) {
+                               List<String> pediram, List<Solicitacao> pedidos, Aprendizado.Sugestao sugestao) {
     }
 }

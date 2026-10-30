@@ -1,5 +1,7 @@
 import argparse
+import hmac
 import json
+import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote
 
@@ -9,6 +11,7 @@ from similaridade import carregar_buscador
 LIMITE = 10_000
 LIMITE_LOTE = 20_000_000
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+SEGREDO = os.environ.get("MOKKA_SEGREDO", "")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -19,8 +22,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(dados)))
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(dados)
 
@@ -98,8 +101,11 @@ class Handler(BaseHTTPRequestHandler):
         pares = [(i["descricao"][:200], (i.get("unidade") or "").strip().upper()[:5]) for i in itens]
         self._responder(200, {"grupos": self.buscador.agrupar(pares)})
 
-    def do_OPTIONS(self):
-        self._responder(204, {})
+    def _autorizado(self):
+        if not SEGREDO or hmac.compare_digest(self.headers.get("X-Mokka-Segredo") or "", SEGREDO):
+            return True
+        self._responder(403, {"erro": "só o MOKKA pode chamar este serviço"})
+        return False
 
     def do_GET(self):
         if self.path == "/saude":
@@ -107,6 +113,8 @@ class Handler(BaseHTTPRequestHandler):
         self._responder(404, {"erro": "caminho não existe"})
 
     def do_POST(self):
+        if not self._autorizado():
+            return
         if self.path not in ("/similares", "/palavras", "/codigos", "/codigos/lote", "/lote", "/lote/ler", "/lote/exportar", "/agrupar"):
             return self._responder(404, {"erro": "caminho não existe"})
         try:

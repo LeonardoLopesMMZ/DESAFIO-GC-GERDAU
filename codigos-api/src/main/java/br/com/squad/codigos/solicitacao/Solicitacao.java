@@ -67,6 +67,13 @@ public class Solicitacao {
         this.status = "CRIADO";
     }
 
+    public void voltarAoCurador() {
+        this.codigoEscolhido = null;
+        this.status = "AGUARDANDO_CURADOR";
+        this.curador = null;
+        this.decididaEm = null;
+    }
+
     public void recusar() {
         this.codigoEscolhido = codigoSugerido;
         this.status = "RECUSADO";

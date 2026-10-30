@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Instant;
 import java.util.List;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -15,6 +16,7 @@ import jakarta.validation.constraints.Size;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,6 +40,13 @@ public class AcessoController {
     @PostMapping("/entrar")
     public Entrada entrar(@Valid @RequestBody PedidoNome p) {
         return entrada(acesso.entrarComNome(p.nome().trim()));
+    }
+
+    @Operation(summary = "Entrada do teste automático", description = "Só no computador que liga o MOKKA e com o segredo que o MOKKA.bat gera a cada vez que liga.")
+    @PostMapping("/entrar-local")
+    public Entrada entrarLocal(@Parameter(hidden = true) @RequestHeader(value = "X-Mokka-Segredo", required = false) String segredo,
+                               HttpServletRequest req) {
+        return entrada(acesso.entrarLocal(segredo, req.getRemoteAddr()));
     }
 
     @Operation(summary = "Quem está usando o token")
@@ -100,21 +109,29 @@ public class AcessoController {
     @GetMapping("/retratos/{id}")
     public ResponseEntity<byte[]> retrato(@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String auth,
                                           @PathVariable long id) {
-        acesso.exigir(auth);
-        return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).cacheControl(CacheControl.noStore()).body(acesso.retrato(id));
+        return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).cacheControl(CacheControl.noStore()).body(acesso.retrato(acesso.exigir(auth), id));
+    }
+
+    @Operation(summary = "Apagar meu rosto e minhas fotos (LGPD)", description = "Tira a leitura do rosto da conta e apaga do banco todas as fotos guardadas da pessoa.")
+    @DeleteMapping("/rosto")
+    public Entrada apagarRosto(@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String auth) {
+        Acesso.Sessao s = acesso.exigir(auth);
+        acesso.apagarRosto(s);
+        return entrada(acesso.exigir(auth));
     }
 
     private Entrada entrada(Acesso.Sessao s) {
         Usuario u = acesso.usuario(s.nome());
         boolean temRosto = u != null && u.temRosto();
         Long foto = s.retratoId() != null ? s.retratoId() : temRosto ? u.getRetratoId() : null;
-        return new Entrada(s.token(), u == null ? null : u.getId(), s.nome(), s.metodo(), acesso.temChave(s.nome()), temRosto, acesso.soChave(), foto, s.expira());
+        return new Entrada(s.token(), u == null ? null : u.getId(), s.nome(), s.metodo(), s.perfil(), acesso.temChave(s.nome()), temRosto,
+                acesso.soChave(), foto, s.expira());
     }
 
     public record PedidoNome(@NotBlank(message = "Informe o nome") @Size(max = 60, message = "O nome deve ter até 60 caracteres") String nome) {
     }
 
-    public record Entrada(String token, Long contaId, String nome, String metodo, boolean temChave, boolean temRosto, boolean soChave, Long retratoId, Instant expira) {
+    public record Entrada(String token, Long contaId, String nome, String metodo, String perfil, boolean temChave, boolean temRosto, boolean soChave, Long retratoId, Instant expira) {
     }
 
     public record Rosto(@NotNull(message = "Falta a leitura do rosto") @Size(min = 128, max = 128, message = "A leitura do rosto deve ter 128 números") List<Double> descritor,

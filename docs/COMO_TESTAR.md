@@ -183,3 +183,39 @@ Clique em qualquer número de código (na consulta, no catálogo, no curador ou 
 
 1. No Mac, rode `bash MOKKA.command`. **Esperado:** na primeira vez ele baixa o Java e o Python se faltar, e depois abre o site.
 2. No Safari, ative o Ditado e teste o **Falar**. No Firefox, o botão **Falar** explica que lá não tem voz; o resto funciona igual.
+
+## 20. PostgreSQL e o selo do banco
+
+1. Ligue pelo `MOKKA.bat`. Esperado: no topo da tela, o selo verde **PostgreSQL**.
+2. Consulte e crie um código. Desligue (opção 5) e ligue de novo (opção 1).
+3. Busque o código no Catálogo. Esperado: ele continua lá.
+4. Opção 6 troca para o H2: o selo fica amarelo, **H2 · reserva**, e o banco recomeça a cada vez que liga.
+5. Opção 7 zera o banco e carrega a base de novo.
+
+## 21. Perfis e segurança
+
+1. Abra o site sem entrar. Esperado: a janela de entrada aparece e nada do catálogo é mostrado.
+2. Entre pelo nome como "Fulano". Esperado: perfil Comprador, sem a aba Curador.
+3. Entre como "Leonardo Lopes" pelo nome. Esperado: perfil Curador; pelo rosto ou chave, Administrador, com a aba Pessoas.
+4. Na aba Pessoas, mude o perfil de "Fulano" para Curador. Esperado: aviso verde e a linha no registro de segurança.
+5. Erre a entrada 8 vezes (por exemplo, pelo nome de quem tem rosto cadastrado). Esperado: "Muitas tentativas de entrar daqui". Clique em **Desbloquear entradas** na aba Pessoas.
+
+## 22. Curador com sugestão, aprendizado e desfazer
+
+1. Como comprador, consulte `ELETRICISTA HORA NORMAL` (H) e peça para criar mesmo assim, com justificativa.
+2. Como curador, abra a aba Curador. Esperado: o grupo com **Sugestão do MOKKA: Recusar** e a certeza.
+3. Clique em **Aceitar sugestões**. Esperado: aviso com **Desfazer**, e em "O que o MOKKA aprendeu" a regra `ELETRICISTA HORA NORMAL [H] Igual a ...`.
+4. Consulte `HORA NORMAL ELETRICISTA`. Esperado: "O MOKKA aprendeu com 1 decisão" e o selo **Aprendido** no código.
+5. Clique em **Desfazer**. Esperado: o pedido volta para o curador e a regra some.
+
+## 23. Palavra ensinada
+
+1. Fale uma descrição, toque numa palavra amarela e troque pela sugestão.
+2. Na aba Curador, em "Palavras ensinadas", aparece a troca com **Esperando curador**. Clique em **Aceitar**.
+3. Da próxima vez que a palavra errada aparecer, a correção ensinada vem em primeiro.
+
+## 24. Apagar o rosto (LGPD)
+
+1. Entre e cadastre o rosto. Clique no seu nome no topo e em **Apagar meu rosto e minhas fotos**.
+2. Esperado: aviso verde; as fotos somem da ficha dos códigos e o nome volta a entrar pelo nome.
+
