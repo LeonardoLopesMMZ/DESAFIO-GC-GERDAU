@@ -3,7 +3,7 @@
 > **O que pede:** apresentar a modelagem de dados, mantendo a base original e a nova com a análise; aplicar a modelagem em um banco criado; desenvolver o banco para a persistência conforme a modelagem.
 > **Critério de aceite:** apresentar as tabelas e colunas necessárias para a aplicação.
 
-O banco tem **5 tabelas**. A base da Gerdau fica **como veio** em `base_original`; a análise fica **ao lado**, em `codigo_servico`, ligada pelo código. Assim dá para comparar original e tratado a qualquer momento e desfazer qualquer junção.
+O catálogo tem **5 tabelas**. A base da Gerdau fica **como veio** em `base_original`; a análise fica **ao lado**, em `codigo_servico`, ligada pelo código. Assim dá para comparar original e tratado a qualquer momento e desfazer qualquer junção.
 
 ## Diagrama
 
@@ -154,3 +154,17 @@ Sem Docker, rode o `schema.sql` em qualquer PostgreSQL e use o mesmo comando do 
 - `schema.sql`: criação das 5 tabelas (o mesmo arquivo usado pelo Java e pelo docker-compose).
 - `data.sql`: não fica no repositório; o `exportar.py` gera em `saneamento/saida/` a partir da base.
 - `evidencia_postgresql.txt`: saída do banco com as tabelas, as contagens, a consulta de original × oficial e as solicitações gravadas.
+
+## Pessoas, aprendizado e segurança
+
+Além das tabelas do catálogo, o `schema.sql` cria as que guardam quem usa o sistema e o que ele aprende:
+
+| Tabela | Para que serve | Colunas principais |
+| --- | --- | --- |
+| `usuario` | contas | `nome`, `perfil` (COMPRADOR, CURADOR, ADMIN), `rosto` (128 números), `credencial_id` e `chave_publica` (chave do Windows), `retrato_id` |
+| `retrato` | fotos pequenas do cadastro e de cada entrada pelo rosto | `nome`, `tipo` (CADASTRO ou ENTRADA), `distancia`, `foto` (JPEG criptografado com AES-256-GCM) |
+| `aprendizado` | descrição ligada a um código pelas decisões | `chave` (palavras em ordem alfabética + unidade), `codigo`, `tipo` (IGUAL ou DIFERENTE), `votos`, `ultimo_por` |
+| `palavra_aprendida` | correções de palavras ensinadas pelos compradores | `termo`, `correcao`, `votos`, `status` (SUGERIDA, ACEITA, RECUSADA) |
+| `auditoria` | registro de segurança | `quando`, `quem`, `acao`, `alvo`, `detalhe`, `ip` |
+
+No PostgreSQL (porta 5433, só em 127.0.0.1) o banco se chama `mokka` e pertence ao usuário `mokka_app`, que não é superusuário. O `schema.sql` roda a cada vez que o sistema liga e só cria o que falta; o catálogo é carregado na primeira vez ou quando alguém zera o banco.

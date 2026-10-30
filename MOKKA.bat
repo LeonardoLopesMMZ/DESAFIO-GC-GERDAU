@@ -12,12 +12,18 @@ set "FERR=%~dp0.ferramentas"
 set "JAVA=java"
 set "FRONT="
 if exist "%~dp0front\index.html" set "FRONT=--spring.web.resources.static-locations[0]=file:../front/ --spring.web.resources.static-locations[1]=classpath:/static/"
+set "PERFIL="
+set "ZERAR="
+set "BANCO_USO=H2"
+set "BANCO_PREF=POSTGRES"
+if exist "%FERR%\banco.txt" set /p BANCO_PREF=<"%FERR%\banco.txt"
 set "BASE=dados\base_codigos_servico.xlsx"
 if not exist "%PY_DIR%\%BASE%" set "BASE=exemplo\base_exemplo.csv"
 
 if /i "%~1"=="ligar" (call :ligar & exit /b)
 if /i "%~1"=="testar" (call :testar & exit /b)
 if /i "%~1"=="parar" (call :parar & exit /b)
+if /i "%~1"=="zerar" (set "ZERAR=--mokka.zerar=true" & call :ligar & exit /b)
 
 :menu
 cls
@@ -31,10 +37,14 @@ echo    [2]  Testar tudo e abrir o teste do microfone
 echo    [3]  Abrir o teste do microfone
 echo    [4]  Abrir o Swagger (API)
 echo    [5]  Desligar
+echo    [6]  Trocar o banco (escolhido: %BANCO_PREF%)
+echo    [7]  Zerar o banco e recomecar do zero
 echo    [0]  Sair
 echo.
-choice /c 123450 /n /m "   Escolha uma opcao: "
-if errorlevel 6 exit /b 0
+choice /c 12345670 /n /m "   Escolha uma opcao: "
+if errorlevel 8 exit /b 0
+if errorlevel 7 goto op7
+if errorlevel 6 goto op6
 if errorlevel 5 goto op5
 if errorlevel 4 goto op4
 if errorlevel 3 goto op3
@@ -56,15 +66,35 @@ goto menu
 call :parar
 timeout /t 2 >nul
 goto menu
+:op6
+if /i "%BANCO_PREF%"=="POSTGRES" (set "BANCO_PREF=H2") else (set "BANCO_PREF=POSTGRES")
+if not exist "%FERR%" mkdir "%FERR%"
+>"%FERR%\banco.txt" echo %BANCO_PREF%
+echo    Banco escolhido: %BANCO_PREF%. Ligando de novo com ele...
+call :ligar
+pause
+goto menu
+:op7
+echo    Isso apaga pedidos, pessoas, fotos, aprendizado e codigos criados, e carrega a base de novo.
+choice /c SN /n /m "   Tem certeza? [S/N] "
+if errorlevel 2 goto menu
+set "ZERAR=--mokka.zerar=true"
+call :ligar
+set "ZERAR="
+pause
+goto menu
 
 :estado
-curl -s -o nul %SITE%/api/unidades && (echo    Situacao: LIGADO em %SITE%) || (echo    Situacao: desligado)
+set "AGORA=desligado"
+curl -s -o nul %SITE%/api/sistema && set "AGORA=LIGADO em %SITE%, banco de reserva H2"
+curl -s %SITE%/api/sistema 2>nul | findstr /c:"PostgreSQL" >nul && set "AGORA=LIGADO em %SITE%, banco PostgreSQL"
+echo    Situacao: %AGORA%
 if "%BASE%"=="exemplo\base_exemplo.csv" (echo    Base: exemplo ficticio) else (echo    Base: real da Gerdau)
 if defined FRONT echo    Tela: pasta front ^(edite e aperte F5^)
 exit /b 0
 
 :abrir
-curl -s -o nul %SITE%/api/unidades || call :ligar
+curl -s -o nul %SITE%/api/sistema || call :ligar
 start "" msedge "%SITE%%~1"
 exit /b 0
 
@@ -76,27 +106,33 @@ echo    Montando o catalogo a partir da base...
 pushd "%PY_DIR%"
 "%VENV%\Scripts\python.exe" exportar.py "%BASE%" --tudo >nul || (popd & echo    Nao consegui ler a base. Confira o arquivo. & exit /b 1)
 popd
-if not exist "%JAR%" (
-  echo    Compilando a aplicacao Java, so na primeira vez, precisa de internet...
-  pushd "%APP%"
-  call mvnw.cmd -q -DskipTests package || (popd & echo    Falhou a compilacao do Java. & exit /b 1)
-  popd
-)
+set "COMPILAR="
+if not exist "%JAR%" set "COMPILAR=1"
+if exist "%JAR%" powershell -NoProfile -Command "$j = (Get-Item '%JAR%').LastWriteTime; if (Get-ChildItem '%APP%\src', '%APP%\pom.xml' -Recurse -File | Where-Object { $_.LastWriteTime -gt $j } | Select-Object -First 1) { exit 1 }" || set "COMPILAR=1"
+if defined COMPILAR call :compilar || exit /b 1
+if not exist "%FERR%" mkdir "%FERR%"
+for /f "delims=" %%s in ('powershell -NoProfile -Command "[guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString('N')"') do set "MOKKA_SEGREDO=%%s"
+>"%FERR%\segredo.txt" echo %MOKKA_SEGREDO%
+set "PERFIL="
+set "BANCO_USO=H2"
+if /i "%BANCO_PREF%"=="POSTGRES" call :postgres
 echo    Ligando o servico de similaridade (Python)...
 start "Similaridade - Python (nao feche)" /min /d "%PY_DIR%" "%VENV%\Scripts\python.exe" api.py "%BASE%"
-echo    Ligando a aplicacao (Java)...
-start "Aplicacao - Java (nao feche)" /min /d "%APP%" "%JAVA%" -Dfile.encoding=UTF-8 -jar "%JAR%" --spring.sql.init.data-locations=file:../saneamento/saida/data.sql --spring.sql.init.encoding=UTF-8 %FRONT%
-echo    Esperando os dois ligarem, leva uns 30 segundos...
+call :ligar_java
+echo    Esperando ligar, leva uns 30 segundos...
 set /a N=0
 :esperar
 set /a N+=1
 if %N% gtr 90 (echo    Demorou demais. Abra as janelas minimizadas na barra de tarefas pra ver o erro. & exit /b 1)
 timeout /t 2 /nobreak >nul
 curl -s -o nul http://127.0.0.1:8000/saude || goto esperar
-curl -s -o nul %SITE%/api/unidades || goto esperar
+curl -s -o nul %SITE%/api/sistema && goto ligou
+if %N% equ 35 if defined PERFIL call :reserva
+goto esperar
+:ligou
 if not defined SEM_NAVEGADOR start "" msedge "%SITE%/?%RANDOM%"
 echo.
-echo    PRONTO
+echo    PRONTO  (banco: %BANCO_USO%)
 echo    Neste computador ......... %SITE%
 echo    Swagger (API) ............ %SITE%/swagger
 echo    Outros PCs na mesma rede:
@@ -106,7 +142,7 @@ echo    Se o Windows perguntar sobre o Firewall, marque "Redes privadas" e cliqu
 exit /b 0
 
 :testar
-curl -s -o nul %SITE%/api/unidades
+curl -s -o nul %SITE%/api/sistema
 if errorlevel 1 (
   echo    Ligando o MOKKA antes de testar...
   set "SEM_NAVEGADOR=1"
@@ -118,6 +154,40 @@ exit /b 0
 
 :parar
 powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 8000,8080 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%RAIZ%scripts\postgres.ps1" parar
+exit /b 0
+
+:compilar
+echo    Compilando a aplicacao Java, o codigo mudou, precisa de internet...
+pushd "%APP%"
+call mvnw.cmd -q -DskipTests package
+set "ERRO=%ERRORLEVEL%"
+popd
+if "%ERRO%"=="0" exit /b 0
+if not exist "%JAR%" (echo    Falhou a compilacao do Java. & exit /b 1)
+echo    Falhou a compilacao: usando a versao ja compilada.
+copy /b "%JAR%"+,, "%JAR%" >nul
+exit /b 0
+
+:postgres
+echo    Ligando o banco PostgreSQL...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%RAIZ%scripts\postgres.ps1" ligar || (echo    O PostgreSQL nao ligou: usando o banco de reserva H2, na memoria. & exit /b 0)
+call "%FERR%\pg-env.bat"
+set "PERFIL=--spring.profiles.active=postgres"
+set "BANCO_USO=PostgreSQL"
+exit /b 0
+
+:ligar_java
+echo    Ligando a aplicacao (Java), banco %BANCO_USO%...
+start "Aplicacao - Java (nao feche)" /min /d "%APP%" "%JAVA%" -Dfile.encoding=UTF-8 -jar "%JAR%" --mokka.dados=../saneamento/saida/data.sql %PERFIL% %ZERAR% %FRONT%
+exit /b 0
+
+:reserva
+echo    O Java nao ligou com o PostgreSQL: usando o banco de reserva H2.
+taskkill /f /fi "WINDOWTITLE eq Aplicacao - Java*" >nul 2>&1
+set "PERFIL="
+set "BANCO_USO=H2"
+call :ligar_java
 exit /b 0
 
 :baixar_java

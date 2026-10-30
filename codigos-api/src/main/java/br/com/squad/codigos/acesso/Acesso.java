@@ -11,12 +11,15 @@ import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.spec.X509EncodedKeySpec;
+import java.text.Normalizer;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -24,9 +27,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
+import br.com.squad.codigos.sistema.Auditoria;
 
 @Component
 public class Acesso {
@@ -43,29 +49,124 @@ public class Acesso {
     private final RetratoRepository retratos;
     private final ObjectMapper json = new ObjectMapper();
     private final boolean soChave;
+    private final Cofre cofre;
+    private final Auditoria auditoria;
+    private final JdbcTemplate jdbc;
+    private final Set<String> admins;
+    private final String segredo;
+    private static final List<String> PERFIS = List.of("COMPRADOR", "CURADOR", "ADMIN");
 
     public static final double LIMITE_ROSTO = 0.5;
     private static final double ROSTO_DE_OUTRO = 0.45;
     private static final int TAMANHO_DESCRITOR = 128;
     private static final int MAX_FOTO = 20_000;
 
-    public Acesso(UsuarioRepository usuarios, RetratoRepository retratos, @Value("${mokka.so-chave:false}") boolean soChave) {
+    public Acesso(UsuarioRepository usuarios, RetratoRepository retratos, Cofre cofre, Auditoria auditoria, JdbcTemplate jdbc,
+                  @Value("${mokka.so-chave:false}") boolean soChave,
+                  @Value("${mokka.admins:Leonardo Lopes,Thales,Thirza,Bárbara,Lukas}") String admins,
+                  @Value("${mokka.segredo:}") String segredo) {
         this.usuarios = usuarios;
         this.retratos = retratos;
+        this.cofre = cofre;
+        this.auditoria = auditoria;
+        this.jdbc = jdbc;
         this.soChave = soChave;
+        this.admins = Arrays.stream(admins.split(",")).map(Acesso::simples).filter(n -> !n.isEmpty()).collect(Collectors.toSet());
+        this.segredo = segredo;
     }
 
-    public record Sessao(String token, String nome, String metodo, Long retratoId, Instant expira) {
+    public record Sessao(String token, String nome, String metodo, Long retratoId, String perfil, Instant expira) {
+    }
+
+    public Sessao sessao(String autorizacao) {
+        String token = autorizacao == null ? "" : autorizacao.replaceFirst("(?i)^Bearer\\s+", "").trim();
+        Sessao s = token.isEmpty() ? null : sessoes.get(token);
+        if (s != null && s.expira().isBefore(Instant.now())) {
+            sessoes.remove(token);
+            return null;
+        }
+        return s;
     }
 
     public Sessao exigir(String autorizacao) {
-        String token = autorizacao == null ? "" : autorizacao.replaceFirst("(?i)^Bearer\\s+", "").trim();
-        Sessao s = sessoes.get(token);
-        if (s == null || s.expira().isBefore(Instant.now())) {
-            sessoes.remove(token);
+        Sessao s = sessao(autorizacao);
+        if (s == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Entre no sistema para continuar.");
         }
         return s;
+    }
+
+    public static boolean pode(Sessao s, String perfil) {
+        return PERFIS.indexOf(s.perfil()) >= PERFIS.indexOf(perfil);
+    }
+
+    public Sessao exigirPerfil(String autorizacao, String perfil) {
+        Sessao s = exigir(autorizacao);
+        if (!pode(s, perfil)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "ADMIN".equals(perfil) ? "Só administradores podem fazer isso." : "Só curadores podem fazer isso.");
+        }
+        return s;
+    }
+
+    private static String simples(String nome) {
+        return Normalizer.normalize(nome, Normalizer.Form.NFD).replaceAll("\\p{M}", "").trim().replaceAll("\\s+", " ").toLowerCase();
+    }
+
+    private String perfil(String nome, String metodo) {
+        if ("LOCAL".equals(metodo)) {
+            return "ADMIN";
+        }
+        String p = adminPelaLista(nome) ? "ADMIN" : usuarios.findByNomeIgnoreCase(nome).map(Usuario::getPerfil).orElse("COMPRADOR");
+        return "ADMIN".equals(p) && "NOME".equals(metodo) ? "CURADOR" : p;
+    }
+
+    public boolean adminPelaLista(String nome) {
+        String n = simples(nome);
+        return admins.stream().anyMatch(a -> n.equals(a) || n.startsWith(a + " "));
+    }
+
+    public Sessao entrarLocal(String chave, String ip) {
+        boolean local = "127.0.0.1".equals(ip) || "0:0:0:0:0:0:0:1".equals(ip) || "::1".equals(ip);
+        if (segredo.isBlank() || chave == null || !local
+                || !MessageDigest.isEqual(segredo.getBytes(StandardCharsets.UTF_8), chave.getBytes(StandardCharsets.UTF_8))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Entrada local recusada.");
+        }
+        return nova("Teste automático", "LOCAL", null);
+    }
+
+    @Transactional
+    public Usuario mudarPerfil(Sessao quem, long id, String perfil) {
+        if (!PERFIS.contains(perfil)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Perfil deve ser COMPRADOR, CURADOR ou ADMIN.");
+        }
+        Usuario u = usuarios.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pessoa não encontrada."));
+        if (u.getNome().equalsIgnoreCase(quem.nome()) && !"ADMIN".equals(perfil)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Você não pode tirar o seu próprio perfil de administrador.");
+        }
+        u.mudarPerfil(perfil);
+        usuarios.save(u);
+        sessoes.replaceAll((t, s) -> s.nome().equalsIgnoreCase(u.getNome())
+                ? new Sessao(s.token(), s.nome(), s.metodo(), s.retratoId(), perfil(s.nome(), s.metodo()), s.expira()) : s);
+        auditoria.registrar(quem.nome(), "MUDOU_PERFIL", u.getNome(), perfil);
+        return u;
+    }
+
+    public List<Usuario> pessoas() {
+        return usuarios.findAll(org.springframework.data.domain.Sort.by("nome"));
+    }
+
+    @Transactional
+    public void apagarRosto(Sessao s) {
+        Usuario u = usuarios.findByNomeIgnoreCase(s.nome()).orElse(null);
+        if (u != null) {
+            u.cadastrarRosto(null, null);
+            usuarios.save(u);
+        }
+        jdbc.update("update solicitacao set retrato_id = null where retrato_id in (select id from retrato where lower(nome) = lower(?))", s.nome());
+        int fotos = jdbc.update("delete from retrato where lower(nome) = lower(?)", s.nome());
+        sessoes.replaceAll((t, x) -> x.nome().equalsIgnoreCase(s.nome())
+                ? new Sessao(x.token(), x.nome(), x.metodo(), null, x.perfil(), x.expira()) : x);
+        auditoria.registrar(s.nome(), "APAGOU_ROSTO", s.nome(), fotos + " foto(s) apagada(s)");
     }
 
     public void sair(String autorizacao) {
@@ -196,10 +297,11 @@ public class Acesso {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Esse rosto já está cadastrado para " + outro.getNome() + ".");
             }
         }
-        Retrato r = retratos.save(new Retrato(s.nome(), "CADASTRO", null, jpg));
+        Retrato r = retratos.save(new Retrato(s.nome(), "CADASTRO", null, cofre.trancar(jpg)));
         Usuario u = usuarios.findByNomeIgnoreCase(s.nome()).orElseGet(() -> new Usuario(s.nome()));
         u.cadastrarRosto(escrever(d), r.getId());
         usuarios.save(u);
+        auditoria.registrar(s.nome(), "CADASTROU_ROSTO", s.nome(), null);
     }
 
     @Transactional
@@ -221,13 +323,20 @@ public class Acesso {
         if (menor > LIMITE_ROSTO) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Não reconheci o rosto. Olhe de frente, com luz no rosto, e tente de novo.");
         }
-        Retrato r = retratos.save(new Retrato(melhor.getNome(), "ENTRADA", Math.round(menor * 1000) / 1000.0, jpg));
+        Retrato r = retratos.save(new Retrato(melhor.getNome(), "ENTRADA", Math.round(menor * 1000) / 1000.0, cofre.trancar(jpg)));
         return nova(melhor.getNome(), "ROSTO", r.getId());
     }
 
-    public byte[] retrato(long id) {
-        return retratos.findById(id).map(Retrato::getFoto)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Foto não encontrada."));
+    public byte[] retrato(Sessao s, long id) {
+        Retrato r = retratos.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Foto não encontrada."));
+        if (!r.getNome().equalsIgnoreCase(s.nome()) && !pode(s, "CURADOR")) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Só a própria pessoa ou um curador vê essa foto.");
+        }
+        byte[] foto = cofre.abrir(r.getFoto());
+        if (foto == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Foto não encontrada.");
+        }
+        return foto;
     }
 
     static double distancia(float[] a, float[] b) {
@@ -286,8 +395,9 @@ public class Acesso {
 
     private Sessao nova(String nome, String metodo, Long retratoId) {
         sessoes.values().removeIf(s -> s.expira().isBefore(Instant.now()));
-        Sessao s = new Sessao(B64.encodeToString(bytes(32)), nome, metodo, retratoId, Instant.now().plus(VALIDADE));
+        Sessao s = new Sessao(B64.encodeToString(bytes(32)), nome, metodo, retratoId, perfil(nome, metodo), Instant.now().plus(VALIDADE));
         sessoes.put(s.token(), s);
+        auditoria.registrar(nome, "ENTROU", metodo, "perfil " + s.perfil());
         return s;
     }
 

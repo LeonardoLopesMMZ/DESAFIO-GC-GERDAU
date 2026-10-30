@@ -97,7 +97,10 @@ async function chamar(url, corpo, opcoes = {}) {
   return dados;
 }
 
-const COMO = { ROSTO: "pelo rosto", CHAVE: "com a chave do Windows", NOME: "pelo nome" };
+const COMO = { ROSTO: "pelo rosto", CHAVE: "com a chave do Windows", NOME: "pelo nome", LOCAL: "pelo teste automático" };
+const PERFIL = { COMPRADOR: "Comprador", CURADOR: "Curador", ADMIN: "Administrador" };
+const podeCurar = () => !!sessao && (sessao.perfil === "CURADOR" || sessao.perfil === "ADMIN");
+const ehAdmin = () => !!sessao && sessao.perfil === "ADMIN";
 
 const fotos = new Map();
 function mostrarRetrato(img, id, local) {
@@ -131,6 +134,42 @@ function definirSessao(s) {
   $("usuario").title = s ? `${s.nome} · entrou ${COMO[s.metodo] || ""}` : "Entrar";
   mostrarRetrato($("usuario-foto"), s && s.retrato_id, s && s.foto_local);
   $("usuario-icone").classList.toggle("oculto", !!(s && (s.retrato_id || s.foto_local)));
+  document.body.dataset.perfil = s ? (s.local ? "COMPRADOR" : s.perfil || "COMPRADOR") : "";
+  const aberta = document.querySelector("nav.abas button.ativa");
+  if (aberta && aberta.offsetParent === null) abrir("aba-consulta");
+  moverIndicador();
+}
+
+function carregar(reabrir) {
+  historico();
+  carregarUnidades();
+  guardarCatalogo();
+  if (podeCurar()) pendentes();
+  verBanco();
+  const aberta = document.querySelector("nav.abas button.ativa");
+  if (reabrir && aberta && aberta.dataset.aba !== "aba-consulta") abrir(aberta.dataset.aba);
+}
+
+async function verBanco() {
+  try {
+    const r = await fetch("/api/sistema", { cache: "no-store" });
+    const d = await r.json();
+    const b = $("banco");
+    b.classList.remove("oculto");
+    b.classList.toggle("reserva", !d.persistente);
+    $("banco-nome").textContent = d.persistente ? d.banco : "H2 · reserva";
+    b.title = d.persistente ? `Banco ${d.banco}: guarda tudo entre um dia e outro` : "Banco de reserva H2: na memória, recomeça quando o MOKKA desliga";
+  } catch (e) { $("banco").classList.add("oculto"); }
+}
+
+function pedirParaEntrar() {
+  aviso("Entre para usar o MOKKA: os dados só abrem para quem entrou.", "");
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "principal";
+  b.textContent = "Entrar";
+  b.onclick = () => pedirEntrada().catch(() => {});
+  $("aviso").appendChild(b);
 }
 
 const temChave = !!window.PublicKeyCredential && window.isSecureContext && !!navigator.credentials;
@@ -152,13 +191,15 @@ function entrou(s) {
   $("janela-entrar").close();
   esperandoEntrada.splice(0).forEach(p => p.ok(s));
   aviso(s.local ? `Olá, ${s.nome.split(" ")[0]}! Sem conexão com o servidor: você está usando o MOKKA neste computador.`
-    : `Olá, ${s.nome.split(" ")[0]}! Você entrou ${COMO[s.metodo] || ""} na conta nº ${s.conta_id}.`, "LIBERAR");
+    : `Olá, ${s.nome.split(" ")[0]}! Você entrou ${COMO[s.metodo] || ""} na conta nº ${s.conta_id} · perfil ${PERFIL[s.perfil] || s.perfil}.`, "LIBERAR");
   if (fila().length) enviarFila();
-  pendentes();
+  carregar(true);
 }
 
 $("janela-entrar").addEventListener("close", () => {
-  if (!sessao) esperandoEntrada.splice(0).forEach(p => p.erro(new Error("Entre para continuar.")));
+  if (sessao) return;
+  esperandoEntrada.splice(0).forEach(p => p.erro(new Error("Entre para continuar.")));
+  setTimeout(() => { if (!sessao) pedirParaEntrar(); }, 0);
 });
 document.querySelectorAll("dialog [data-fechar]").forEach(b => b.addEventListener("click", () => b.closest("dialog").close()));
 document.querySelectorAll("dialog").forEach(d => d.addEventListener("click", e => { if (e.target === d) d.close(); }));
@@ -199,9 +240,11 @@ $("usuario").addEventListener("click", async () => {
   try { definirSessao(Object.assign({}, sessao, await chamar("/api/acesso/eu"))); } catch (e) { return; }
   $("conta-nome").textContent = `${sessao.nome} · conta nº ${sessao.conta_id}`;
   $("conta-info").classList.remove("erro-texto");
-  $("conta-info").textContent = `Entrou ${COMO[sessao.metodo] || ""}.`
+  $("conta-info").textContent = `Perfil ${PERFIL[sessao.perfil] || sessao.perfil}. Entrou ${COMO[sessao.metodo] || ""}.`
     + (sessao.tem_rosto ? " Rosto cadastrado." : "") + (sessao.tem_chave ? " Chave do Windows cadastrada." : "")
-    + " A sessão vale até " + quando(sessao.expira) + ".";
+    + " A sessão vale até " + quando(sessao.expira) + "."
+    + (sessao.metodo === "NOME" && sessao.perfil === "CURADOR" ? " Para ter o perfil de administrador, entre com o rosto ou a chave do Windows." : "");
+  $("apagar-rosto").classList.toggle("oculto", !sessao.tem_rosto);
   mostrarRetrato($("conta-foto"), sessao.retrato_id, sessao.foto_local);
   $("cadastrar-rosto").innerHTML = `<svg><use href="#i-rosto"/></svg>${sessao.tem_rosto ? "Cadastrar o rosto de novo" : "Cadastrar meu rosto"}`;
   $("cadastrar-chave").classList.toggle("oculto", !temChave || sessao.tem_chave);
@@ -231,6 +274,23 @@ $("cadastrar-chave").addEventListener("click", async () => {
   botao.classList.remove("ocupado");
 });
 
+$("apagar-rosto").addEventListener("click", async () => {
+  if (!confirm("Apagar a leitura do seu rosto e todas as suas fotos guardadas? Depois você entra pelo nome e pode cadastrar de novo.")) return;
+  const botao = $("apagar-rosto");
+  botao.classList.add("ocupado");
+  try {
+    rede(1);
+    const r = await fetch("/api/acesso/rosto", { method: "DELETE", headers: { Authorization: "Bearer " + sessao.token } }).finally(() => rede(-1));
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.erro || "Erro " + r.status);
+    fotos.clear();
+    definirSessao(Object.assign({}, sessao, d, { foto_local: null }));
+    $("janela-conta").close();
+    aviso("Pronto: seu rosto e suas fotos foram apagados do banco.", "LIBERAR");
+  } catch (e) { $("conta-info").textContent = e.message; $("conta-info").classList.add("erro-texto"); }
+  botao.classList.remove("ocupado");
+});
+
 $("sair").addEventListener("click", async () => {
   try { await chamar("/api/acesso/sair", {}); } catch (e) {}
   definirSessao(null);
@@ -255,16 +315,28 @@ async function decidir(acao, codigo) {
   } catch (e) { aviso(e.message, "erro"); }
 }
 
-const ABAS = ["aba-consulta", "aba-lote", "aba-unidades", "aba-catalogo", "aba-raio-x", "aba-curador"];
+const ABAS = ["aba-consulta", "aba-lote", "aba-unidades", "aba-catalogo", "aba-raio-x", "aba-curador", "aba-pessoas"];
+function moverIndicador() {
+  const b = document.querySelector("nav.abas button.ativa"), ind = document.querySelector("nav.abas .indicador");
+  if (!b || !ind) return;
+  Object.assign(ind.style, { left: b.offsetLeft + "px", top: b.offsetTop + "px", width: b.offsetWidth + "px", height: b.offsetHeight + "px" });
+}
+addEventListener("resize", moverIndicador);
+
 function abrir(id) {
+  const botao = document.querySelector(`nav.abas button[data-aba="${id}"]`);
+  if (botao && botao.offsetParent === null) id = "aba-consulta";
   document.querySelectorAll("nav.abas button").forEach(b => b.classList.toggle("ativa", b.dataset.aba === id));
+  moverIndicador();
   ABAS.forEach(a => { $(a).classList.toggle("oculto", a !== id); $(a).classList.remove("entrar"); });
   void $(id).offsetWidth;
   $(id).classList.add("entrar");
   esconderAviso();
+  if (!sessao) { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
   if (id === "aba-catalogo" && !$("busca").value.trim()) catalogo();
-  if (id === "aba-curador") pendentes();
+  if (id === "aba-curador") { pendentes(); aprendeu(); }
   if (id === "aba-raio-x") carregarRaioX();
+  if (id === "aba-pessoas") pessoas();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 document.querySelectorAll("nav.abas button").forEach(b => b.addEventListener("click", () => abrir(b.dataset.aba)));
@@ -352,6 +424,7 @@ async function catalogo(busca) {
     rotular(corpo);
     $("catalogo-vazio").textContent = busca ? "Nada encontrado." : "Nenhum código criado ainda.";
     $("catalogo-vazio").classList.toggle("oculto", lista.length > 0);
+    corpo.closest(".rolagem").classList.toggle("oculto", !lista.length);
   } catch (e) { aviso(e.message, "erro"); }
 }
 
@@ -402,18 +475,29 @@ async function ficha(codigo) {
       li.append(`${u.solicitante} ${STATUS[u.status] || u.status} · ${quando(u.criada_em)}${u.metodo === "ROSTO" ? " · pelo rosto" : u.metodo === "CHAVE" ? " · chave do Windows" : ""}${u.curador ? " · curador " + u.curador : ""}`);
       ol.appendChild(li);
     });
-    if (!d.usos.length) { const li = document.createElement("li"); li.textContent = "Ninguém usou pelo MOKKA ainda."; ol.appendChild(li); }
-    corpo.append(h, ol);
+    if (d.usos.length) corpo.append(h, ol);
+    else { const p = document.createElement("p"); p.className = "info"; p.textContent = "Ninguém usou pelo MOKKA ainda."; corpo.append(h, p); }
   } catch (e) { corpo.textContent = e.message; }
 }
 
 let gruposCurador = [];
+const CONFIANCA = 80;
+const ACAO = { APROVAR: "Aprovar", RECUSAR: "Recusar" };
+
+function certeza(p) {
+  const s = aderencia(p);
+  s.classList.add("certeza");
+  return s;
+}
+
 async function pendentes() {
+  if (!podeCurar()) return;
   try {
     gruposCurador = await chamar("/api/solicitacoes/curador");
     const total = gruposCurador.reduce((n, g) => n + g.ids.length, 0);
     $("qtd-curador").textContent = total;
     $("qtd-curador").classList.toggle("oculto", !total);
+    moverIndicador();
     const lista = $("lista-curador");
     lista.replaceChildren();
     gruposCurador.forEach(g => {
@@ -432,15 +516,26 @@ async function pendentes() {
       const acoes = document.createElement("div");
       acoes.className = "acoes linha-botoes";
       const n = g.ids.length > 1 ? ` os ${g.ids.length}` : "";
-      [[`Aprovar${n}`, true, "principal"], [`Recusar${n}`, false, ""]].forEach(([nome, aprovar, classe]) => {
+      const sug = g.sugestao;
+      [[`Aprovar${n}`, true, "APROVAR"], [`Recusar${n}`, false, "RECUSAR"]].forEach(([nome, aprovar, acao]) => {
         const b = document.createElement("button");
         b.type = "button";
         b.textContent = nome;
-        b.className = classe;
+        b.className = sug && sug.acao === acao ? "principal" : "";
         b.onclick = () => curadoria(g.ids, aprovar, b);
         acoes.appendChild(b);
       });
       topo.append(info, acoes);
+      if (sug) {
+        const linha = document.createElement("div");
+        linha.className = "sugestao " + sug.acao + (sug.certeza >= CONFIANCA ? " forte" : "");
+        const t = document.createElement("b");
+        t.textContent = "Sugestão do MOKKA: " + ACAO[sug.acao];
+        const m = document.createElement("span");
+        m.textContent = sug.motivo;
+        linha.append(t, certeza(sug.certeza), m);
+        topo.appendChild(linha);
+      }
       const ul = document.createElement("ul");
       g.pedidos.forEach(p => {
         const li = document.createElement("li");
@@ -459,11 +554,33 @@ async function pendentes() {
         }
         ul.appendChild(li);
       });
+      card.style.setProperty("--i", lista.children.length);
       card.append(topo, ul);
       lista.appendChild(card);
     });
     $("curador-vazio").classList.toggle("oculto", gruposCurador.length > 0);
+    const fortes = gruposCurador.filter(g => g.sugestao && g.sugestao.certeza >= CONFIANCA);
+    $("barra-curador").classList.toggle("oculto", !fortes.length);
+    $("aceitar-sugestoes").textContent = fortes.length === 1 ? "Aceitar a sugestão forte" : `Aceitar as ${fortes.length} sugestões fortes`;
+    $("sugestoes-info").textContent = `Só as que o MOKKA tem ${CONFIANCA}% ou mais de certeza. Dá para desfazer depois.`;
   } catch (e) {}
+}
+
+function desfazer(ids) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.textContent = "Desfazer";
+  b.onclick = async () => {
+    b.classList.add("ocupado");
+    try {
+      await chamar("/api/solicitacoes/curador/desfazer", { ids });
+      aviso(`Desfeito: ${ids.length > 1 ? ids.length + " pedidos voltaram" : "o pedido voltou"} para o curador, e o MOKKA esqueceu o que tinha aprendido com isso.`, "REVISAR");
+      pendentes();
+      aprendeu();
+      historico();
+    } catch (e) { aviso(e.message, "erro"); }
+  };
+  $("aviso").appendChild(b);
 }
 
 async function curadoria(ids, aprovar, botao) {
@@ -474,11 +591,172 @@ async function curadoria(ids, aprovar, botao) {
     const cod = r[0].codigo_escolhido;
     aviso(aprovar ? `Aprovado: ${r.length > 1 ? r.length + " pedidos usam" : "criado"} o código ${cod}.` : `Recusado: ${r.length > 1 ? "os " + r.length + " pedidos usam" : "use"} o ${cod}.`, aprovar ? "LIBERAR" : "REVISAR");
     $("aviso").appendChild(botaoCodigo(cod));
+    desfazer(r.map(x => x.id));
     pendentes();
+    aprendeu();
     historico();
   } catch (e) { aviso(e.message, "erro"); }
   botao.classList.remove("ocupado");
 }
+
+$("aceitar-sugestoes").addEventListener("click", async () => {
+  const fortes = gruposCurador.filter(g => g.sugestao && g.sugestao.certeza >= CONFIANCA);
+  if (!fortes.length) return;
+  const aprovar = fortes.filter(g => g.sugestao.acao === "APROVAR").length;
+  if (!confirm(`Decidir ${fortes.length} grupo(s) como o MOKKA sugeriu? ${aprovar} aprovado(s) e ${fortes.length - aprovar} recusado(s).`)) return;
+  const botao = $("aceitar-sugestoes");
+  botao.classList.add("ocupado");
+  const feitos = [];
+  let erro = null;
+  for (const g of fortes) {
+    try { feitos.push(...(await chamar("/api/solicitacoes/curador/grupo", { ids: g.ids, aprovar: g.sugestao.acao === "APROVAR" })).map(x => x.id)); }
+    catch (e) { erro = e; }
+  }
+  botao.classList.remove("ocupado");
+  aviso(`${feitos.length} pedido(s) decididos pelas sugestões.` + (erro ? " Alguns não deram certo: " + erro.message : ""), erro ? "erro" : "LIBERAR");
+  if (feitos.length) desfazer(feitos);
+  pendentes();
+  aprendeu();
+  historico();
+});
+
+function itemRegra(partes, botoes) {
+  const li = document.createElement("li");
+  const texto = document.createElement("div");
+  texto.className = "regra-texto";
+  texto.append(...partes);
+  li.appendChild(texto);
+  if (botoes.length) {
+    const b = document.createElement("div");
+    b.className = "regra-botoes";
+    b.append(...botoes);
+    li.appendChild(b);
+  }
+  return li;
+}
+
+function botaoPequeno(texto, classe, acao) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = classe;
+  b.textContent = texto;
+  b.onclick = async () => {
+    b.classList.add("ocupado");
+    try { await acao(); aprendeu(); } catch (e) { aviso(e.message, "erro"); }
+    b.classList.remove("ocupado");
+  };
+  return b;
+}
+
+async function aprendeu() {
+  if (!podeCurar()) return;
+  try {
+    const d = await chamar("/api/aprendizado");
+    const regras = $("lista-regras"), palavras = $("lista-palavras");
+    regras.replaceChildren(...d.regras.slice(0, 40).map((x, i) => {
+      const tipo = document.createElement("span");
+      tipo.className = "tipo " + x.tipo;
+      tipo.textContent = x.tipo === "IGUAL" ? "Igual a" : "Diferente de";
+      const desc = document.createElement("b");
+      desc.textContent = `${x.descricao} [${x.unidade}]`;
+      const meta = document.createElement("em");
+      meta.textContent = `${x.votos} ${x.votos === 1 ? "decisão" : "decisões"}${x.ultimo_por ? " · " + x.ultimo_por : ""}`;
+      const li = itemRegra([desc, tipo, botaoCodigo(x.codigo), meta], [botaoPequeno("Esquecer", "link", async () => {
+        rede(1);
+        const r = await fetch("/api/aprendizado/regras/" + x.id, { method: "DELETE", headers: { Authorization: "Bearer " + sessao.token } }).finally(() => rede(-1));
+        if (!r.ok) throw new Error((await r.json().catch(() => ({}))).erro || "Erro " + r.status);
+      })]);
+      li.style.setProperty("--i", i);
+      return li;
+    }));
+    palavras.replaceChildren(...d.palavras.slice(0, 40).map((x, i) => {
+      const de = document.createElement("b");
+      de.textContent = x.termo;
+      const para = document.createElement("b");
+      para.textContent = x.correcao;
+      const seta = document.createElement("span");
+      seta.className = "seta";
+      seta.textContent = "→";
+      const selo = document.createElement("span");
+      selo.className = "selo " + x.status;
+      selo.textContent = { SUGERIDA: "Esperando curador", ACEITA: "Vale", RECUSADA: "Recusada" }[x.status];
+      const meta = document.createElement("em");
+      meta.textContent = `${x.votos} ${x.votos === 1 ? "vez" : "vezes"}${x.ultimo_por ? " · " + x.ultimo_por : ""}`;
+      const decidir = aceitar => () => chamar(`/api/aprendizado/palavras/${encodeURIComponent(x.termo)}/decisao`, { aceitar });
+      const botoes = x.status === "SUGERIDA" ? [botaoPequeno("Aceitar", "principal", decidir(true)), botaoPequeno("Recusar", "", decidir(false))]
+        : [botaoPequeno(x.status === "ACEITA" ? "Recusar" : "Aceitar", "link", decidir(x.status !== "ACEITA"))];
+      const li = itemRegra([de, seta, para, selo, meta], botoes);
+      li.style.setProperty("--i", i);
+      return li;
+    }));
+    $("regras-vazio").classList.toggle("oculto", d.regras.length > 0);
+    $("palavras-vazio").classList.toggle("oculto", d.palavras.length > 0);
+  } catch (e) {}
+}
+
+async function pessoas() {
+  if (!ehAdmin()) return;
+  try {
+    const [lista, registro] = await Promise.all([chamar("/api/admin/pessoas"), chamar("/api/admin/auditoria")]);
+    const corpo = $("lista-pessoas");
+    corpo.replaceChildren();
+    lista.forEach(u => {
+      const tr = document.createElement("tr");
+      celula(tr, "nº " + u.id);
+      celula(tr, u.nome).style.fontWeight = "700";
+      const sel = document.createElement("select");
+      Object.entries(PERFIL).forEach(([v, t]) => { const o = document.createElement("option"); o.value = v; o.textContent = t; sel.appendChild(o); });
+      sel.value = u.perfil;
+      sel.disabled = u.admin_fixo;
+      sel.title = u.admin_fixo ? "Administrador da equipe (lista fixa no MOKKA)" : "Mudar o perfil";
+      sel.onchange = async () => {
+        try { await chamar(`/api/admin/pessoas/${u.id}/perfil`, { perfil: sel.value }); aviso(`${u.nome} agora é ${PERFIL[sel.value]}.`, "LIBERAR"); pessoas(); }
+        catch (e) { aviso(e.message, "erro"); sel.value = u.perfil; }
+      };
+      celula(tr, sel);
+      celula(tr, [u.tem_rosto && "rosto", u.tem_chave && "chave do Windows"].filter(Boolean).join(" e ") || "nome");
+      celula(tr, quando(u.criado_em));
+      corpo.appendChild(tr);
+    });
+    rotular(corpo);
+    const aud = $("lista-auditoria");
+    aud.replaceChildren();
+    registro.slice(0, 60).forEach(a => {
+      const tr = document.createElement("tr");
+      celula(tr, quando(a.quando));
+      celula(tr, a.quem || "—");
+      celula(tr, NOME_ACAO[a.acao] || a.acao, /RECUSADA|BLOQUEIO/.test(a.acao) ? "res BLOQUEAR" : "");
+      celula(tr, a.alvo);
+      celula(tr, a.detalhe);
+      celula(tr, a.ip);
+      aud.appendChild(tr);
+    });
+    rotular(aud);
+  } catch (e) { aviso(e.message, "erro"); }
+}
+
+const NOME_ACAO = { ENTROU: "Entrou", ENTRADA_RECUSADA: "Entrada recusada", BLOQUEIO_FORCA_BRUTA: "Bloqueado por tentativas", CRIOU_CODIGO: "Criou código",
+  APROVOU: "Curador aprovou", RECUSOU: "Curador recusou", DESFEZ: "Desfez decisão", MUDOU_PERFIL: "Mudou perfil", CADASTROU_ROSTO: "Cadastrou rosto",
+  APAGOU_ROSTO: "Apagou rosto e fotos", ACEITOU_PALAVRA: "Aceitou palavra", RECUSOU_PALAVRA: "Recusou palavra", ESQUECEU_REGRA: "Esqueceu regra",
+  DESBLOQUEOU: "Desbloqueou entradas", ZEROU_BANCO: "Zerou o banco" };
+
+$("desbloquear").addEventListener("click", async () => {
+  try { await chamar("/api/admin/desbloquear", {}); aviso("Pronto: quem errou a entrada pode tentar de novo.", "LIBERAR"); pessoas(); }
+  catch (e) { aviso(e.message, "erro"); }
+});
+
+$("zerar").addEventListener("click", async () => {
+  if (!confirm("Zerar o banco? Apaga pedidos, pessoas, fotos, aprendizado e códigos criados, e carrega a base de novo.")) return;
+  const botao = $("zerar");
+  botao.classList.add("ocupado");
+  try {
+    const r = await chamar("/api/admin/zerar", {});
+    aviso(`Banco ${r.banco} zerado e carregado de novo a partir da base.`, "LIBERAR");
+    historico();
+    pessoas();
+  } catch (e) { aviso(e.message, "erro"); }
+  botao.classList.remove("ocupado");
+});
 
 function aderencia(p) {
   const s = document.createElement("span");
@@ -501,7 +779,7 @@ function mostrar(r) {
     b.type = "button";
     b.className = "principal";
     b.textContent = "Sim, consultar assim";
-    b.onclick = () => { $("descricao").value = s.descricao; contarCaracteres(); enviarFormulario($("consulta")); };
+    b.onclick = () => { (s.correcoes || []).forEach(c => ensinar(c.de, c.para)); $("descricao").value = s.descricao; contarCaracteres(); enviarFormulario($("consulta")); };
     a.appendChild(b);
   }
   const corpo = $("candidatos");
@@ -516,7 +794,10 @@ function mostrar(r) {
     const classe = document.createElement("span");
     classe.className = "classe " + c.classe;
     classe.textContent = { DUPLICADO: "Igual", REVISAR: "Quase igual", DIFERENTE: "Diferente" }[c.classe];
-    muda.append(classe, c.diferencas.length ? " · " + c.diferencas.join(", ") : "");
+    const aprendido = c.diferencas.find(d => d.startsWith("aprendido"));
+    if (aprendido) { const a = document.createElement("span"); a.className = "selo aprendido"; a.textContent = "Aprendido"; a.title = aprendido; muda.append(a, " "); }
+    const outras = c.diferencas.filter(d => d !== aprendido);
+    muda.append(classe, outras.length ? " · " + outras.join(", ") : "");
     celula(tr, muda);
     const b = document.createElement("button");
     b.type = "button";
@@ -809,9 +1090,10 @@ async function escolherMelhor(alternativas) {
   return { melhor: convertidas[melhor], duvidas: duvidas[melhor], outras: convertidas.filter((_, i) => i !== melhor) };
 }
 
-function desenharPalavras() {
+function desenharPalavras(animar = true) {
   const caixa = $("palavras");
   caixa.replaceChildren();
+  caixa.classList.toggle("parado", !animar);
   if (!falado) { $("falado").classList.add("oculto"); return; }
   const palavras = $("descricao").value.split(" ").filter(Boolean);
   caixa.classList.toggle("tem-duvida", falado.mapa.size > 0);
@@ -840,22 +1122,32 @@ function desenharPalavras() {
     } else caixa.appendChild(chip);
     i += tam;
   }
+  if (!falado.mapa.size) $("falado-nota").textContent = $("falado-nota").textContent.split(" · ").filter(t => !t.startsWith("palavras amarelas")).join(" · ");
   $("falado").classList.remove("oculto");
 }
 
-function fecharOpcoes() { document.querySelectorAll(".opcoes").forEach(o => o.remove()); }
+function fecharOpcoes() {
+  document.querySelectorAll(".palavra.aberta").forEach(c => c.classList.remove("aberta"));
+  document.querySelectorAll(".opcoes:not(.saindo)").forEach(o => {
+    o.classList.add("saindo");
+    setTimeout(() => o.remove(), 160);
+  });
+}
+addEventListener("keydown", e => { if (e.key === "Escape") fecharOpcoes(); });
 
 function abrirOpcoes(envolve, indice, s) {
   fecharOpcoes();
   const menu = document.createElement("div");
   menu.className = "opcoes";
+  envolve.querySelector(".palavra").classList.add("aberta");
   const titulo = document.createElement("span");
   titulo.textContent = "Você quis dizer:";
   menu.appendChild(titulo);
-  s.sugestoes.slice(0, 4).forEach(sug => {
+  s.sugestoes.slice(0, 4).forEach((sug, i) => {
     const b = document.createElement("button");
     b.type = "button";
     b.textContent = sug;
+    b.style.setProperty("--i", i);
     b.onclick = e => { e.stopPropagation(); trocarPalavra(indice, s.tamanho, sug); };
     menu.appendChild(b);
   });
@@ -863,13 +1155,19 @@ function abrirOpcoes(envolve, indice, s) {
   manter.type = "button";
   manter.className = "manter";
   manter.textContent = "Manter";
-  manter.onclick = e => { e.stopPropagation(); falado.mapa.delete(indice); fecharOpcoes(); desenharPalavras(); };
+  manter.style.setProperty("--i", Math.min(4, s.sugestoes.length));
+  manter.onclick = e => { e.stopPropagation(); falado.mapa.delete(indice); fecharOpcoes(); desenharPalavras(false); };
   menu.appendChild(manter);
   envolve.appendChild(menu);
 }
 
+function ensinar(de, para) {
+  if (sessao && sessao.token && de && para && SEM_ACENTO(M(de)) !== SEM_ACENTO(M(para))) chamar("/api/aprendizado/palavras", { de: de.slice(0, 40), para: para.slice(0, 40) }).catch(() => {});
+}
+
 function trocarPalavra(indice, tamanho, nova) {
   const palavras = $("descricao").value.split(" ").filter(Boolean);
+  ensinar(palavras.slice(indice, indice + tamanho).join(" "), nova);
   palavras.splice(indice, tamanho, nova);
   const r = caber40(palavras.join(" "));
   $("descricao").value = r.texto;
@@ -880,8 +1178,8 @@ function trocarPalavra(indice, tamanho, nova) {
     else if (i >= indice + tamanho) novo.set(i - tamanho + 1, v);
   }
   falado.mapa = novo;
-  fecharOpcoes();
-  desenharPalavras();
+  document.querySelectorAll(".opcoes").forEach(o => o.remove());
+  desenharPalavras(false);
   [...$("palavras").querySelectorAll(".palavra")].find(c => c.textContent === nova)?.classList.add("trocada");
   if (sessao) enviarFormulario($("consulta"));
 }
@@ -935,6 +1233,7 @@ prepararMic($("mic-busca"), (alternativas, final) => {
 
 let lote = null;
 let filtroLote = null;
+const NOME_LINHA = { BLOQUEAR: "Já existe", REVISAR: "Parecido", LIBERAR: "Novo", REPETIDO: "Repetido", ERRO: "Com erro" };
 const NOMES = { BLOQUEAR: "Já existem", REVISAR: "Parecidos", LIBERAR: "Novos", REPETIDO: "Repetidos", ERRO: "Com erro" };
 const ACOES = { BLOQUEAR: [["USAR_EXISTENTE", "Usar o existente"], ["IGNORAR", "Ignorar"]],
                 REVISAR: [["USAR_EXISTENTE", "Usar o existente"], ["CRIAR", "Criar código"], ["IGNORAR", "Ignorar"]],
@@ -951,6 +1250,7 @@ function desenharLote() {
   todas.className = filtroLote ? "" : "ativa";
   todas.onclick = () => { filtroLote = null; desenharLote(); };
   chips.appendChild(todas);
+  let ordem = 1;
   Object.entries(NOMES).forEach(([k, nome]) => {
     const n = lote.linhas.filter(l => l.resultado === k).length;
     if (!n) return;
@@ -959,6 +1259,7 @@ function desenharLote() {
     b.innerHTML = `<span class="res ${k}">●</span> `;
     b.append(`${nome} (${n})`);
     b.className = filtroLote === k ? "ativa" : "";
+    b.style.setProperty("--i", ordem++);
     b.onclick = () => { filtroLote = k; desenharLote(); };
     chips.appendChild(b);
   });
@@ -969,7 +1270,7 @@ function desenharLote() {
     const tr = document.createElement("tr");
     celula(tr, l.linha).title = l.origem || "";
     [M(l.descricao), M(l.unidade), l.nome_padrao].forEach(v => celula(tr, v));
-    celula(tr, NOMES[l.resultado] || l.resultado, "res " + l.resultado);
+    celula(tr, NOME_LINHA[l.resultado] || l.resultado, "res " + l.resultado);
     const parecido = document.createElement("span");
     if (l.codigo_existente) parecido.append(botaoCodigo(l.codigo_existente), " " + M(l.descricao_existente));
     celula(tr, l.codigo_existente ? parecido : "");
@@ -996,9 +1297,11 @@ function desenharLote() {
   $("lote-resultado").classList.remove("oculto");
 }
 
+const comToken = (h = {}) => sessao && sessao.token ? Object.assign(h, { Authorization: "Bearer " + sessao.token }) : h;
+
 async function baixar(url, corpo, nome) {
   rede(1);
-  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) }).finally(() => rede(-1));
+  const r = await fetch(url, { method: "POST", headers: comToken({ "Content-Type": "application/json" }), body: JSON.stringify(corpo) }).finally(() => rede(-1));
   if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.erro || "Erro " + r.status); }
   const a = document.createElement("a");
   a.href = URL.createObjectURL(await r.blob());
@@ -1016,11 +1319,12 @@ $("form-lote").addEventListener("submit", async e => {
   dados.append("arquivo", arquivo);
   dados.append("unidadePadrao", $("lote-unidade").value.trim());
   dados.append("grupoPadrao", $("lote-grupo").value);
+  try { await pedirEntrada(); } catch (err) { aviso(err.message, "erro"); return; }
   $("analisar").classList.add("ocupado");
   aviso(`Analisando ${arquivo.name}…`, "");
   try {
     rede(1);
-    const r = await fetch("/api/lotes/analisar", { method: "POST", body: dados }).finally(() => rede(-1));
+    const r = await fetch("/api/lotes/analisar", { method: "POST", headers: comToken(), body: dados }).finally(() => rede(-1));
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.erro || "Erro " + r.status);
     lote = d;
@@ -1084,7 +1388,7 @@ async function testeVoz() {
   $("teste-voz").classList.remove("oculto");
   checarVoz();
   if (!sessao) {
-    try { definirSessao(await chamar("/api/acesso/entrar", { nome: "Teste de voz" }, { semToken: true })); } catch (e) {}
+    try { definirSessao(await chamar("/api/acesso/entrar", { nome: "Teste de voz" }, { semToken: true })); $("janela-entrar").close(); carregar(); } catch (e) {}
   }
 }
 window.addEventListener("hashchange", testeVoz);
@@ -1097,12 +1401,22 @@ async function iniciar() {
     try { definirSessao(Object.assign({}, s, await chamar("/api/acesso/eu", null, { silencioso: true }))); } catch (e) { if (!semConexao) definirSessao(null); }
   }
   definirSessao(sessao);
-  historico();
-  pendentes();
-  carregarUnidades();
+  verBanco();
   const destino = { "#catalogo": "aba-catalogo", "#planilha": "aba-lote", "#curador": "aba-curador", "#unidades": "aba-unidades", "#raio-x": "aba-raio-x" }[location.hash];
   if (destino) abrir(destino);
-  testeVoz();
   prepararModoLocal();
+  if (sessao) carregar();
+  else if (location.hash !== "#testar-voz") pedirEntrada().catch(() => {});
+  testeVoz();
+  moverIndicador();
 }
 addEventListener("DOMContentLoaded", iniciar);
+
+const caixaArquivo = $("caixa-arquivo");
+$("arquivo").addEventListener("change", () => {
+  const f = $("arquivo").files[0];
+  $("arquivo-nome").textContent = f ? f.name : "ou arraste a planilha aqui";
+  caixaArquivo.classList.toggle("escolhido", !!f);
+});
+["dragenter", "dragover"].forEach(t => caixaArquivo.addEventListener(t, () => caixaArquivo.classList.add("arrastando")));
+["dragleave", "drop"].forEach(t => caixaArquivo.addEventListener(t, () => caixaArquivo.classList.remove("arrastando")));
