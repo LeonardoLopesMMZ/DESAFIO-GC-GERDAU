@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Acesso", description = "Entrada com token: pelo nome (demonstração), pelo rosto na câmera ou com a chave do Windows (Hello, digital ou PIN)")
@@ -120,22 +121,81 @@ public class AcessoController {
         return entrada(acesso.exigir(auth));
     }
 
+    @Operation(summary = "Trocar a foto do perfil", description = "Foto JPEG pequena, até 20 KB. Fica no lugar da foto da última entrada, em todas as telas.")
+    @PostMapping("/foto-perfil")
+    public Entrada fotoPerfil(@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String auth,
+                              @Valid @RequestBody Foto f) {
+        Acesso.Sessao s = acesso.exigir(auth);
+        acesso.fotoPerfil(s, f.foto());
+        return entrada(s);
+    }
+
+    @Operation(summary = "Tirar a foto do perfil", description = "Volta a mostrar a foto da última entrada pelo rosto.")
+    @DeleteMapping("/foto-perfil")
+    public Entrada tirarFotoPerfil(@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String auth) {
+        Acesso.Sessao s = acesso.exigir(auth);
+        acesso.tirarFotoPerfil(s);
+        return entrada(s);
+    }
+
+    @Operation(summary = "Pedir para entrar sem câmera", description = "Para contas com rosto ou chave cadastrados, quando a pessoa está sem câmera. "
+            + "Um curador ou administrador aceita ou recusa, e fica registrado quem aceitou. Vale 15 minutos.")
+    @PostMapping("/pedir-entrada")
+    public Acesso.NovoPedido pedirEntrada(@Valid @RequestBody PedidoSemCamera p, HttpServletRequest req) {
+        return acesso.pedirEntrada(p.nome().trim(), p.observacao().trim(), req.getRemoteAddr());
+    }
+
+    @Operation(summary = "Situação do pedido de entrada", description = "Quando o pedido é aceito, devolve o token uma única vez.")
+    @GetMapping("/pedir-entrada/{id}")
+    public SituacaoPedido situacaoPedido(@PathVariable long id, @RequestParam String codigo) {
+        Acesso.Situacao s = acesso.situacaoPedido(id, codigo);
+        return new SituacaoPedido(s.status(), s.decididoPor(), s.sessao() == null ? null : entrada(s.sessao()));
+    }
+
+    @Operation(summary = "Pedidos de entrada esperando (curador)")
+    @GetMapping("/pedidos-de-entrada")
+    public List<Acesso.PedidoEntrada> pedidosDeEntrada(@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String auth) {
+        acesso.exigirPerfil(auth, "CURADOR");
+        return acesso.pedidosPendentes();
+    }
+
+    @Operation(summary = "Aceitar ou recusar um pedido de entrada (curador)")
+    @PostMapping("/pedidos-de-entrada/{id}/decisao")
+    public Acesso.PedidoEntrada decidirPedido(@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String auth,
+                                              @PathVariable long id, @Valid @RequestBody DecisaoPedido d) {
+        return acesso.decidirPedido(acesso.exigirPerfil(auth, "CURADOR"), id, d.aceitar());
+    }
+
     private Entrada entrada(Acesso.Sessao s) {
         Usuario u = acesso.usuario(s.nome());
         boolean temRosto = u != null && u.temRosto();
         Long foto = s.retratoId() != null ? s.retratoId() : temRosto ? u.getRetratoId() : null;
         return new Entrada(s.token(), u == null ? null : u.getId(), s.nome(), s.metodo(), s.perfil(), acesso.temChave(s.nome()), temRosto,
-                acesso.soChave(), foto, s.expira());
+                acesso.soChave(), foto, u == null ? null : u.getFotoPerfilId(), s.expira());
     }
 
     public record PedidoNome(@NotBlank(message = "Informe o nome") @Size(max = 60, message = "O nome deve ter até 60 caracteres") String nome) {
     }
 
-    public record Entrada(String token, Long contaId, String nome, String metodo, String perfil, boolean temChave, boolean temRosto, boolean soChave, Long retratoId, Instant expira) {
+    public record Entrada(String token, Long contaId, String nome, String metodo, String perfil, boolean temChave, boolean temRosto, boolean soChave, Long retratoId, Long fotoPerfilId, Instant expira) {
     }
 
     public record Rosto(@NotNull(message = "Falta a leitura do rosto") @Size(min = 128, max = 128, message = "A leitura do rosto deve ter 128 números") List<Double> descritor,
                         @NotBlank(message = "Falta a foto") @Size(max = 30000, message = "A foto deve ter até 20 KB") String foto) {
+    }
+
+    public record Foto(@NotBlank(message = "Falta a foto") @Size(max = 30000, message = "A foto deve ter até 20 KB") String foto) {
+    }
+
+    public record PedidoSemCamera(@NotBlank(message = "Informe o nome") @Size(max = 60, message = "O nome deve ter até 60 caracteres") String nome,
+                                  @NotBlank(message = "Escreva uma observação para quem vai aceitar")
+                                  @Size(min = 5, max = 300, message = "A observação deve ter de 5 a 300 caracteres") String observacao) {
+    }
+
+    public record DecisaoPedido(@NotNull(message = "Informe se aceita") Boolean aceitar) {
+    }
+
+    public record SituacaoPedido(String status, String decididoPor, Entrada entrada) {
     }
 
     public record Desafio(String desafio, String usuarioId, String nome) {

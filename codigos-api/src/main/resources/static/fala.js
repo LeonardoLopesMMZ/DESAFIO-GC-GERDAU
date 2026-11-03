@@ -115,7 +115,7 @@ function numerosPorExtenso(texto) {
   return saida.join(" ");
 }
 
-function falaParaTexto(falado) {
+function falaParaTexto(falado, aceitaUnidade = () => true) {
   let t = " " + falado.toLowerCase().trim() + " ";
   t = t.replace(/[.,;!?]+(?=\s)/g, " ").replace(/\s+/g, " ").trim();
   let acao = null;
@@ -126,7 +126,7 @@ function falaParaTexto(falado) {
   }
   let unidade = null;
   const un = t.match(/\s(?:na unidade|unidade)\s+(.+)$/);
-  if (un && un[1].split(" ").length <= 3) {
+  if (un && un[1].split(" ").length <= 3 && aceitaUnidade(un[1])) {
     unidade = un[1];
     t = t.slice(0, un.index);
   }
@@ -134,7 +134,8 @@ function falaParaTexto(falado) {
   for (const [de, para] of TROCAS) t = t.replace(de, para);
   t = t.replace(/(\d+)\s+v[ií]rgula\s+(\d+)/g, "$1,$2").replace(/(\d+)\s*(?:x|por|vezes)\s*(\d+)/g, "$1X$2").replace(/(\d)\s+%/g, "$1%").replace(/\s+/g, " ").trim();
   const curto = caber40(t);
-  return { texto: curto.texto, abreviou: curto.abreviou, cortou: curto.cortou, completo: t.toUpperCase(), acao, unidade };
+  const texto = curto.cortou ? t.toUpperCase().slice(0, 120).trim() : curto.texto;
+  return { texto, abreviou: curto.abreviou, cortou: curto.cortou, completo: t.toUpperCase(), acao, unidade };
 }
 
 if (typeof module !== "undefined") module.exports = { falaParaTexto, caber40 };

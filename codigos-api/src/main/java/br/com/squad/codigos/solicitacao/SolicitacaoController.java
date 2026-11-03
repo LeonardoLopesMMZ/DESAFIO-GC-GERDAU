@@ -16,6 +16,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,15 +46,18 @@ public class SolicitacaoController {
     private final Acesso acesso;
     private final Aprendizado aprendizado;
     private final Auditoria auditoria;
+    private final JdbcTemplate jdbc;
 
     public SolicitacaoController(SolicitacaoRepository solicitacoes, CodigoServicoRepository codigos,
-                                 SimilaridadeClient similaridade, Acesso acesso, Aprendizado aprendizado, Auditoria auditoria) {
+                                 SimilaridadeClient similaridade, Acesso acesso, Aprendizado aprendizado, Auditoria auditoria,
+                                 JdbcTemplate jdbc) {
         this.solicitacoes = solicitacoes;
         this.codigos = codigos;
         this.similaridade = similaridade;
         this.acesso = acesso;
         this.aprendizado = aprendizado;
         this.auditoria = auditoria;
+        this.jdbc = jdbc;
     }
 
     @Operation(summary = "Listar as últimas solicitações (filtro opcional por status)")
@@ -124,10 +128,28 @@ public class SolicitacaoController {
         return juntos.values().stream().map(l -> {
             List<String> pediram = l.stream().map(Solicitacao::getSolicitante).distinct().toList();
             String justificativa = l.stream().map(Solicitacao::getJustificativa).filter(j -> !vazio(j)).findFirst().orElse(null);
+            CodigoServico existente = l.get(0).getCodigoSugerido() == null ? null : codigos.findById(l.get(0).getCodigoSugerido()).orElse(null);
             return new GrupoCurador(l.stream().map(Solicitacao::getId).toList(), l.get(0).getDescricaoDigitada(), l.get(0).getUnidade(),
-                    l.get(0).getCodigoSugerido(), pediram, l, aprendizado.sugerir(l.get(0).getDescricaoDigitada(), l.get(0).getUnidade(),
+                    l.get(0).getCodigoSugerido(), existente == null ? null : existente.getDescricao(), existente == null ? null : existente.getUnidade(),
+                    pediram, l, aprendizado.sugerir(l.get(0).getDescricaoDigitada(), l.get(0).getUnidade(),
                     l.get(0).getCodigoSugerido(), justificativa, pediram.size()));
         }).toList();
+    }
+
+    @Operation(summary = "Resumo do curador", description = "Quantos pedidos esperam, quantos foram decididos hoje e quanto o MOKKA já aprendeu.")
+    @GetMapping("/curador/resumo")
+    public ResumoCurador resumo() {
+        java.sql.Timestamp hoje = java.sql.Timestamp.valueOf(java.time.LocalDate.now().atStartOfDay());
+        Long esperando = jdbc.queryForObject("select count(*) from solicitacao where status = 'AGUARDANDO_CURADOR'", Long.class);
+        Long aprovados = jdbc.queryForObject("select count(*) from solicitacao where curador is not null and status = 'CRIADO' and decidida_em >= ?", Long.class, hoje);
+        Long recusados = jdbc.queryForObject("select count(*) from solicitacao where curador is not null and status = 'RECUSADO' and decidida_em >= ?", Long.class, hoje);
+        Long regras = jdbc.queryForObject("select count(*) from aprendizado where votos > 0", Long.class);
+        Long evitados = jdbc.queryForObject("select count(*) from solicitacao where status in ('USOU_EXISTENTE', 'RECUSADO')", Long.class);
+        return new ResumoCurador(n(esperando), n(aprovados), n(recusados), n(regras), n(evitados));
+    }
+
+    private static long n(Long v) {
+        return v == null ? 0 : v;
     }
 
     @Operation(summary = "Curador aprova ou recusa um grupo de pedidos iguais",
@@ -217,7 +239,10 @@ public class SolicitacaoController {
     public record Desfazer(@NotEmpty @Size(max = 500) List<Long> ids) {
     }
 
-    public record GrupoCurador(List<Long> ids, String descricao, String unidade, String codigoExistente,
-                               List<String> pediram, List<Solicitacao> pedidos, Aprendizado.Sugestao sugestao) {
+    public record ResumoCurador(long esperando, long aprovadosHoje, long recusadosHoje, long regrasAprendidas, long duplicadosEvitados) {
+    }
+
+    public record GrupoCurador(List<Long> ids, String descricao, String unidade, String codigoExistente, String descricaoExistente,
+                               String unidadeExistente, List<String> pediram, List<Solicitacao> pedidos, Aprendizado.Sugestao sugestao) {
     }
 }

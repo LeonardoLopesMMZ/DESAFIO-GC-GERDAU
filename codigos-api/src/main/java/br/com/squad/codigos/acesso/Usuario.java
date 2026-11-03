@@ -20,6 +20,7 @@ public class Usuario {
     private long contador;
     private String rosto;
     private Long retratoId;
+    private Long fotoPerfilId;
     private String perfil = "COMPRADOR";
     private LocalDateTime criadoEm = LocalDateTime.now();
 
@@ -56,6 +57,14 @@ public class Usuario {
 
     public Long getRetratoId() {
         return retratoId;
+    }
+
+    public Long getFotoPerfilId() {
+        return fotoPerfilId;
+    }
+
+    public void mudarFotoPerfil(Long fotoPerfilId) {
+        this.fotoPerfilId = fotoPerfilId;
     }
 
     public boolean temChave() {
