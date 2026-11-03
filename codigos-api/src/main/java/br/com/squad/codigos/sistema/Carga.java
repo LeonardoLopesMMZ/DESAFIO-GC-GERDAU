@@ -29,9 +29,9 @@ import br.com.squad.codigos.consulta.SimilaridadeClient;
 public class Carga implements SmartInitializingSingleton {
 
     private static final Logger LOG = LoggerFactory.getLogger(Carga.class);
-    private static final List<String> TABELAS = List.of("auditoria", "palavra_aprendida", "aprendizado", "retrato", "usuario",
+    private static final List<String> TABELAS = List.of("auditoria", "pedido_entrada", "palavra_aprendida", "aprendizado", "retrato", "usuario",
             "solicitacao", "dicionario", "base_original", "codigo_fornecedor", "codigo_servico");
-    private static final List<String> COM_ID = List.of("auditoria", "aprendizado", "retrato", "usuario", "solicitacao", "base_original");
+    private static final List<String> COM_ID = List.of("auditoria", "pedido_entrada", "aprendizado", "retrato", "usuario", "solicitacao", "base_original");
 
     private final DataSource banco;
     private final JdbcTemplate jdbc;

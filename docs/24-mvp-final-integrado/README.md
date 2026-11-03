@@ -30,4 +30,4 @@ Detalhes de cada parte: pastas 18 a 22 da Entrega 3.
 
 ## Prova de que funciona
 
-`MOKKA.bat testar` passou **29 de 29** na versão apresentada (`21 - Integração completa\testar.log`, na Entrega 3).
+`MOKKA.bat testar` confere **31 itens** na versão apresentada: os 29 da Entrega 3 (`21 - Integração completa\testar.log`) mais a foto do perfil e a entrada sem câmera.

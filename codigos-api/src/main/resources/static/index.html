@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#003366">
 <title>MOKKA · Códigos de serviço</title>
-<link rel="stylesheet" href="style.css?v=13">
+<link rel="stylesheet" href="style.css?v=15">
 </head>
 <body>
 <div id="carregando" aria-hidden="true"></div>
@@ -23,6 +23,17 @@
   <symbol id="i-banco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
   <symbol id="i-pessoas" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6"/></symbol>
   <symbol id="i-api" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m8 7-5 5 5 5M16 7l5 5-5 5"/></symbol>
+  <symbol id="i-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-mais" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-volta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></symbol>
+  <symbol id="i-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-cadeado" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/></symbol>
+  <symbol id="i-relogio" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-brilho" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></symbol>
+  <symbol id="i-igual" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9h12M6 15h12"/></symbol>
+  <symbol id="i-quase" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9c2-2 4-2 7 0s5 2 7 0M5 15c2-2 4-2 7 0s5 2 7 0"/></symbol>
+  <symbol id="i-subir" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></symbol>
 </svg>
 
 <header class="topo">
@@ -90,9 +101,10 @@
           </span>
           <span class="conta" id="conta">0/40</span>
         </span>
+        <span class="correcao oculto" id="correcao" role="status"></span>
       </label>
       <label>Unidade
-        <input id="unidade" maxlength="30" required list="unidades" value="H" placeholder="hora, m2…">
+        <input id="unidade" maxlength="30" required value="H" placeholder="hora, m2…" autocomplete="off" role="combobox" aria-expanded="false">
         <datalist id="unidades"></datalist>
         <span class="conta" id="unidade-dica"></span>
       </label>
@@ -100,7 +112,7 @@
         <select id="grupo"><option>Civil</option><option>Facilities</option><option>Eletromecânica</option></select>
         <span class="conta"></span>
       </label>
-      <button class="principal" type="submit">Consultar</button>
+      <button class="principal com-icone" type="submit"><svg><use href="#i-busca"/></svg>Consultar</button>
     </form>
 
     <div id="falado" class="falado oculto" aria-live="polite">
@@ -110,16 +122,22 @@
     </div>
 
     <section id="resultado" class="oculto">
+      <div id="novo" class="cartao decisao">
+        <div class="decisao-topo">
+          <span class="sinal" id="sinal" aria-hidden="true"><svg><use href="#i-igual"/></svg></span>
+          <span id="rotulo-justificativa" class="decisao-texto">Nenhum serve? Diga por que é diferente.</span>
+          <div class="linha-botoes">
+            <button id="usar-primeiro" type="button" class="principal com-icone oculto"><svg><use href="#i-ok"/></svg><span>Usar o código</span></button>
+            <button id="criar" type="button" class="com-icone"><svg><use href="#i-mais"/></svg><span>Criar código novo</span></button>
+          </div>
+        </div>
+        <textarea id="justificativa" maxlength="200" aria-labelledby="rotulo-justificativa" placeholder="Por que é diferente dos que já existem?"></textarea>
+      </div>
       <h2>Parecidos no catálogo</h2>
       <div class="rolagem"><table>
         <thead><tr><th>Código</th><th>Descrição</th><th>Un.</th><th>Aderência</th><th>O que muda</th><th></th></tr></thead>
         <tbody id="candidatos"></tbody>
       </table></div>
-      <div id="novo" class="cartao">
-        <label for="justificativa" id="rotulo-justificativa">Nenhum serve? Diga por que é diferente.</label>
-        <textarea id="justificativa" maxlength="200"></textarea>
-        <div class="linha-botoes"><button id="criar" type="button">Criar código novo</button></div>
-      </div>
     </section>
 
     <details class="historico" id="caixa-historico">
@@ -147,12 +165,12 @@
         </span>
       </label>
       <label>Unidade se faltar
-        <input id="lote-unidade" list="unidades" placeholder="ex.: SV" autocomplete="off">
+        <input id="lote-unidade" placeholder="ex.: SV" autocomplete="off" role="combobox" aria-expanded="false">
       </label>
       <label>Grupo se faltar
         <select id="lote-grupo"><option value="">—</option><option>Civil</option><option>Facilities</option><option>Eletromecânica</option></select>
       </label>
-      <button class="principal" type="submit" id="analisar">Analisar</button>
+      <button class="principal com-icone" type="submit" id="analisar"><svg><use href="#i-planilha"/></svg>Analisar</button>
       <details class="colar">
         <summary>Ou cole a lista</summary>
         <textarea id="lote-texto" rows="5" placeholder="Uma descrição por linha (colunas separadas por ; ou tab)"></textarea>
@@ -162,8 +180,8 @@
       <div class="relatorio" id="lote-relatorio"></div>
       <div class="chips" id="lote-chips"></div>
       <div class="barra-lote">
-        <button class="principal" type="button" id="importar">Importar no banco</button>
-        <button type="button" id="exportar">Baixar Excel organizado</button>
+        <button class="principal com-icone" type="button" id="importar"><svg><use href="#i-banco"/></svg>Importar no banco</button>
+        <button type="button" class="com-icone" id="exportar"><svg><use href="#i-baixar"/></svg>Baixar Excel organizado</button>
       </div>
       <p class="info" id="lote-info"></p>
       <div class="rolagem"><table>
@@ -244,14 +262,25 @@
   </section>
 
   <section id="aba-curador" class="oculto">
+    <div id="caixa-entradas" class="oculto">
+      <h2>Pedidos de entrada</h2>
+      <p class="dica">Quem está sem câmera pede para entrar na própria conta. Aceite só quem você reconhece: fica registrado que foi você.</p>
+      <div class="pedidos" id="lista-entradas"></div>
+    </div>
+    <div class="resumo-curador" id="resumo-curador">
+      <div class="kpi espera"><svg><use href="#i-relogio"/></svg><b id="kpi-esperando">0</b><span>esperando</span></div>
+      <div class="kpi aprova"><svg><use href="#i-mais"/></svg><b id="kpi-aprovados">0</b><span>aprovados hoje</span></div>
+      <div class="kpi recusa"><svg><use href="#i-igual"/></svg><b id="kpi-recusados">0</b><span>recusados hoje</span></div>
+      <div class="kpi aprende"><svg><use href="#i-brilho"/></svg><b id="kpi-regras">0</b><span>regras aprendidas</span></div>
+    </div>
     <h2>Pedidos para o curador</h2>
     <p class="dica">Pedidos iguais, mesmo escritos diferente, vêm juntos. O MOKKA sugere a decisão e diz a certeza.</p>
     <div class="barra-lote oculto" id="barra-curador">
-      <button type="button" class="principal" id="aceitar-sugestoes">Aceitar sugestões</button>
+      <button type="button" class="principal com-icone" id="aceitar-sugestoes"><svg><use href="#i-brilho"/></svg><span>Aceitar sugestões</span></button>
       <span class="info" id="sugestoes-info"></span>
     </div>
     <div class="pedidos" id="lista-curador"></div>
-    <p class="vazio oculto" id="curador-vazio">Nenhum pedido esperando.</p>
+    <div class="tudo-em-dia oculto" id="curador-vazio"><svg viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="23"/><path d="M15 27l7 7 15-16"/></svg><b>Tudo em dia</b><span>Nenhum pedido esperando o curador.</span></div>
 
     <h2>O que o MOKKA aprendeu</h2>
     <p class="dica">Cada decisão vira uma regra para a próxima consulta. Palavras ensinadas só valem depois que um curador aceitar.</p>
@@ -307,6 +336,14 @@
       <button type="submit">Entrar</button>
     </form>
     <p class="info" id="entrar-info"></p>
+    <button type="button" class="link" id="sem-camera">Estou sem câmera: pedir para um curador liberar</button>
+    <form class="pedir-entrada oculto" id="form-pedir">
+      <p class="dica">Escreva seu nome e uma observação. Um curador ou administrador confere e libera; fica registrado quem aceitou. O pedido vale 15 minutos.</p>
+      <input id="pedir-nome" maxlength="60" placeholder="Seu nome" autocomplete="name" required>
+      <textarea id="pedir-obs" maxlength="300" minlength="5" required placeholder="Ex.: estou no notebook da sala 3, sem câmera. Ramal 2241."></textarea>
+      <button type="submit" class="principal" id="pedir-enviar">Pedir para entrar</button>
+      <p class="info" id="pedir-info" role="status"></p>
+    </form>
   </div>
 </dialog>
 
@@ -319,6 +356,12 @@
     <div class="conta-topo">
       <img id="conta-foto" class="retrato grande oculto" alt="">
       <p class="info" id="conta-info"></p>
+    </div>
+    <div class="foto-perfil">
+      <span class="foto-perfil-titulo">Foto do perfil</span>
+      <button type="button" id="foto-camera"><svg><use href="#i-rosto"/></svg>Pela câmera</button>
+      <label class="botao-arquivo"><input type="file" id="foto-arquivo" accept="image/*">Escolher arquivo</label>
+      <button type="button" class="link oculto" id="foto-tirar">Remover</button>
     </div>
     <button type="button" class="principal botao-chave" id="cadastrar-rosto"><svg><use href="#i-rosto"/></svg>Cadastrar meu rosto</button>
     <button type="button" class="botao-chave" id="cadastrar-chave"><svg><use href="#i-curador"/></svg>Cadastrar a chave do Windows</button>
@@ -348,10 +391,10 @@
   <div class="janela-corpo ficha" id="ficha"></div>
 </dialog>
 
-<script src="fala.js?v=13"></script>
-<script src="local.js?v=13"></script>
-<script src="app.js?v=13"></script>
-<script src="rosto.js?v=13"></script>
-<script src="raiox.js?v=13"></script>
+<script src="fala.js?v=15"></script>
+<script src="local.js?v=15"></script>
+<script src="app.js?v=15"></script>
+<script src="rosto.js?v=15"></script>
+<script src="raiox.js?v=15"></script>
 </body>
 </html>

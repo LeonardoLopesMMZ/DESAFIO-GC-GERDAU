@@ -14,6 +14,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.text.Normalizer;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
@@ -28,6 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -39,6 +41,7 @@ public class Acesso {
 
     public static final Duration VALIDADE = Duration.ofHours(8);
     private static final Duration VALIDADE_DESAFIO = Duration.ofMinutes(3);
+    private static final Duration VALIDADE_PEDIDO = Duration.ofMinutes(15);
     private static final Base64.Encoder B64 = Base64.getUrlEncoder().withoutPadding();
     private static final Base64.Decoder D64 = Base64.getUrlDecoder();
 
@@ -117,7 +120,7 @@ public class Acesso {
             return "ADMIN";
         }
         String p = adminPelaLista(nome) ? "ADMIN" : usuarios.findByNomeIgnoreCase(nome).map(Usuario::getPerfil).orElse("COMPRADOR");
-        return "ADMIN".equals(p) && "NOME".equals(metodo) ? "CURADOR" : p;
+        return "ADMIN".equals(p) && ("NOME".equals(metodo) || "APROVADO".equals(metodo)) ? "CURADOR" : p;
     }
 
     public boolean adminPelaLista(String nome) {
@@ -160,6 +163,7 @@ public class Acesso {
         Usuario u = usuarios.findByNomeIgnoreCase(s.nome()).orElse(null);
         if (u != null) {
             u.cadastrarRosto(null, null);
+            u.mudarFotoPerfil(null);
             usuarios.save(u);
         }
         jdbc.update("update solicitacao set retrato_id = null where retrato_id in (select id from retrato where lower(nome) = lower(?))", s.nome());
@@ -325,6 +329,127 @@ public class Acesso {
         }
         Retrato r = retratos.save(new Retrato(melhor.getNome(), "ENTRADA", Math.round(menor * 1000) / 1000.0, cofre.trancar(jpg)));
         return nova(melhor.getNome(), "ROSTO", r.getId());
+    }
+
+    @Transactional
+    public void fotoPerfil(Sessao s, String foto) {
+        byte[] jpg = foto(foto);
+        Usuario u = usuarios.findByNomeIgnoreCase(s.nome()).orElseGet(() -> usuarios.save(new Usuario(s.nome())));
+        Long antiga = u.getFotoPerfilId();
+        Retrato r = retratos.save(new Retrato(u.getNome(), "PERFIL", null, cofre.trancar(jpg)));
+        u.mudarFotoPerfil(r.getId());
+        usuarios.save(u);
+        apagarFoto(antiga);
+        auditoria.registrar(s.nome(), "TROCOU_FOTO", s.nome(), "foto do perfil");
+    }
+
+    @Transactional
+    public void tirarFotoPerfil(Sessao s) {
+        Usuario u = usuarios.findByNomeIgnoreCase(s.nome()).orElse(null);
+        if (u == null || u.getFotoPerfilId() == null) {
+            return;
+        }
+        Long antiga = u.getFotoPerfilId();
+        u.mudarFotoPerfil(null);
+        usuarios.save(u);
+        apagarFoto(antiga);
+        auditoria.registrar(s.nome(), "TIROU_FOTO", s.nome(), "foto do perfil");
+    }
+
+    private void apagarFoto(Long id) {
+        if (id != null) {
+            jdbc.update("update solicitacao set retrato_id = null where retrato_id = ?", id);
+            jdbc.update("delete from retrato where id = ? and tipo = 'PERFIL'", id);
+        }
+    }
+
+    public record PedidoEntrada(long id, String nome, String observacao, String status, String ip, String decididoPor,
+                                LocalDateTime decididoEm, LocalDateTime criadoEm) {
+    }
+
+    public record NovoPedido(long id, String codigo, String nome) {
+    }
+
+    public record Situacao(String status, String decididoPor, Sessao sessao) {
+    }
+
+    private static final String CAMPOS_PEDIDO = "select id, nome, observacao, status, ip, decidido_por, decidido_em, criado_em, codigo from pedido_entrada ";
+
+    private PedidoEntrada pedido(java.sql.ResultSet r) throws java.sql.SQLException {
+        java.sql.Timestamp d = r.getTimestamp("decidido_em");
+        return new PedidoEntrada(r.getLong("id"), r.getString("nome"), r.getString("observacao"), r.getString("status"), r.getString("ip"),
+                r.getString("decidido_por"), d == null ? null : d.toLocalDateTime(), r.getTimestamp("criado_em").toLocalDateTime());
+    }
+
+    private void vencerPedidos() {
+        jdbc.update("update pedido_entrada set status = 'VENCIDO' where status in ('PENDENTE', 'APROVADO') and criado_em < ?",
+                java.sql.Timestamp.valueOf(LocalDateTime.now().minus(VALIDADE_PEDIDO)));
+    }
+
+    @Transactional
+    public NovoPedido pedirEntrada(String nome, String observacao, String ip) {
+        Usuario u = usuarios.findByNomeIgnoreCase(nome).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                "Não existe conta com esse nome. Para criar a sua, entre pelo nome."));
+        if (!u.temRosto() && !u.temChave()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Essa conta não tem rosto nem chave cadastrados: entre pelo nome.");
+        }
+        vencerPedidos();
+        jdbc.update("update pedido_entrada set status = 'TROCADO' where lower(nome) = lower(?) and status = 'PENDENTE'", u.getNome());
+        String codigo = B64.encodeToString(bytes(32));
+        GeneratedKeyHolder chave = new GeneratedKeyHolder();
+        jdbc.update(c -> {
+            java.sql.PreparedStatement ps = c.prepareStatement("insert into pedido_entrada (nome, observacao, codigo, ip) values (?, ?, ?, ?)",
+                    new String[]{"id"});
+            ps.setString(1, u.getNome());
+            ps.setString(2, observacao);
+            ps.setString(3, B64.encodeToString(sha256(codigo.getBytes(StandardCharsets.UTF_8))));
+            ps.setString(4, ip);
+            return ps;
+        }, chave);
+        long id = chave.getKey().longValue();
+        auditoria.registrar(u.getNome(), "PEDIU_ENTRADA", "pedido " + id, observacao);
+        return new NovoPedido(id, codigo, u.getNome());
+    }
+
+    @Transactional
+    public Situacao situacaoPedido(long id, String codigo) {
+        vencerPedidos();
+        List<String[]> l = jdbc.query("select nome, codigo, status, decidido_por from pedido_entrada where id = ?",
+                (r, i) -> new String[]{r.getString(1), r.getString(2), r.getString(3), r.getString(4)}, id);
+        String esperado = codigo == null ? "" : B64.encodeToString(sha256(codigo.getBytes(StandardCharsets.UTF_8)));
+        if (l.isEmpty() || !MessageDigest.isEqual(l.get(0)[1].getBytes(StandardCharsets.UTF_8), esperado.getBytes(StandardCharsets.UTF_8))) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pedido não encontrado.");
+        }
+        String[] p = l.get(0);
+        if ("APROVADO".equals(p[2])) {
+            if (jdbc.update("update pedido_entrada set status = 'USADO' where id = ? and status = 'APROVADO'", id) == 1) {
+                return new Situacao("APROVADO", p[3], nova(p[0], "APROVADO", null));
+            }
+            return new Situacao("USADO", p[3], null);
+        }
+        return new Situacao(p[2], p[3], null);
+    }
+
+    public List<PedidoEntrada> pedidosPendentes() {
+        vencerPedidos();
+        return jdbc.query(CAMPOS_PEDIDO + "where status = 'PENDENTE' order by id", (r, i) -> pedido(r));
+    }
+
+    @Transactional
+    public PedidoEntrada decidirPedido(Sessao quem, long id, boolean aceitar) {
+        vencerPedidos();
+        PedidoEntrada p = jdbc.query(CAMPOS_PEDIDO + "where id = ?", (r, i) -> pedido(r), id).stream().findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pedido não encontrado."));
+        if (!"PENDENTE".equals(p.status())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Esse pedido já foi decidido ou venceu.");
+        }
+        if (p.nome().equalsIgnoreCase(quem.nome())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Você não pode aprovar o seu próprio pedido.");
+        }
+        jdbc.update("update pedido_entrada set status = ?, decidido_por = ?, decidido_em = current_timestamp where id = ? and status = 'PENDENTE'",
+                aceitar ? "APROVADO" : "RECUSADO", quem.nome(), id);
+        auditoria.registrar(quem.nome(), aceitar ? "APROVOU_ENTRADA" : "RECUSOU_ENTRADA", p.nome(), "pedido " + id + ": " + p.observacao());
+        return jdbc.query(CAMPOS_PEDIDO + "where id = ?", (r, i) -> pedido(r), id).get(0);
     }
 
     public byte[] retrato(Sessao s, long id) {

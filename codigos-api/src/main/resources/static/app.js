@@ -97,7 +97,7 @@ async function chamar(url, corpo, opcoes = {}) {
   return dados;
 }
 
-const COMO = { ROSTO: "pelo rosto", CHAVE: "com a chave do Windows", NOME: "pelo nome", LOCAL: "pelo teste automático" };
+const COMO = { ROSTO: "pelo rosto", CHAVE: "com a chave do Windows", NOME: "pelo nome", LOCAL: "pelo teste automático", APROVADO: "com a liberação de um curador" };
 const PERFIL = { COMPRADOR: "Comprador", CURADOR: "Curador", ADMIN: "Administrador" };
 const podeCurar = () => !!sessao && (sessao.perfil === "CURADOR" || sessao.perfil === "ADMIN");
 const ehAdmin = () => !!sessao && sessao.perfil === "ADMIN";
@@ -119,6 +119,7 @@ function mostrarRetrato(img, id, local) {
   return img;
 }
 
+const fotoDe = s => !s ? [null, null] : s.foto_perfil_id ? [s.foto_perfil_id, null] : [s.retrato_id, s.foto_local];
 function retrato(id, classe) {
   const img = document.createElement("img");
   img.className = "retrato " + (classe || "");
@@ -132,8 +133,8 @@ function definirSessao(s) {
   $("usuario-nome").textContent = s ? s.nome.split(" ")[0] : "Entrar";
   $("usuario").classList.toggle("logado", !!s);
   $("usuario").title = s ? `${s.nome} · entrou ${COMO[s.metodo] || ""}` : "Entrar";
-  mostrarRetrato($("usuario-foto"), s && s.retrato_id, s && s.foto_local);
-  $("usuario-icone").classList.toggle("oculto", !!(s && (s.retrato_id || s.foto_local)));
+  mostrarRetrato($("usuario-foto"), ...fotoDe(s));
+  $("usuario-icone").classList.toggle("oculto", !!(s && (s.foto_perfil_id || s.retrato_id || s.foto_local)));
   document.body.dataset.perfil = s ? (s.local ? "COMPRADOR" : s.perfil || "COMPRADOR") : "";
   const aberta = document.querySelector("nav.abas button.ativa");
   if (aberta && aberta.offsetParent === null) abrir("aba-consulta");
@@ -245,7 +246,9 @@ $("usuario").addEventListener("click", async () => {
     + " A sessão vale até " + quando(sessao.expira) + "."
     + (sessao.metodo === "NOME" && sessao.perfil === "CURADOR" ? " Para ter o perfil de administrador, entre com o rosto ou a chave do Windows." : "");
   $("apagar-rosto").classList.toggle("oculto", !sessao.tem_rosto);
-  mostrarRetrato($("conta-foto"), sessao.retrato_id, sessao.foto_local);
+  mostrarRetrato($("conta-foto"), ...fotoDe(sessao));
+  $("foto-camera").classList.toggle("oculto", !window.isSecureContext);
+  $("foto-tirar").classList.toggle("oculto", !sessao.foto_perfil_id);
   $("cadastrar-rosto").innerHTML = `<svg><use href="#i-rosto"/></svg>${sessao.tem_rosto ? "Cadastrar o rosto de novo" : "Cadastrar meu rosto"}`;
   $("cadastrar-chave").classList.toggle("oculto", !temChave || sessao.tem_chave);
   $("janela-conta").showModal();
@@ -298,7 +301,8 @@ $("sair").addEventListener("click", async () => {
   aviso("Você saiu.", "");
 });
 
-async function decidir(acao, codigo) {
+async function decidir(acao, codigo, botao) {
+  if (botao) botao.classList.add("ocupado");
   try {
     await pedirEntrada();
     const s = await chamar(`/api/solicitacoes/${atual.solicitacao_id}/decisao`, { acao, codigo, justificativa: $("justificativa").value });
@@ -310,9 +314,12 @@ async function decidir(acao, codigo) {
     aviso(texto, s.status === "AGUARDANDO_CURADOR" || s.status === "GUARDADO_LOCAL" ? "REVISAR" : "LIBERAR");
     if (s.status === "CRIADO") $("aviso").appendChild(botaoCodigo(s.codigo_escolhido));
     document.querySelectorAll("#resultado button:not(.cod)").forEach(b => b.disabled = true);
+    if (botao) feito(botao);
+    concluir(s.status, s.codigo_escolhido || codigo);
     historico();
     pendentes();
-  } catch (e) { aviso(e.message, "erro"); }
+  } catch (e) { aviso(e.message, "erro"); if (botao) falhou(botao); }
+  if (botao) botao.classList.remove("ocupado");
 }
 
 const ABAS = ["aba-consulta", "aba-lote", "aba-unidades", "aba-catalogo", "aba-raio-x", "aba-curador", "aba-pessoas"];
@@ -344,10 +351,13 @@ document.querySelectorAll("nav.abas button").forEach(b => b.addEventListener("cl
 let unidades = [];
 const limpar = t => t.normalize("NFKD").replace(/\p{M}/gu, "").replace(/\./g, "").trim().replace(/\s+/g, " ").toUpperCase();
 
+const acharUnidade = t => { const x = limpar(t || ""); return x ? unidades.find(u => [u.codigo, ...u.pode_escrever].some(p => limpar(p) === x)) : null; };
+const unidadeFalada = t => unidades.length ? !!acharUnidade(t) : t.trim().split(/\s+/).length <= 2;
+
 function conferirUnidade() {
   const campo = $("unidade"), dica = $("unidade-dica"), texto = limpar(campo.value);
   if (!texto) { dica.textContent = ""; return; }
-  const u = unidades.find(x => [x.codigo, ...x.pode_escrever].some(t => limpar(t) === texto));
+  const u = acharUnidade(texto);
   if (u) { campo.value = u.codigo; dica.textContent = u.nome; dica.className = "conta"; }
   else if (unidades.length) { dica.textContent = "Unidade desconhecida"; dica.className = "conta erro-texto"; }
 }
@@ -490,86 +500,181 @@ function certeza(p) {
   return s;
 }
 
+function anel(p, acao) {
+  const NS = "http://www.w3.org/2000/svg";
+  const caixa = document.createElement("div");
+  caixa.className = "anel-certeza " + (acao || "");
+  caixa.title = `Certeza do MOKKA: ${p}%`;
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", "0 0 44 44");
+  [["trilho", 0], ["valor", p]].forEach(([c, v]) => {
+    const k = document.createElementNS(NS, "circle");
+    k.setAttribute("cx", 22); k.setAttribute("cy", 22); k.setAttribute("r", 18);
+    k.setAttribute("pathLength", 100);
+    k.setAttribute("class", c);
+    if (c === "valor") k.style.setProperty("--p", v);
+    svg.appendChild(k);
+  });
+  const b = document.createElement("b");
+  contar(b, p);
+  const i = document.createElementNS(NS, "svg");
+  i.setAttribute("class", "icone-acao");
+  i.innerHTML = `<use href="#i-${acao === "APROVAR" ? "mais" : "igual"}"/>`;
+  caixa.append(svg, b, i);
+  return caixa;
+}
+
+function termosDe(t) { return SEM_ACENTO(M(t)).replace(/[^A-Z0-9% ]+/g, " ").split(/\s+/).filter(Boolean); }
+function marcarDiferencas(alvo, texto, outro) {
+  const outras = new Set(termosDe(outro));
+  alvo.replaceChildren();
+  M(texto).split(/(\s+)/).forEach(w => {
+    const limpa = termosDe(w)[0];
+    if (limpa && !outras.has(limpa)) { const m = document.createElement("mark"); m.textContent = w; alvo.appendChild(m); }
+    else alvo.append(w);
+  });
+}
+
+function avatar(nome, retratoId) {
+  const s = document.createElement("span");
+  s.className = "avatar";
+  s.title = nome;
+  if (retratoId) { s.appendChild(retrato(retratoId, "")); s.classList.add("com-foto"); }
+  else s.textContent = nome.split(/\s+/).slice(0, 2).map(x => x[0]).join("").toUpperCase();
+  return s;
+}
+
+function botaoIcone(icone, texto, classe) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "com-icone " + (classe || "");
+  b.innerHTML = `<svg><use href="#i-${icone}"/></svg><span></span>`;
+  b.querySelector("span").textContent = texto;
+  return b;
+}
+
+async function resumoCurador() {
+  if (!podeCurar()) return;
+  try {
+    const r = await chamar("/api/solicitacoes/curador/resumo", null, { silencioso: true, semLocal: true });
+    [["kpi-esperando", r.esperando], ["kpi-aprovados", r.aprovados_hoje], ["kpi-recusados", r.recusados_hoje], ["kpi-regras", r.regras_aprendidas]].forEach(([id, v]) => {
+      const el = $(id);
+      if (el.dataset.v !== String(v)) { el.dataset.v = v; contar(el, v); el.parentElement.classList.remove("mudou"); void el.offsetWidth; el.parentElement.classList.add("mudou"); }
+    });
+  } catch (e) {}
+}
+
+function cartaoCaso(g, ordem) {
+  const sug = g.sugestao;
+  const card = document.createElement("article");
+  card.className = "caso" + (sug && sug.certeza >= CONFIANCA ? " forte " + sug.acao : "");
+  card.style.setProperty("--i", ordem);
+  card.dataset.ids = g.ids.join(",");
+
+  const topo = document.createElement("div");
+  topo.className = "caso-topo";
+  const quem = document.createElement("div");
+  quem.className = "avatares";
+  const vistos = new Set();
+  g.pedidos.forEach(p => { if (!vistos.has(p.solicitante)) { vistos.add(p.solicitante); quem.appendChild(avatar(p.solicitante, p.retrato_id)); } });
+  const titulo = document.createElement("div");
+  titulo.className = "caso-titulo";
+  const h = document.createElement("h3");
+  h.textContent = g.pediram.join(", ");
+  const meta = document.createElement("span");
+  meta.className = "meta";
+  meta.textContent = `${g.ids.length > 1 ? g.ids.length + " pedidos iguais · " : ""}${quando(g.pedidos[0].criada_em)}`;
+  titulo.append(h, meta);
+  topo.append(quem, titulo);
+  if (g.ids.length > 1) { const q = document.createElement("span"); q.className = "quantos"; q.textContent = "×" + g.ids.length; topo.appendChild(q); }
+
+  const lados = document.createElement("div");
+  lados.className = "lados";
+  const pedido = document.createElement("div");
+  pedido.className = "lado pedido-lado";
+  pedido.innerHTML = `<span class="lado-rotulo"><svg><use href="#i-mais"/></svg>Pediram</span><p class="lado-texto"></p><span class="lado-un"></span>`;
+  marcarDiferencas(pedido.querySelector(".lado-texto"), g.descricao, g.descricao_existente || "");
+  pedido.querySelector(".lado-un").textContent = g.unidade;
+  const meio = sug ? anel(sug.certeza, sug.acao) : document.createElement("div");
+  meio.classList.add("meio");
+  const existe = document.createElement("div");
+  existe.className = "lado existe-lado";
+  existe.innerHTML = `<span class="lado-rotulo"><svg><use href="#i-igual"/></svg>Já existe</span><p class="lado-texto"></p><span class="lado-un"></span>`;
+  marcarDiferencas(existe.querySelector(".lado-texto"), g.descricao_existente || "", g.descricao);
+  existe.querySelector(".lado-un").textContent = g.unidade_existente || "";
+  existe.querySelector(".lado-rotulo").appendChild(botaoCodigo(g.codigo_existente));
+  lados.append(pedido, meio, existe);
+
+  const just = g.pedidos.map(p => p.justificativa).filter(Boolean);
+  const porque = document.createElement("div");
+  porque.className = "porque";
+  just.slice(0, 2).forEach(j => { const q = document.createElement("q"); q.textContent = j; porque.appendChild(q); });
+
+  const rodape = document.createElement("div");
+  rodape.className = "caso-rodape";
+  if (sug) {
+    const s = document.createElement("p");
+    s.className = "sugestao-texto " + sug.acao;
+    s.innerHTML = `<svg><use href="#i-brilho"/></svg><span></span>`;
+    s.querySelector("span").textContent = sug.motivo;
+    rodape.appendChild(s);
+  }
+  const acoes = document.createElement("div");
+  acoes.className = "acoes";
+  const recusar = botaoIcone("igual", `Recusar · usar o ${g.codigo_existente}`, "recusar");
+  const aprovar = botaoIcone("mais", g.ids.length > 1 ? `Aprovar os ${g.ids.length} · criar código` : "Aprovar · criar código", "aprovar");
+  [[recusar, false, "RECUSAR"], [aprovar, true, "APROVAR"]].forEach(([b, aprovarIsso, acao]) => {
+    if (sug && sug.acao === acao) { b.classList.add("principal", "sugerido"); b.title = "Sugestão do MOKKA"; }
+    b.onclick = () => curadoria(g.ids, aprovarIsso, b, card);
+  });
+  acoes.append(recusar, aprovar);
+  rodape.appendChild(acoes);
+
+  card.append(topo, lados);
+  if (just.length) card.appendChild(porque);
+  card.appendChild(rodape);
+
+  if (g.ids.length > 1) {
+    const det = document.createElement("details");
+    det.className = "um-a-um";
+    det.innerHTML = "<summary>Decidir um por um</summary>";
+    const ul = document.createElement("ul");
+    g.pedidos.forEach(p => {
+      const li = document.createElement("li");
+      li.appendChild(avatar(p.solicitante, p.retrato_id));
+      const t = document.createElement("span");
+      t.textContent = `${M(p.descricao_digitada)} · ${p.solicitante}`;
+      const r = botaoIcone("igual", "Recusar", "pequeno"), a = botaoIcone("mais", "Aprovar", "pequeno");
+      r.onclick = () => curadoria([p.id], false, r);
+      a.onclick = () => curadoria([p.id], true, a);
+      li.append(t, r, a);
+      ul.appendChild(li);
+    });
+    det.appendChild(ul);
+    card.appendChild(det);
+  }
+  return card;
+}
+
 async function pendentes() {
   if (!podeCurar()) return;
   try {
     gruposCurador = await chamar("/api/solicitacoes/curador");
-    const total = gruposCurador.reduce((n, g) => n + g.ids.length, 0);
-    $("qtd-curador").textContent = total;
-    $("qtd-curador").classList.toggle("oculto", !total);
-    moverIndicador();
+    atualizarContadorCurador();
+    entradasPendentes();
+    resumoCurador();
     const lista = $("lista-curador");
-    lista.replaceChildren();
-    gruposCurador.forEach(g => {
-      const card = document.createElement("article");
-      card.className = "pedido";
-      const topo = document.createElement("div");
-      topo.className = "pedido-topo";
-      const info = document.createElement("div");
-      if (g.ids.length > 1) { const q = document.createElement("span"); q.className = "quantos"; q.textContent = `${g.ids.length} pedidos iguais`; info.appendChild(q); }
-      const h = document.createElement("h3");
-      h.textContent = `${M(g.descricao)} [${g.unidade}]`;
-      const meta = document.createElement("div");
-      meta.className = "meta";
-      meta.append("Já existe ", botaoCodigo(g.codigo_existente), ` · pediram: ${g.pediram.join(", ")}`);
-      info.append(h, meta);
-      const acoes = document.createElement("div");
-      acoes.className = "acoes linha-botoes";
-      const n = g.ids.length > 1 ? ` os ${g.ids.length}` : "";
-      const sug = g.sugestao;
-      [[`Aprovar${n}`, true, "APROVAR"], [`Recusar${n}`, false, "RECUSAR"]].forEach(([nome, aprovar, acao]) => {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.textContent = nome;
-        b.className = sug && sug.acao === acao ? "principal" : "";
-        b.onclick = () => curadoria(g.ids, aprovar, b);
-        acoes.appendChild(b);
-      });
-      topo.append(info, acoes);
-      if (sug) {
-        const linha = document.createElement("div");
-        linha.className = "sugestao " + sug.acao + (sug.certeza >= CONFIANCA ? " forte" : "");
-        const t = document.createElement("b");
-        t.textContent = "Sugestão do MOKKA: " + ACAO[sug.acao];
-        const m = document.createElement("span");
-        m.textContent = sug.motivo;
-        linha.append(t, certeza(sug.certeza), m);
-        topo.appendChild(linha);
-      }
-      const ul = document.createElement("ul");
-      g.pedidos.forEach(p => {
-        const li = document.createElement("li");
-        const b = document.createElement("b");
-        b.textContent = M(p.descricao_digitada);
-        const em = document.createElement("em");
-        em.textContent = `${p.solicitante} · ${quando(p.criada_em)}${p.justificativa ? " · “" + p.justificativa + "”" : ""}`;
-        li.append(b, em);
-        if (g.ids.length > 1) {
-          const so = document.createElement("button");
-          so.type = "button";
-          so.className = "link";
-          so.textContent = "decidir só este";
-          so.onclick = () => { const r = confirm(`Aprovar só o pedido de ${p.solicitante}? (Cancelar = recusar só este)`); curadoria([p.id], r, so); };
-          li.appendChild(so);
-        }
-        ul.appendChild(li);
-      });
-      card.style.setProperty("--i", lista.children.length);
-      card.append(topo, ul);
-      lista.appendChild(card);
-    });
+    lista.replaceChildren(...gruposCurador.map((g, i) => cartaoCaso(g, i)));
     $("curador-vazio").classList.toggle("oculto", gruposCurador.length > 0);
     const fortes = gruposCurador.filter(g => g.sugestao && g.sugestao.certeza >= CONFIANCA);
     $("barra-curador").classList.toggle("oculto", !fortes.length);
-    $("aceitar-sugestoes").textContent = fortes.length === 1 ? "Aceitar a sugestão forte" : `Aceitar as ${fortes.length} sugestões fortes`;
+    $("aceitar-sugestoes").querySelector("span").textContent = fortes.length === 1 ? "Aceitar a sugestão forte" : `Aceitar as ${fortes.length} sugestões fortes`;
     $("sugestoes-info").textContent = `Só as que o MOKKA tem ${CONFIANCA}% ou mais de certeza. Dá para desfazer depois.`;
   } catch (e) {}
 }
 
 function desfazer(ids) {
-  const b = document.createElement("button");
-  b.type = "button";
-  b.textContent = "Desfazer";
+  const b = botaoIcone("volta", "Desfazer", "desfazer");
   b.onclick = async () => {
     b.classList.add("ocupado");
     try {
@@ -581,21 +686,37 @@ function desfazer(ids) {
     } catch (e) { aviso(e.message, "erro"); }
   };
   $("aviso").appendChild(b);
+  $("aviso").classList.add("com-tempo");
 }
 
-async function curadoria(ids, aprovar, botao) {
+function sairCartao(card, aprovar) {
+  return new Promise(ok => {
+    if (!card) { ok(); return; }
+    card.style.height = card.offsetHeight + "px";
+    card.classList.add(aprovar ? "saindo-aprovado" : "saindo-recusado");
+    const selo = document.createElement("span");
+    selo.className = "carimbo";
+    selo.innerHTML = `<svg><use href="#i-${aprovar ? "mais" : "igual"}"/></svg>`;
+    card.appendChild(selo);
+    setTimeout(() => { card.classList.add("fechando"); setTimeout(() => { card.remove(); ok(); }, 280); }, 520);
+  });
+}
+
+async function curadoria(ids, aprovar, botao, card) {
   try {
     await pedirEntrada();
     botao.classList.add("ocupado");
     const r = await chamar("/api/solicitacoes/curador/grupo", { ids, aprovar });
     const cod = r[0].codigo_escolhido;
+    feito(botao);
+    await sairCartao(card, aprovar);
     aviso(aprovar ? `Aprovado: ${r.length > 1 ? r.length + " pedidos usam" : "criado"} o código ${cod}.` : `Recusado: ${r.length > 1 ? "os " + r.length + " pedidos usam" : "use"} o ${cod}.`, aprovar ? "LIBERAR" : "REVISAR");
     $("aviso").appendChild(botaoCodigo(cod));
     desfazer(r.map(x => x.id));
     pendentes();
     aprendeu();
     historico();
-  } catch (e) { aviso(e.message, "erro"); }
+  } catch (e) { aviso(e.message, "erro"); falhou(botao); }
   botao.classList.remove("ocupado");
 }
 
@@ -609,10 +730,16 @@ $("aceitar-sugestoes").addEventListener("click", async () => {
   const feitos = [];
   let erro = null;
   for (const g of fortes) {
-    try { feitos.push(...(await chamar("/api/solicitacoes/curador/grupo", { ids: g.ids, aprovar: g.sugestao.acao === "APROVAR" })).map(x => x.id)); }
-    catch (e) { erro = e; }
+    const card = document.querySelector(`.caso[data-ids="${g.ids.join(",")}"]`);
+    if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+    try {
+      const sim = g.sugestao.acao === "APROVAR";
+      feitos.push(...(await chamar("/api/solicitacoes/curador/grupo", { ids: g.ids, aprovar: sim })).map(x => x.id));
+      await sairCartao(card, sim);
+    } catch (e) { erro = e; }
   }
   botao.classList.remove("ocupado");
+  if (!erro) feito(botao);
   aviso(`${feitos.length} pedido(s) decididos pelas sugestões.` + (erro ? " Alguns não deram certo: " + erro.message : ""), erro ? "erro" : "LIBERAR");
   if (feitos.length) desfazer(feitos);
   pendentes();
@@ -770,7 +897,7 @@ function aderencia(p) {
 
 function mostrar(r) {
   atual = r;
-  aviso(r.motivo, r.resultado);
+  aviso(r.motivo + (r.nota ? " · " + r.nota[0].toUpperCase() + r.nota.slice(1) + "." : ""), r.resultado);
   if (r.sugestao) {
     const s = r.sugestao, a = $("aviso");
     a.className = "REVISAR mostra";
@@ -801,9 +928,9 @@ function mostrar(r) {
     celula(tr, muda);
     const b = document.createElement("button");
     b.type = "button";
-    b.textContent = "Usar este";
-    if (i === 0 && r.resultado !== "LIBERAR") b.className = "principal";
-    b.onclick = () => decidir("USAR_EXISTENTE", c.codigo);
+    b.className = "com-icone" + (i === 0 && r.resultado !== "LIBERAR" ? " principal" : "");
+    b.innerHTML = '<svg><use href="#i-ok"/></svg><span>Usar este</span>';
+    b.onclick = () => { tr.classList.add("escolhida"); decidir("USAR_EXISTENTE", c.codigo, b); };
     celula(tr, b);
     corpo.appendChild(tr);
   });
@@ -813,8 +940,19 @@ function mostrar(r) {
   $("justificativa").required = r.resultado !== "LIBERAR";
   $("justificativa").classList.toggle("oculto", r.resultado === "LIBERAR");
   $("rotulo-justificativa").textContent = r.resultado === "LIBERAR" ? "Nenhum igual: pode criar." : "Nenhum serve? Diga por que é diferente.";
-  $("criar").className = r.resultado === "LIBERAR" ? "principal" : "";
+  $("criar").className = "com-icone" + (r.resultado === "LIBERAR" ? " principal" : "");
   $("criar").disabled = false;
+  const primeiro = r.resultado !== "LIBERAR" && r.candidatos[0];
+  $("usar-primeiro").classList.toggle("oculto", !primeiro);
+  $("usar-primeiro").disabled = false;
+  if (primeiro) $("usar-primeiro").querySelector("span").textContent = `Usar o ${primeiro.codigo}`;
+  const sinal = $("sinal");
+  sinal.className = "sinal " + r.resultado;
+  sinal.querySelector("use").setAttribute("href", { BLOQUEAR: "#i-igual", REVISAR: "#i-quase", LIBERAR: "#i-mais" }[r.resultado] || "#i-quase");
+  sinal.title = { BLOQUEAR: "Já existe igual", REVISAR: "Existe parecido", LIBERAR: "Novo: pode criar" }[r.resultado] || "";
+  $("novo").classList.remove("aparece");
+  void $("novo").offsetWidth;
+  $("novo").classList.add("aparece");
   const pediuCriar = pedidoDeCriar;
   pedidoDeCriar = false;
   if (pediuCriar && !r.sugestao) {
@@ -876,16 +1014,22 @@ $("consulta").addEventListener("submit", async e => {
   const botao = $("consulta").querySelector("button.principal");
   try {
     await pedirEntrada();
-    if ($("descricao").value.length > 40) {
-      const r = caber40($("descricao").value);
-      $("descricao").value = r.texto;
-      contarCaracteres();
-      aviso(r.cortou ? `Mesmo abreviando passou de 40; cortei o final, confira: ${r.texto}` : `Abreviei para caber nos 40 do SAP: ${r.original} → ${r.texto}`, r.cortou ? "REVISAR" : "");
-    }
     botao.classList.add("ocupado");
+    const notas = [];
+    if (!falado) {
+      const trocas = await corrigirTexto(false);
+      if (trocas.length) notas.push("corrigi " + trocas.map(t => `${t.de} → ${t.para}`).join(", "));
+    }
+    if ($("descricao").value.length > 40) {
+      const ab = caber40($("descricao").value);
+      $("descricao").value = ab.texto;
+      contarCaracteres();
+      notas.push(ab.cortou ? `mesmo abreviando passou de 40; cortei o final, confira` : `abreviei para os 40 do SAP: ${ab.original} → ${ab.texto}`);
+    }
     const pedido = { descricao: $("descricao").value, unidade: $("unidade").value, grupo: $("grupo").value };
     const r = await chamar("/api/consultas", pedido);
     r.pedido = pedido;
+    r.nota = notas.join(" · ");
     mostrar(r);
     historico();
   } catch (err) { aviso(err.message, "erro"); }
@@ -895,10 +1039,12 @@ $("consulta").addEventListener("submit", async e => {
 $("criar").addEventListener("click", () => {
   if ($("justificativa").required && !$("justificativa").value.trim()) {
     aviso("Escreva a justificativa: já existe código igual ou parecido.", "erro");
+    tremer($("justificativa"));
+    falhou($("criar"));
     $("justificativa").focus();
     return;
   }
-  decidir("CRIAR_NOVO");
+  decidir("CRIAR_NOVO", undefined, $("criar"));
 });
 
 const Reconhecedor = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -922,31 +1068,19 @@ filtro.addEventListener("change", () => {
 
 async function abrirAudio(comFiltro) {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return null;
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, noiseSuppression: comFiltro, echoCancellation: comFiltro, autoGainControl: true } });
+  const suporta = navigator.mediaDevices.getSupportedConstraints ? navigator.mediaDevices.getSupportedConstraints() : {};
+  const pedido = { channelCount: 1, noiseSuppression: comFiltro, echoCancellation: comFiltro, autoGainControl: true };
+  if (comFiltro && suporta.voiceIsolation) pedido.voiceIsolation = true;
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: pedido });
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (ctx.state === "suspended") await ctx.resume().catch(() => {});
   const fonte = ctx.createMediaStreamSource(stream);
-  let saida = fonte;
-  if (comFiltro) {
-    const graves = ctx.createBiquadFilter();
-    graves.type = "highpass";
-    graves.frequency.value = 100;
-    const agudos = ctx.createBiquadFilter();
-    agudos.type = "lowpass";
-    agudos.frequency.value = 7000;
-    const compressor = ctx.createDynamicsCompressor();
-    compressor.threshold.value = -40;
-    compressor.ratio.value = 4;
-    fonte.connect(graves);
-    graves.connect(agudos);
-    agudos.connect(compressor);
-    saida = compressor;
-  }
   const analisador = ctx.createAnalyser();
   analisador.fftSize = 512;
-  saida.connect(analisador);
-  const destino = ctx.createMediaStreamDestination();
-  saida.connect(destino);
-  return { ctx, stream, analisador, trilha: destino.stream.getAudioTracks()[0], maximo: 0, inicio: performance.now(), avisou: false };
+  fonte.connect(analisador);
+  const trilha = stream.getAudioTracks()[0];
+  const ajustes = trilha && trilha.getSettings ? trilha.getSettings() : {};
+  return { ctx, stream, analisador, trilha, filtrando: !!(ajustes.noiseSuppression || ajustes.voiceIsolation), maximo: 0, inicio: performance.now(), avisou: false };
 }
 
 function medir() {
@@ -998,9 +1132,8 @@ function prepararMic(botao, aoOuvir) {
       : "O microfone só funciona abrindo por http://localhost:8080 no computador que liga o MOKKA. Aqui, digite a descrição.", "REVISAR"));
     return;
   }
-  botao.addEventListener("click", async () => {
-    if (ouvindo) { ouvindo.stop(); return; }
-    if (navigator.brave) { avisoNavegador("O Brave bloqueia a voz. Use o Edge ou o Chrome."); return; }
+  const voltar = () => { botao.classList.remove("ouvindo", "com-filtro"); botao.querySelector("span").textContent = "Falar"; };
+  async function ouvir(usarFiltro, segunda) {
     const r = new Reconhecedor();
     r.lang = "pt-BR";
     r.interimResults = true;
@@ -1008,20 +1141,28 @@ function prepararMic(botao, aoOuvir) {
     r.continuous = false;
     ouvindo = r;
     botao.classList.add("ouvindo");
+    botao.classList.toggle("com-filtro", usarFiltro);
     botao.querySelector("span").textContent = "Ouvindo";
-    aviso("Pode falar. Ex.: \"soldador hora extra cinquenta por cento, unidade hora\".", "");
-    const usarFiltro = filtro.checked && aceitaFiltro;
+    if (!segunda) aviso("Pode falar. Ex.: \"soldador hora extra cinquenta por cento, unidade hora\".", "");
+    let semFiltroDepois = false, ouviuAlgo = false;
     if (usarFiltro) {
-      try { audio = await abrirAudio(true); $("nivel").classList.add("ativo"); medir(); } catch (e) { audio = null; }
+      try { audio = await abrirAudio(true); $("nivel").classList.add("ativo"); medir(); }
+      catch (e) { audio = null; usarFiltro = false; botao.classList.remove("com-filtro"); }
+      if (ouvindo !== r) { fecharAudio(); voltar(); return; }
     }
     if (!navigator.onLine && Reconhecedor.available) {
       try { if (await Reconhecedor.available({ langs: ["pt-BR"], processLocally: true }) === "available") r.processLocally = true; } catch (e) {}
     }
     r.onresult = e => {
+      ouviuAlgo = true;
       const res = e.results[e.results.length - 1];
       aoOuvir(Array.from(res).map(a => a.transcript), res.isFinal, res[0] && res[0].confidence);
     };
     r.onerror = e => {
+      if (usarFiltro && !ouviuAlgo && !segunda && ["no-speech", "audio-capture", "aborted"].includes(e.error) && (!audio || audio.maximo > .06 || e.error !== "no-speech")) {
+        semFiltroDepois = true;
+        return;
+      }
       const msg = { "not-allowed": "O navegador bloqueou o microfone. Clique no cadeado da barra de endereço e permita.",
                     "service-not-allowed": SAFARI ? "No Mac, ative o Ditado em Ajustes do Sistema › Teclado › Ditado e permita o microfone para o Safari."
                       : "O navegador bloqueou o microfone. Clique no cadeado da barra de endereço e permita.",
@@ -1032,14 +1173,27 @@ function prepararMic(botao, aoOuvir) {
       else if (msg) aviso(msg, "erro");
     };
     r.onend = () => {
-      ouvindo = null;
       fecharAudio();
-      botao.classList.remove("ouvindo");
-      botao.querySelector("span").textContent = "Falar";
+      if (ouvindo === r) ouvindo = null;
+      if (semFiltroDepois) {
+        aviso("O anti-ruído não pegou a sua voz desta vez: estou ouvindo sem o filtro. Pode falar de novo.", "REVISAR");
+        setTimeout(() => ouvir(false, true), 200);
+        return;
+      }
+      voltar();
     };
     try {
-      if (usarFiltro && audio) r.start(audio.trilha); else r.start();
-    } catch (e) { fecharAudio(); r.onend(); aviso("Não consegui ligar o microfone: " + e.message, "erro"); return; }
+      if (usarFiltro && audio && audio.trilha) {
+        try { r.start(audio.trilha); }
+        catch (e) {
+          fecharAudio();
+          usarFiltro = false;
+          botao.classList.remove("com-filtro");
+          aviso("Este navegador não aceita o anti-ruído na voz: ouvindo sem o filtro.", "REVISAR");
+          r.start();
+        }
+      } else r.start();
+    } catch (e) { fecharAudio(); ouvindo = null; voltar(); aviso("Não consegui ligar o microfone: " + e.message, "erro"); return; }
     if (!usarFiltro && !celular && !SAFARI) {
       abrirAudio(false).then(a => {
         if (!a) return;
@@ -1049,13 +1203,19 @@ function prepararMic(botao, aoOuvir) {
         medir();
       }).catch(() => {});
     }
+  }
+  botao.addEventListener("click", () => {
+    if (ouvindo) { const r = ouvindo; ouvindo = null; r.onerror = null; r.stop(); return; }
+    if (navigator.brave) { avisoNavegador("O Brave bloqueia a voz. Use o Edge ou o Chrome."); return; }
+    ouvir(filtro.checked && aceitaFiltro, false);
   });
 }
 
 function usarFala(f) {
   $("descricao").value = f.texto;
   contarCaracteres();
-  if (f.unidade) { $("unidade").value = f.unidade; conferirUnidade(); }
+  esconderCorrecao();
+  if (f.unidade && acharUnidade(f.unidade)) { $("unidade").value = f.unidade; conferirUnidade(); }
 }
 
 function diffPalavras(a, b) {
@@ -1089,7 +1249,7 @@ async function palavrasDuvidosas(texto) {
 }
 
 async function escolherMelhor(alternativas) {
-  const convertidas = alternativas.map(a => falaParaTexto(a)).filter(f => f.texto);
+  const convertidas = alternativas.map(a => falaParaTexto(a, unidadeFalada)).filter(f => f.texto);
   if (convertidas.length < 2) return { melhor: convertidas[0], outras: [] };
   const duvidas = await Promise.all(convertidas.map(f => palavrasDuvidosas(f.texto)));
   let melhor = 0;
@@ -1220,7 +1380,7 @@ async function prepararPalavras(f, outras, duvidas, confianca) {
 
 let pedidoDeCriar = false;
 prepararMic($("mic-descricao"), async (alternativas, final, confianca) => {
-  if (!final) { usarFala(falaParaTexto(alternativas[0])); return; }
+  if (!final) { usarFala(falaParaTexto(alternativas[0], unidadeFalada)); return; }
   const { melhor, duvidas, outras } = await escolherMelhor(alternativas);
   if (!melhor) return;
   usarFala(melhor);
@@ -1427,3 +1587,342 @@ $("arquivo").addEventListener("change", () => {
 });
 ["dragenter", "dragover"].forEach(t => caixaArquivo.addEventListener(t, () => caixaArquivo.classList.add("arrastando")));
 ["dragleave", "drop"].forEach(t => caixaArquivo.addEventListener(t, () => caixaArquivo.classList.remove("arrastando")));
+
+const ignoradas = new Set();
+function distancia(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...new Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) {
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+  }
+  return d[a.length][b.length];
+}
+function corrigivel(de, para) {
+  const a = SEM_ACENTO(M(de)), b = SEM_ACENTO(M(para));
+  if (a.replace(/ /g, "") === b.replace(/ /g, "")) return a !== b;
+  if (a.length < 4 || a.includes(" ")) return false;
+  return distancia(a, b) <= (a.length >= 8 ? 2 : 1);
+}
+function esconderCorrecao() { $("correcao").classList.add("oculto"); $("correcao").replaceChildren(); }
+function mostrarCorrecao(trocas) {
+  const c = $("correcao");
+  c.replaceChildren(`Corrigi ${trocas.map(t => `${t.de} → ${t.para}`).join(", ")} · `);
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "link";
+  b.textContent = "Desfazer";
+  b.onclick = () => {
+    let v = $("descricao").value;
+    trocas.forEach(t => { ignoradas.add(M(t.de)); v = v.replace(new RegExp("(^|\\s)" + t.para.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?=\\s|$)"), "$1" + t.de); });
+    $("descricao").value = v;
+    contarCaracteres();
+    esconderCorrecao();
+    $("descricao").focus();
+  };
+  c.appendChild(b);
+  c.classList.remove("oculto", "pisca");
+  void c.offsetWidth;
+  c.classList.add("pisca");
+}
+async function corrigirTexto(soUltima) {
+  const campo = $("descricao"), texto = campo.value;
+  if (!sessao || sessao.local || !texto.trim()) return [];
+  const palavras = texto.trim().split(/\s+/);
+  const duvidas = await palavrasDuvidosas(palavras.join(" "));
+  if (campo.value !== texto) return [];
+  const ultima = palavras.length - 1, trocas = [];
+  [...duvidas].sort((x, y) => y.indice - x.indice).forEach(d => {
+    if (soUltima && d.indice + d.tamanho - 1 !== ultima) return;
+    const de = palavras.slice(d.indice, d.indice + d.tamanho).join(" "), para = d.sugestoes && d.sugestoes[0];
+    if (!para || ignoradas.has(M(de)) || !corrigivel(de, para)) return;
+    palavras.splice(d.indice, d.tamanho, M(para));
+    trocas.unshift({ de: M(de), para: M(para) });
+  });
+  if (!trocas.length) return [];
+  campo.value = palavras.join(" ") + (/\s$/.test(texto) ? " " : "");
+  contarCaracteres();
+  mostrarCorrecao(trocas);
+  return trocas;
+}
+$("descricao").addEventListener("input", e => {
+  if (e.inputType === "insertText" && e.data === " " && !falado) corrigirTexto(true);
+  else if (!$("descricao").value.trim()) esconderCorrecao();
+});
+
+$("usar-primeiro").addEventListener("click", () => atual && atual.candidatos[0] && decidir("USAR_EXISTENTE", atual.candidatos[0].codigo, $("usar-primeiro")));
+
+function concluir(status, codigo) {
+  const ok = status === "USOU_EXISTENTE" || status === "CRIADO";
+  const titulo = { USOU_EXISTENTE: `Usando o ${codigo}`, CRIADO: `Código ${codigo} criado`, AGUARDANDO_CURADOR: "Enviado ao curador",
+                   GUARDADO_LOCAL: "Guardado neste computador" }[status] || "Pronto";
+  const sub = { USOU_EXISTENTE: "Nenhum código repetido criado. Caso resolvido!", CRIADO: "Já está no catálogo e na busca.",
+                AGUARDANDO_CURADOR: "Você recebe a resposta no histórico.", GUARDADO_LOCAL: "Envio quando o sistema voltar." }[status] || "";
+  const tela = document.createElement("div");
+  tela.className = "concluido " + (ok ? "ok" : "espera");
+  tela.setAttribute("role", "status");
+  tela.innerHTML = `<div class="concluido-caixa"><svg class="concluido-selo" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="23"/><path d="${ok ? "M15 27l7 7 15-16" : "M26 14v14l8 5"}"/></svg><b></b><span></span></div>`;
+  tela.querySelector("b").textContent = titulo;
+  tela.querySelector("span").textContent = sub;
+  if (ok) for (let i = 0; i < 18; i++) {
+    const c = document.createElement("i");
+    const ang = (i / 18) * Math.PI * 2;
+    c.style.setProperty("--x", Math.round(Math.cos(ang) * (110 + (i % 3) * 30)) + "px");
+    c.style.setProperty("--y", Math.round(Math.sin(ang) * (90 + (i % 4) * 22)) + "px");
+    c.style.setProperty("--r", (i * 47) % 360 + "deg");
+    c.style.background = ["#ffcc00", "#003366", "#0b74b8", "#1e7d4f"][i % 4];
+    tela.querySelector(".concluido-caixa").appendChild(c);
+  }
+  const fechar = () => {
+    if (!tela.isConnected) return;
+    tela.classList.add("saindo");
+    setTimeout(() => tela.remove(), 260);
+    novoCaso();
+  };
+  tela.addEventListener("click", fechar);
+  document.body.appendChild(tela);
+  setTimeout(fechar, ok ? 2000 : 2400);
+}
+function novoCaso() {
+  $("descricao").value = "";
+  $("justificativa").value = "";
+  falado = null;
+  desenharPalavras();
+  contarCaracteres();
+  esconderCorrecao();
+  $("resultado").classList.add("oculto");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  setTimeout(() => $("descricao").focus({ preventScroll: true }), 300);
+}
+
+function comboUnidade(campo, aoEscolher) {
+  const envolve = document.createElement("span");
+  envolve.className = "campo-un";
+  campo.before(envolve);
+  envolve.appendChild(campo);
+  const lista = document.createElement("div");
+  lista.className = "lista-un oculto";
+  lista.setAttribute("role", "listbox");
+  envolve.appendChild(lista);
+  let ativo = -1, opcoes = [];
+  const marcar = i => {
+    ativo = i;
+    [...lista.children].forEach((b, k) => b.classList.toggle("ativa", k === i));
+    if (lista.children[i]) lista.children[i].scrollIntoView({ block: "nearest" });
+  };
+  const desenhar = filtrar => {
+    const t = limpar(campo.value);
+    opcoes = !filtrar || !t ? unidades : unidades.filter(u => [u.codigo, u.nome, ...u.pode_escrever].some(x => limpar(x).includes(t)));
+    lista.replaceChildren(...opcoes.map(u => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.tabIndex = -1;
+      b.setAttribute("role", "option");
+      b.className = u.codigo === campo.value ? "atual" : "";
+      b.innerHTML = "<b></b><span></span><small></small>";
+      b.querySelector("b").textContent = u.codigo;
+      b.querySelector("span").textContent = u.nome;
+      b.querySelector("small").textContent = u.codigos_ativos ? u.codigos_ativos.toLocaleString("pt-BR") : "";
+      b.addEventListener("mousedown", e => { e.preventDefault(); escolher(u); });
+      return b;
+    }));
+    if (!opcoes.length) { const v = document.createElement("p"); v.textContent = "Nenhuma unidade com esse nome. Veja a aba Unidades."; lista.appendChild(v); }
+    marcar(filtrar ? 0 : opcoes.findIndex(u => u.codigo === campo.value));
+  };
+  const abrirLista = () => {
+    if (!unidades.length) return;
+    desenhar(false);
+    lista.classList.remove("oculto");
+    campo.setAttribute("aria-expanded", "true");
+    campo.select();
+  };
+  const fechar = () => { lista.classList.add("oculto"); campo.setAttribute("aria-expanded", "false"); };
+  const escolher = u => { campo.value = u.codigo; fechar(); if (aoEscolher) aoEscolher(); };
+  campo.addEventListener("focus", abrirLista);
+  campo.addEventListener("click", () => { if (lista.classList.contains("oculto")) abrirLista(); });
+  campo.addEventListener("input", () => { desenhar(true); lista.classList.remove("oculto"); });
+  campo.addEventListener("blur", () => setTimeout(fechar, 120));
+  campo.addEventListener("keydown", e => {
+    const aberta = !lista.classList.contains("oculto");
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!aberta) { abrirLista(); return; }
+      marcar(Math.max(0, Math.min(opcoes.length - 1, ativo + (e.key === "ArrowDown" ? 1 : -1))));
+    } else if (e.key === "Enter" && aberta && opcoes[ativo]) { e.preventDefault(); escolher(opcoes[ativo]); }
+    else if (e.key === "Escape" && aberta) { e.stopPropagation(); fechar(); }
+    else if (e.key === "Tab" && aberta && opcoes[ativo] && limpar(campo.value) && !acharUnidade(campo.value)) escolher(opcoes[ativo]);
+  });
+}
+comboUnidade($("unidade"), conferirUnidade);
+comboUnidade($("lote-unidade"));
+
+async function salvarFotoPerfil(base64) {
+  const s = await chamar("/api/acesso/foto-perfil", { foto: base64 }).catch(e => { throw Object.assign(new Error(e.message), { nosso: true }); });
+  fotos.clear();
+  definirSessao(Object.assign({}, sessao, s));
+  mostrarRetrato($("conta-foto"), ...fotoDe(sessao));
+  $("foto-tirar").classList.toggle("oculto", !sessao.foto_perfil_id);
+  aviso("Foto do perfil trocada. Ela fica até você trocar de novo.", "LIBERAR");
+}
+function fotoQuadrada(arquivo) {
+  return new Promise((ok, erro) => {
+    const img = new Image(), url = URL.createObjectURL(arquivo);
+    img.onload = () => {
+      const lado = Math.min(img.naturalWidth, img.naturalHeight), c = document.createElement("canvas");
+      c.width = c.height = 128;
+      c.getContext("2d").drawImage(img, (img.naturalWidth - lado) / 2, (img.naturalHeight - lado) / 2, lado, lado, 0, 0, 128, 128);
+      URL.revokeObjectURL(url);
+      let q = 0.8, d = c.toDataURL("image/jpeg", q);
+      while (d.length > 24000 && q > 0.3) { q -= 0.15; d = c.toDataURL("image/jpeg", q); }
+      ok(d.slice(d.indexOf(",") + 1));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); erro(new Error("Não consegui abrir essa imagem.")); };
+    img.src = url;
+  });
+}
+$("foto-arquivo").addEventListener("change", async () => {
+  const f = $("foto-arquivo").files[0];
+  $("foto-arquivo").value = "";
+  if (!f) return;
+  try { await salvarFotoPerfil(await fotoQuadrada(f)); }
+  catch (e) { $("conta-info").textContent = e.message; $("conta-info").classList.add("erro-texto"); }
+});
+$("foto-tirar").addEventListener("click", async () => {
+  try {
+    rede(1);
+    const r = await fetch("/api/acesso/foto-perfil", { method: "DELETE", headers: { Authorization: "Bearer " + sessao.token } }).finally(() => rede(-1));
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.erro || "Erro " + r.status);
+    fotos.clear();
+    definirSessao(Object.assign({}, sessao, d));
+    mostrarRetrato($("conta-foto"), ...fotoDe(sessao));
+    $("foto-tirar").classList.add("oculto");
+  } catch (e) { $("conta-info").textContent = e.message; $("conta-info").classList.add("erro-texto"); }
+});
+
+let esperaPedido = null;
+$("sem-camera").addEventListener("click", () => {
+  $("form-pedir").classList.remove("oculto");
+  $("sem-camera").classList.add("oculto");
+  $("pedir-nome").value = $("pedir-nome").value || $("entrar-nome").value;
+  setTimeout(() => ($("pedir-nome").value ? $("pedir-obs") : $("pedir-nome")).focus(), 50);
+});
+$("form-pedir").addEventListener("submit", async e => {
+  e.preventDefault();
+  const botao = $("pedir-enviar"), info = $("pedir-info");
+  botao.classList.add("ocupado");
+  info.classList.remove("erro-texto");
+  try {
+    const p = await chamar("/api/acesso/pedir-entrada", { nome: $("pedir-nome").value.trim(), observacao: $("pedir-obs").value.trim() }, { semToken: true, semLocal: true });
+    botao.disabled = true;
+    info.textContent = `Pedido nº ${p.id} enviado. Esperando um curador liberar…`;
+    $("form-pedir").classList.add("esperando");
+    clearInterval(esperaPedido);
+    esperaPedido = setInterval(async () => {
+      if (!$("janela-entrar").open) { clearInterval(esperaPedido); return; }
+      try {
+        const r = await fetch(`/api/acesso/pedir-entrada/${p.id}?codigo=${encodeURIComponent(p.codigo)}`, { cache: "no-store" });
+        const d = await r.json();
+        if (d.status === "PENDENTE") return;
+        clearInterval(esperaPedido);
+        $("form-pedir").classList.remove("esperando");
+        botao.disabled = false;
+        if (d.status === "APROVADO" && d.entrada) {
+          $("form-pedir").classList.add("oculto");
+          $("sem-camera").classList.remove("oculto");
+          info.textContent = "";
+          entrou(d.entrada);
+          aviso(`Entrada liberada por ${d.decidido_por}. Você está na conta nº ${d.entrada.conta_id}.`, "LIBERAR");
+        } else {
+          info.textContent = d.status === "RECUSADO" ? `Pedido recusado por ${d.decidido_por}.` : "O pedido venceu. Peça de novo.";
+          info.classList.add("erro-texto");
+        }
+      } catch (err) {}
+    }, 3000);
+  } catch (err) { info.textContent = err.message; info.classList.add("erro-texto"); }
+  botao.classList.remove("ocupado");
+});
+$("form-entrar").addEventListener("submit", () => setTimeout(() => {
+  if (/rosto cadastrado|chave do Windows cadastrada/i.test($("entrar-info").textContent) && $("form-pedir").classList.contains("oculto")) {
+    $("entrar-info").textContent += " Sem câmera? Peça para um curador liberar.";
+    $("sem-camera").click();
+  }
+}, 600));
+
+let qtdEntradas = 0;
+async function entradasPendentes() {
+  if (!podeCurar() || sessao.local) return;
+  try {
+    const lista = await chamar("/api/acesso/pedidos-de-entrada", null, { silencioso: true, semLocal: true });
+    qtdEntradas = lista.length;
+    atualizarContadorCurador();
+    $("caixa-entradas").classList.toggle("oculto", !lista.length);
+    $("lista-entradas").replaceChildren(...lista.map((p, i) => {
+      const card = document.createElement("article");
+      card.className = "pedido entrada";
+      card.style.setProperty("--i", i);
+      card.innerHTML = `<div class="pedido-topo"><div><h3></h3><div class="meta"></div><p class="obs"></p></div><div class="acoes linha-botoes"></div></div>`;
+      card.querySelector("h3").textContent = p.nome;
+      card.querySelector(".meta").textContent = `Pedido nº ${p.id} · ${quando(p.criado_em)} · IP ${p.ip || "?"}`;
+      card.querySelector(".obs").textContent = "“" + p.observacao + "”";
+      [["Liberar entrada", true, "principal"], ["Recusar", false, "perigo"]].forEach(([t, aceitar, cls]) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = cls;
+        b.textContent = t;
+        b.onclick = async () => {
+          b.classList.add("ocupado");
+          try {
+            await chamar(`/api/acesso/pedidos-de-entrada/${p.id}/decisao`, { aceitar });
+            aviso(aceitar ? `Entrada de ${p.nome} liberada. Ficou registrado que foi você.` : `Pedido de ${p.nome} recusado.`, aceitar ? "LIBERAR" : "REVISAR");
+          } catch (e) { aviso(e.message, "erro"); }
+          entradasPendentes();
+        };
+        card.querySelector(".acoes").appendChild(b);
+      });
+      return card;
+    }));
+  } catch (e) {}
+}
+function atualizarContadorCurador() {
+  const grupos = gruposCurador.reduce((n, g) => n + g.ids.length, 0) + qtdEntradas;
+  $("qtd-curador").textContent = grupos;
+  $("qtd-curador").classList.toggle("oculto", !grupos);
+  moverIndicador();
+}
+setInterval(() => { if (podeCurar() && document.visibilityState === "visible") entradasPendentes(); }, 10000);
+
+function feito(botao) {
+  if (!botao) return;
+  botao.classList.remove("feito", "falhou", "ocupado");
+  void botao.offsetWidth;
+  botao.classList.add("feito");
+  setTimeout(() => botao.classList.remove("feito"), 1100);
+}
+function falhou(botao) {
+  if (!botao) return;
+  botao.classList.remove("feito", "falhou");
+  void botao.offsetWidth;
+  botao.classList.add("falhou");
+  setTimeout(() => botao.classList.remove("falhou"), 600);
+}
+function tremer(el) {
+  el.classList.remove("treme");
+  void el.offsetWidth;
+  el.classList.add("treme");
+  setTimeout(() => el.classList.remove("treme"), 600);
+}
+const calmo = matchMedia("(prefers-reduced-motion: reduce)");
+document.addEventListener("pointerdown", e => {
+  const alvo = e.target.closest("button, .botao-arquivo");
+  if (!alvo || alvo.disabled || calmo.matches || alvo.classList.contains("link") || alvo.closest("nav.abas, .lista-un")) return;
+  alvo.classList.add("tem-onda");
+  setTimeout(() => alvo.classList.remove("tem-onda"), 650);
+  const caixa = alvo.getBoundingClientRect();
+  const onda = document.createElement("span");
+  const lado = Math.max(caixa.width, caixa.height) * 2.2;
+  onda.className = "onda-clique";
+  Object.assign(onda.style, { width: lado + "px", height: lado + "px", left: e.clientX - caixa.left - lado / 2 + "px", top: e.clientY - caixa.top - lado / 2 + "px" });
+  alvo.appendChild(onda);
+  setTimeout(() => onda.remove(), 650);
+});

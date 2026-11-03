@@ -181,6 +181,7 @@ Teste 'Entrada pelo rosto (servidor)' {
     $rnd = New-Object Random
     $d = 1..128 | ForEach-Object { [math]::Round($rnd.NextDouble() * 0.4 - 0.2, 5) }
     $foto = '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA0JCgsKCA0LCgsODg0PEyAVExISEyccHhcgLikxMC4pLSwzOko+MzZGNywtQFdBRkxOUlNSMj5aYVpQYEpRUk//2wBDAQ4ODhMREyYVFSZPNS01T09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0//wAARCAAQABADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDiqKKK9M84/9k='
+    $script:fotoTeste = $foto
     Json '/api/acesso/rosto/cadastrar' @{ descritor = $d; foto = $foto } | Out-Null
     $script:token = ''
     $r = Json '/api/acesso/rosto/entrar' @{ descritor = $d; foto = $foto }
@@ -204,6 +205,43 @@ Teste 'Entrada pelo rosto (servidor)' {
   } finally { $script:token = $tokenAntes }
 }
 
+Teste 'Foto do perfil fixa' {
+  $tokenAntes = $script:token
+  try {
+    $nome = 'Teste perfil ' + (Get-Random)
+    $script:token = (Json '/api/acesso/entrar' @{ nome = $nome }).token
+    $r = Json '/api/acesso/foto-perfil' @{ foto = $script:fotoTeste }
+    if (-not $r.foto_perfil_id) { throw 'a foto do perfil nao ficou na conta' }
+    $eu = Ler '/api/acesso/eu' $script:token
+    if ($eu.foto_perfil_id -ne $r.foto_perfil_id) { throw 'a foto nao ficou guardada na conta' }
+    $sem = Invoke-RestMethod -Uri ($site + '/api/acesso/foto-perfil') -Method Delete -Headers @{ Authorization = "Bearer $script:token" }
+    if ($sem.foto_perfil_id) { throw 'a foto nao saiu' }
+    "trocou, ficou guardada na conta (foto $($r.foto_perfil_id)) e saiu a pedido"
+  } finally { $script:token = $tokenAntes }
+}
+
+Teste 'Entrada sem camera (curador libera)' {
+  $nome = 'Teste sem camera ' + (Get-Random)
+  $t = (Json '/api/acesso/entrar' @{ nome = $nome } '').token
+  $d = 1..128 | ForEach-Object { [math]::Round((Get-Random -Minimum -20000 -Maximum 20000) / 100000, 5) }
+  Json '/api/acesso/rosto/cadastrar' @{ descritor = $d; foto = $script:fotoTeste } $t | Out-Null
+  $p = Json '/api/acesso/pedir-entrada' @{ nome = $nome; observacao = 'teste automatico sem camera' } ''
+  $url = $site + "/api/acesso/pedir-entrada/$($p.id)?codigo=$($p.codigo)"
+  $antes = Invoke-RestMethod $url
+  if ($antes.status -ne 'PENDENTE' -or $antes.entrada) { throw "antes de liberar veio $($antes.status)" }
+  $viu = Status 'GET' ($site + '/api/acesso/pedidos-de-entrada') @{ Authorization = "Bearer $script:token" }
+  if ($viu -ne 403) { throw "um comprador viu os pedidos (status $viu)" }
+  Json "/api/acesso/pedidos-de-entrada/$($p.id)/decisao" @{ aceitar = $true } $script:admin | Out-Null
+  $depois = Invoke-RestMethod $url
+  if ($depois.status -ne 'APROVADO' -or -not $depois.entrada.token) { throw "depois de liberar veio $($depois.status)" }
+  if ($depois.entrada.metodo -ne 'APROVADO') { throw "entrou como $($depois.entrada.metodo)" }
+  $denovo = Invoke-RestMethod $url
+  if ($denovo.entrada) { throw 'o mesmo pedido deu entrada duas vezes' }
+  $aud = Ler '/api/admin/auditoria' | ForEach-Object { $_ } | Where-Object { $_.acao -eq 'APROVOU_ENTRADA' -and $_.alvo -eq $nome }
+  if (-not $aud) { throw 'a liberacao nao ficou na auditoria' }
+  "pediu com observacao -> curador liberou -> entrou uma vez so; liberado por $($depois.decidido_por), na auditoria"
+}
+
 Teste 'Consulta de codigo que ja existe (BLOQUEAR)' {
   $r = Json '/api/consultas' @{ descricao = 'ELETRICISTA HORA EXTRA 100%'; unidade = 'hora' }
   if ($r.resultado -ne 'BLOQUEAR') { throw "veio $($r.resultado)" }
@@ -211,8 +249,9 @@ Teste 'Consulta de codigo que ja existe (BLOQUEAR)' {
 }
 
 Teste 'Consulta de servico novo (LIBERAR)' {
-  $r = Json '/api/consultas' @{ descricao = 'TREINAMENTO EM REALIDADE VIRTUAL'; unidade = 'SV' }
-  if ($r.resultado -ne 'LIBERAR') { throw "veio $($r.resultado)" }
+  $turma = Get-Random -Minimum 1000 -Maximum 9999
+  $r = Json '/api/consultas' @{ descricao = "TREINAMENTO REALIDADE VIRTUAL TURMA $turma"; unidade = 'SV' }
+  if ($r.resultado -ne 'LIBERAR') { throw "veio $($r.resultado): $(Texto $r.motivo)" }
   'nenhum codigo igual'
 }
 
@@ -243,6 +282,7 @@ Teste 'Curador junta pedidos iguais' {
   $g = Ler '/api/solicitacoes/curador' | ForEach-Object { $_ } | Where-Object { @($_.ids) -contains $ids[0] } | Select-Object -First 1
   $fora = @($ids | Where-Object { @($g.ids) -notcontains $_ })
   if ($fora.Count) { throw "esperava os $($ids.Count) juntos, ficaram separados: $($fora -join ', ')" }
+  if (-not $g.descricao_existente) { throw 'o curador nao recebeu a descricao do codigo que ja existe' }
   $script:grupo = $ids
   "$($ids.Count) pedidos escritos diferente viraram 1 grupo; sugestao: $($g.sugestao.acao) com $($g.sugestao.certeza)% de certeza"
 }
@@ -261,6 +301,8 @@ Teste 'Curador decide, o MOKKA aprende e da para desfazer' {
   Json '/api/solicitacoes/curador/grupo' @{ ids = $script:grupo; aprovar = $false } $script:admin | Out-Null
   $aud = @(Ler '/api/admin/auditoria') | Where-Object { $_.acao -eq 'DESFEZ' }
   if (-not $aud) { throw 'o desfazer nao ficou na auditoria' }
+  $resumo = Ler '/api/solicitacoes/curador/resumo'
+  if ($resumo.recusados_hoje -lt 1 -or $resumo.regras_aprendidas -lt 1) { throw "o resumo do curador nao contou a decisao" }
   "recusou -> proxima consulta ja diz o codigo $codigo ($($regra.votos) votos) -> desfez -> decidiu de novo; tudo na auditoria"
 }
 
