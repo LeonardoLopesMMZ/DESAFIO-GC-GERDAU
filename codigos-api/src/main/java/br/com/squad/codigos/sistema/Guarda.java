@@ -25,9 +25,9 @@ import br.com.squad.codigos.acesso.Acesso;
 public class Guarda extends OncePerRequestFilter {
 
     private static final Set<String> LIVRES = Set.of("/api/acesso/entrar", "/api/acesso/chave/desafio", "/api/acesso/chave/entrar",
-            "/api/acesso/rosto/entrar", "/api/acesso/entrar-local", "/api/sistema");
+            "/api/acesso/rosto/entrar", "/api/acesso/entrar-local", "/api/sistema", "/api/acesso/pedir-entrada");
     private static final Set<String> ENTRADAS = Set.of("/api/acesso/entrar", "/api/acesso/chave/entrar", "/api/acesso/rosto/entrar",
-            "/api/acesso/entrar-local");
+            "/api/acesso/entrar-local", "/api/acesso/pedir-entrada");
     private static final Set<String> LOCAIS = Set.of("127.0.0.1", "0:0:0:0:0:0:0:1", "::1");
     private static final int MAX_FALHAS = 8;
     private static final Duration JANELA_FALHAS = Duration.ofMinutes(5);
@@ -76,7 +76,7 @@ public class Guarda extends OncePerRequestFilter {
             negar(res, 429, "Muitos pedidos seguidos. Espere um minuto.");
             return;
         }
-        if (!LIVRES.contains(p)) {
+        if (!LIVRES.contains(p) && !p.startsWith("/api/acesso/pedir-entrada/")) {
             Acesso.Sessao s = acesso.sessao(req.getHeader("Authorization"));
             if (s == null) {
                 negar(res, 401, "Entre no sistema para continuar.");
@@ -99,7 +99,7 @@ public class Guarda extends OncePerRequestFilter {
         if (p.startsWith("/api/admin/")) {
             return "ADMIN";
         }
-        if (p.startsWith("/api/solicitacoes/curador") || p.matches("/api/solicitacoes/\\d+/curadoria")
+        if (p.startsWith("/api/acesso/pedidos-de-entrada") || p.startsWith("/api/solicitacoes/curador") || p.matches("/api/solicitacoes/\\d+/curadoria")
                 || p.startsWith("/api/aprendizado/palavras/") || p.startsWith("/api/aprendizado/regras/")) {
             return "CURADOR";
         }

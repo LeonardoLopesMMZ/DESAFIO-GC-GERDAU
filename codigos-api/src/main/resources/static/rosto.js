@@ -139,6 +139,16 @@ async function cadastrarRosto() {
   } catch (e) { falhaRosto(e); }
 }
 
+async function fotoPerfilCamera() {
+  repetirRosto = fotoPerfilCamera;
+  try {
+    const r = await lerRosto("Foto do perfil");
+    await salvarFotoPerfil(r.foto);
+    $("janela-rosto").close();
+  } catch (e) { falhaRosto(e); }
+}
+
+$("foto-camera").addEventListener("click", fotoPerfilCamera);
 $("entrar-rosto").addEventListener("click", entrarComRosto);
 $("cadastrar-rosto").addEventListener("click", cadastrarRosto);
 $("rosto-de-novo").addEventListener("click", () => repetirRosto && repetirRosto());

@@ -10,7 +10,7 @@ Grupo 17 · Desafio GC 2026 · Gerdau · Instituto Caldeira
 ![Spring Boot 3.5](https://img.shields.io/badge/Spring%20Boot-3.5-6DB33F?logo=springboot&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.11%20a%203.13-3776AB?logo=python&logoColor=white)
 ![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
-![Testes](https://img.shields.io/badge/teste%20geral-29%20de%2029-2EA44F)
+![Testes](https://img.shields.io/badge/teste%20geral-31%20de%2031-2EA44F)
 ![Windows, Mac e Linux](https://img.shields.io/badge/roda%20em-Windows%20%C2%B7%20Mac%20%C2%B7%20Linux-555555)
 
 [Rodar do zero](#rodar-do-zero) · [O que o sistema faz](#o-que-o-sistema-faz) · [Como funciona](#como-funciona-por-dentro) · [Segurança](#segurança) · [API](#api) · [Testes](#testes-automáticos) · [Entregas](#entregas) · [Equipe](#equipe)
@@ -45,7 +45,7 @@ Quem insiste em criar um código bloqueado vai para a fila do **curador**, que r
 
 ## Rodar do zero
 
-Estes são os passos exatos para quem nunca abriu o projeto.
+Estes são os passos exatos para quem nunca abriu o projeto. Para ligar à mão, sem o .bat, siga [docs/COMO_ABRIR_SEM_BAT.md](docs/COMO_ABRIR_SEM_BAT.md).
 
 ### 1. Instale (uma vez só)
 
@@ -124,13 +124,13 @@ Quem tem a base real coloca o arquivo em `saneamento/dados/base_codigos_servico.
 
 | Aba | O que dá para fazer |
 | --- | --- |
-| Entrar | Botão no canto de cima. **Rosto**: a câmera reconhece a pessoa e guarda uma foto pequena (uns 4 KB) no banco. **Chave do Windows**: Windows Hello, digital ou PIN (também Touch ID e celular pelo QR code). **Pelo nome**: modo demonstração. Depois de cadastrar rosto ou chave, ninguém mais entra com o seu nome. A entrada gera um token que vale 8 horas, e toda gravação exige o token. |
-| Consultar e criar | Digitar ou **falar** a descrição. O botão **Anti-ruído** liga um filtro de ruído na voz (corta zumbido, eco e barulho de fundo); em microfone bom pode piorar, por isso liga e desliga. A fala vira texto em maiúsculas, números falados viram dígitos ("cinquenta por cento" vira 50%) e, se passar de 40 caracteres, é abreviada no padrão do SAP (HORA EXTRA vira HE, TÉCNICO DE SEGURANÇA DO TRABALHO vira TST). Digitando, dá para escrever mais de 40: o contador avisa e, ao clicar em **Consultar**, o MOKKA abrevia sozinho, na ordem que menos perde informação (frases como HORA EXTRA, depois DE/DA/DO e COM vira C/, depois as abreviações da própria base como MANUTENÇÃO vira MANUT, depois as outras palavras longas, e por último o cargo, como ELETRICISTA vira ELETRIC), e mostra o antes e o depois. Palavras de que o sistema não tem certeza aparecem com uma sugestão em cima, para trocar com um clique. Ver os parecidos com a aderência e o que muda em cada um. Usar um existente ou criar um novo. Se houver erro de digitação ou de fala ("SOLDA DOR"), o sistema sugere a correção ("SOLDADOR") e mostra que o código já existe. |
+| Entrar | Botão no canto de cima. **Rosto**: a câmera reconhece a pessoa e guarda uma foto pequena (uns 4 KB) no banco. **Chave do Windows**: Windows Hello, digital ou PIN (também Touch ID e celular pelo QR code). **Pelo nome**: modo demonstração. Depois de cadastrar rosto ou chave, ninguém mais entra com o seu nome. A entrada gera um token que vale 8 horas, e toda gravação exige o token. **Sem câmera?** A pessoa pede para entrar com uma observação; um curador ou administrador libera na aba Curador e fica registrado quem liberou. Na conta, dá para trocar a **foto do perfil** (pela câmera ou por um arquivo), que fica até ser trocada de novo. |
+| Consultar e criar | Digitar ou **falar** a descrição. O botão **Anti-ruído** liga um filtro de ruído na voz (corta zumbido, eco e barulho de fundo); em microfone bom pode piorar, por isso liga e desliga. A fala vira texto em maiúsculas, números falados viram dígitos ("cinquenta por cento" vira 50%) e, se passar de 40 caracteres, é abreviada no padrão do SAP (HORA EXTRA vira HE, TÉCNICO DE SEGURANÇA DO TRABALHO vira TST). Digitando, dá para escrever mais de 40: o contador avisa e, ao clicar em **Consultar**, o MOKKA abrevia sozinho, na ordem que menos perde informação (frases como HORA EXTRA, depois DE/DA/DO e COM vira C/, depois as abreviações da própria base como MANUTENÇÃO vira MANUT, depois as outras palavras longas, e por último o cargo, como ELETRICISTA vira ELETRIC), e mostra o antes e o depois. Palavras de que o sistema não tem certeza aparecem com uma sugestão em cima, para trocar com um clique. Ver os parecidos com a aderência e o que muda em cada um. Usar um existente ou criar um novo. Se houver erro de digitação ou de fala ("SOLDA DOR"), o sistema sugere a correção ("SOLDADOR") e mostra que o código já existe. Digitando, o **corretor** arruma a palavra errada ao apertar espaço e ao consultar ("PEDRERO" vira PEDREIRO), com **Desfazer**. A **Unidade** abre a lista de todas as unidades ao clicar, e filtra enquanto você digita. Os botões **Usar** e **Criar código novo** ficam logo abaixo da consulta e, ao concluir, uma animação confirma e o formulário fica pronto para o próximo caso. |
 | Planilha (lote) | Mandar um .xlsx ou .csv bruto, ou colar a lista. Antes de analisar, o sistema arruma a planilha: pula títulos, junta abas, divide texto colado em colunas, tira cabeçalhos repetidos e linhas idênticas e unifica grupos escritos de jeitos diferentes, mostrando um relatório do que fez. Ver linha a linha: já existe, parecido, novo, repetido dentro da própria planilha ou com erro. Trocar a ação de cada linha. Importar tudo numa transação só. Baixar o Excel organizado com as abas Tratado, Pronto para o SAP, Resumo, Relatório e uma aba por grupo. |
 | Unidades | Ver como escrever cada unidade. Na consulta dá para escrever "hora" ou "metro quadrado", e a tela troca por H ou M2. |
 | Catálogo | Ver os números da base (inclusive consultas feitas e duplicados evitados), os códigos oficiais com os repetidos de cada um e os códigos criados ou importados. Buscar por número ou texto, também por voz. Clicar em qualquer código abre a **ficha**: quem criou, com a foto de quando entrou pelo rosto, como entrou, quando, fornecedores, repetidos e quem usou. |
 | Raio-X | A nota de saúde da base de 0 a 100, antes (planilha da Gerdau) e depois (catálogo do MOKKA), com os critérios; a constelação das famílias de códigos repetidos (clique numa bolha para ver a ficha); os números por grupo; e o **ganho no serviço**: quanto a lista que o comprador percorre ficou menor, quantos repetidos saíram do caminho, quantos duplicados foram barrados e quantas decisões ensinaram o MOKKA. |
-| Curador (perfil Curador) | Os pedidos que pedem o mesmo serviço, mesmo escritos diferente, aparecem juntos ("3 pedidos iguais"). **Aprovar os 3** cria um código só para todos; **Recusar os 3** manda todos usarem o existente. Cada grupo vem com a **sugestão do MOKKA** e a certeza (ex.: "Recusar, 95%: está escrito igual ao 7000109"); **Aceitar sugestões** decide de uma vez as que têm 80% ou mais. Toda decisão tem **Desfazer**. Embaixo, **O que o MOKKA aprendeu**: as descrições ligadas a um código (com quantas decisões e quem) e as palavras ensinadas pelos compradores, que só passam a valer quando o curador aceita. |
+| Curador (perfil Curador) | Os pedidos que pedem o mesmo serviço, mesmo escritos diferente, aparecem juntos ("3 pedidos iguais"). **Aprovar os 3** cria um código só para todos; **Recusar os 3** manda todos usarem o existente. Cada grupo vem com a **sugestão do MOKKA** e a certeza (ex.: "Recusar, 95%: está escrito igual ao 7000109"); **Aceitar sugestões** decide de uma vez as que têm 80% ou mais. Toda decisão tem **Desfazer**. Embaixo, **O que o MOKKA aprendeu**: as descrições ligadas a um código (com quantas decisões e quem) e as palavras ensinadas pelos compradores, que só passam a valer quando o curador aceita. Cada caso mostra, lado a lado, **o que pediram** e **o que já existe**, com as palavras diferentes marcadas, quem pediu (com foto), a justificativa e um anel com a certeza da sugestão. No topo, os números do dia: esperando, aprovados, recusados e regras aprendidas. Ao decidir, o cartão sai com um carimbo e o **Desfazer** fica disponível. |
 | Pessoas (perfil Administrador) | Lista de contas com o perfil de cada uma (Comprador, Curador, Administrador), **Desbloquear entradas**, **Zerar o banco** e o **registro de segurança** com tudo o que aconteceu: entradas, tentativas recusadas, códigos criados, decisões, perfis e fotos apagadas. |
 
 A planilha do lote é lida por nome de coluna ("Descrição", "Unidade", "Grupo", "Código", "Fornecedor"), em qualquer ordem. Ela pode ter também as 5 colunas no formato da Gerdau, ou uma coluna só com as descrições. O modelo pode ser baixado na própria aba.
@@ -189,6 +189,10 @@ A documentação completa e testável fica em **http://localhost:8080/swagger** 
 | POST | `/api/acesso/chave/desafio`, `/chave/cadastrar`, `/chave/entrar` | cadastro e entrada com a chave do Windows (WebAuthn) |
 | GET | `/api/acesso/eu` | quem é o dono do token |
 | DELETE | `/api/acesso/rosto` | apaga a leitura do rosto e todas as fotos da pessoa (LGPD) |
+| POST, DELETE | `/api/acesso/foto-perfil` | troca ou tira a foto do perfil (JPEG até 20 KB) |
+| POST | `/api/acesso/pedir-entrada` | sem câmera: pede para entrar com uma observação; devolve o número e um código |
+| GET | `/api/acesso/pedir-entrada/{id}?codigo=` | situação do pedido; quando liberado, devolve o token uma vez só |
+| GET, POST | `/api/acesso/pedidos-de-entrada`, `/{id}/decisao` | curador vê e libera ou recusa os pedidos de entrada |
 | GET | `/api/sistema` | qual banco está ligado (aberto) |
 | POST | `/api/consultas` | consulta uma descrição; devolve o resultado, os candidatos e a correção sugerida |
 | POST | `/api/solicitacoes/{id}/decisao` | usar um código existente ou criar um novo |
@@ -265,7 +269,7 @@ Depois de mudar o Java, o `MOKKA.bat` compila de novo sozinho na próxima vez qu
 
 ## Testes automáticos
 
-O teste geral liga o sistema e confere 29 itens de ponta a ponta (consulta, curador, aprendizado, lote, Excel, modo reserva, segurança e o Python), mostrando OK ou FALHOU em cada um:
+O teste geral liga o sistema e confere 31 itens de ponta a ponta (consulta, curador, aprendizado, lote, Excel, modo reserva, segurança, foto do perfil, entrada sem câmera e o Python), mostrando OK ou FALHOU em cada um:
 
 ```
 MOKKA.bat testar
