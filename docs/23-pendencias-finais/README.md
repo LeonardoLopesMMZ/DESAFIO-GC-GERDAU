@@ -14,8 +14,16 @@
 | Abreviações da base sem significado no dicionário (INSTRUM, DISPOSI, NOTU...) | ajuste: dicionário de 118 para 136 termos |
 | Correção de escrita não entendia abreviação antes de corrigir | ajuste: 283 → 296 consultas com erro resolvidas |
 | O teste "nunca junta errado" era pulado no PC do grupo (o arquivo de pares estava em outra pasta) | bug do teste, corrigido: roda sempre |
+| Planilha limitada a 5.000 linhas, só Excel ou CSV | ajuste: até 100.000 linhas, em Excel, CSV, texto ou JSON |
+| Lista colada do Excel (separada por tab) chegava grudada numa coluna só | bug, corrigido |
+| Texto colado "descrição;unidade" sem cabeçalho dava erro | bug, corrigido |
+| Lista de parecidos com 6 de uma vez, sem como ver mais | ajuste: 5 por vez, com setas para os próximos |
+| O grupo só via o sistema no computador de quem liga | ajuste: link seguro pelo Tailscale |
+| Por um túnel, o sistema se achava no próprio computador (Swagger aberto) | bug de segurança, corrigido e testado |
+| Depois de atualizar, o navegador às vezes mostrava a tela antiga | bug, corrigido |
+| Sem uma tela que apresente o sistema | ajuste: tela inicial com demonstração animada e tour |
 | Documentação da Entrega 3 e da entrega final | feito |
-| Teste geral | 29 de 29 |
+| Teste geral | 34 de 34 |
 
 ## Depende de uma resposta da Gerdau
 

@@ -880,6 +880,32 @@ button.pequeno svg { width: 14px; height: 14px; }
   .decisao-topo .linha-botoes { margin-left: 0; width: 100%; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
-}
+.titulo-parecidos { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 26px 0 10px; }
+.titulo-parecidos h2 { margin: 0; }
+.paginas { display: inline-flex; align-items: center; gap: 6px; color: var(--fraco); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.paginas span { margin-right: 4px; }
+.paginas button { min-height: 34px; width: 34px; padding: 0; display: inline-grid; place-items: center; }
+.paginas svg { width: 16px; height: 16px; }
+.paginas svg.vira { transform: rotate(180deg); }
+#candidatos.de-direita tr.nova { animation: vem-direita .32s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 35ms); }
+#candidatos.de-esquerda tr.nova { animation: vem-esquerda .32s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 35ms); }
+@keyframes vem-direita { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
+@keyframes vem-esquerda { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: none; } }
+
+@view-transition { navigation: auto; }
+::view-transition-old(root) { animation: sair-pagina .35s cubic-bezier(.4, 0, 1, 1) both; }
+::view-transition-new(root) { animation: entrar-pagina .55s cubic-bezier(.22, 1, .36, 1) both; }
+@keyframes sair-pagina { to { opacity: 0; transform: scale(.985); filter: blur(3px); } }
+@keyframes entrar-pagina { from { opacity: 0; transform: scale(1.015); filter: blur(3px); } }
+
+.vem-direita > *, .vem-esquerda > * { animation: deslizar-direita .55s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(var(--k, 0) * 45ms); }
+.vem-esquerda > * { animation-name: deslizar-esquerda; }
+@keyframes deslizar-direita { from { opacity: 0; transform: translateX(34px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes deslizar-esquerda { from { opacity: 0; transform: translateX(-34px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+.indicador { transition: left .5s cubic-bezier(.45, .05, .15, 1), width .5s cubic-bezier(.45, .05, .15, 1), top .5s cubic-bezier(.45, .05, .15, 1), height .5s cubic-bezier(.45, .05, .15, 1); }
+nav.abas button { transition: color .35s ease, background .35s ease; }
+dialog[open] { animation: abrir-janela .45s cubic-bezier(.22, 1, .36, 1) both; }
+dialog[open]::backdrop { animation: escurecer .4s ease both; }
+@keyframes abrir-janela { from { opacity: 0; transform: translateY(14px) scale(.95); } to { opacity: 1; transform: none; } }
+@keyframes escurecer { from { opacity: 0; } }
+details[open] > :not(summary) { animation: surgir .35s cubic-bezier(.22, 1, .36, 1) both; }

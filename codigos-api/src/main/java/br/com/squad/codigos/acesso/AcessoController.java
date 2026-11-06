@@ -26,6 +26,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import br.com.squad.codigos.sistema.Guarda;
+
 @Tag(name = "Acesso", description = "Entrada com token: pelo nome (demonstração), pelo rosto na câmera ou com a chave do Windows (Hello, digital ou PIN)")
 @RestController
 @RequestMapping("/api/acesso")
@@ -47,7 +49,7 @@ public class AcessoController {
     @PostMapping("/entrar-local")
     public Entrada entrarLocal(@Parameter(hidden = true) @RequestHeader(value = "X-Mokka-Segredo", required = false) String segredo,
                                HttpServletRequest req) {
-        return entrada(acesso.entrarLocal(segredo, req.getRemoteAddr()));
+        return entrada(acesso.entrarLocal(segredo, Guarda.local(req) ? req.getRemoteAddr() : Guarda.ip(req)));
     }
 
     @Operation(summary = "Quem está usando o token")
@@ -142,7 +144,7 @@ public class AcessoController {
             + "Um curador ou administrador aceita ou recusa, e fica registrado quem aceitou. Vale 15 minutos.")
     @PostMapping("/pedir-entrada")
     public Acesso.NovoPedido pedirEntrada(@Valid @RequestBody PedidoSemCamera p, HttpServletRequest req) {
-        return acesso.pedirEntrada(p.nome().trim(), p.observacao().trim(), req.getRemoteAddr());
+        return acesso.pedirEntrada(p.nome().trim(), p.observacao().trim(), Guarda.ip(req));
     }
 
     @Operation(summary = "Situação do pedido de entrada", description = "Quando o pedido é aceito, devolve o token uma única vez.")

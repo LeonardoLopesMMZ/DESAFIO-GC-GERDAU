@@ -2,8 +2,9 @@ import re
 import sys
 import unicodedata
 import threading
-from collections import Counter
+from collections import Counter, defaultdict
 from difflib import SequenceMatcher, get_close_matches
+from functools import lru_cache
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -14,8 +15,11 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 from deduplicar import deduplicar, forma_canonica, ler
 from limpar import caber40, nome_padrao
-from padronizar import categorizar, ler_atributos, normalizar
+from padronizar import categorizar, ler_atributos
+from padronizar import normalizar as _normalizar
 from regua import comparar, preparar
+
+normalizar = lru_cache(maxsize=200_000)(_normalizar)
 
 ORDEM = {"DUPLICADO": 0, "REVISAR": 1, "DIFERENTE": 2}
 RESULTADO = {"DUPLICADO": "BLOQUEAR", "REVISAR": "REVISAR", "DIFERENTE": "LIBERAR"}
@@ -69,6 +73,7 @@ class Buscador:
         self.freq.update(novos)
         self.vocab |= set(novos)
         self._lista = sorted(self.vocab)
+        self._perto = {}
 
     def _parecidas(self, w):
         m = get_close_matches(w, self._lista, n=8, cutoff=0.72)
@@ -92,7 +97,9 @@ class Buscador:
                 i += 2
                 continue
             if len(t) >= 4 and t.isalpha() and not self._conhecida(t):
-                m = get_close_matches(t, self._lista, n=1, cutoff=0.8)
+                if t not in self._perto:
+                    self._perto[t] = get_close_matches(t, self._lista, n=1, cutoff=0.8)
+                m = self._perto[t]
                 if m:
                     saida.append(m[0])
                     correcoes.append({"de": t, "para": m[0]})
@@ -181,6 +188,23 @@ class Buscador:
         return r
 
     def buscar_lote(self, itens, bloco=400):
+        unicos, onde = {}, []
+        for d, u in itens:
+            onde.append(unicos.setdefault((d, u), len(unicos)))
+        r = self._lote(list(unicos), bloco)
+        primeiro, saida = {}, []
+        for i, k in enumerate(onde):
+            x = dict(r[k])
+            if x["repete_item"] is not None:
+                x["repete_item"] = primeiro[x["repete_item"]]
+            if k not in primeiro:
+                primeiro[k] = i
+            elif x["repete_item"] is None and x["descricao_limpa"] and x["resultado"] != "BLOQUEAR":
+                x["repete_item"] = primeiro[k]
+            saida.append(x)
+        return saida
+
+    def _lote(self, itens, bloco):
         n5s = [normalizar(d)["n5"] for d, _ in itens]
         Q = self.vec.transform(n5s)
         saida = []
@@ -193,23 +217,39 @@ class Buscador:
                 else:
                     saida.append(self._classificar(n5s[i], itens[i][1], S[:, j], 3, k=30))
         prep = [preparar(forma_canonica(n, u)[0]) if n else None for n, (_, u) in zip(n5s, itens)]
-        P = (Q @ Q.T).tocsr()
+        grupos = defaultdict(list)
+        for i, p in enumerate(prep):
+            if p is not None:
+                grupos[(itens[i][1], tuple(p[1]))].append(i)
         repete = [None] * len(itens)
-        for i in range(len(itens)):
-            if not n5s[i] or saida[i]["resultado"] == "BLOQUEAR":
-                continue
-            linha = P.getrow(i)
-            for j in sorted(j for j, v in zip(linha.indices, linha.data) if j < i and v >= 0.5):
-                if prep[j] is not None and comparar(prep[i], itens[i][1], prep[j], itens[j][1])[0] == "DUPLICADO":
-                    repete[i] = repete[j] if repete[j] is not None else j
-                    break
-        for i, ((descricao, unidade), r) in enumerate(zip(itens, saida)):
-            if r["resultado"] == "LIBERAR" and repete[i] is None and n5s[i]:
-                sug = self._sugestao(descricao, unidade)
-                if sug:
-                    trocas = ", ".join(f"{c['de']} → {c['para']}" for c in sug["correcoes"])
-                    r.update(resultado="REVISAR", motivo=f"Corrigindo a escrita ({trocas}) fica igual a {sug['codigo']} {str(sug['descricao_existente']).upper()}",
-                             candidatos=[{"codigo": sug["codigo"], "descricao": sug["descricao_existente"], "aderencia": None, "diferencas": []}])
+        for idx in grupos.values():
+            Qg = Q[idx]
+            for ini in range(0, len(idx), 500):
+                P = (Qg[ini:ini + 500] @ Qg[:ini + 500].T).tocsr()
+                for r in range(P.shape[0]):
+                    i = idx[ini + r]
+                    if saida[i]["resultado"] == "BLOQUEAR":
+                        continue
+                    ini_l, fim_l = P.indptr[r], P.indptr[r + 1]
+                    for c in sorted(c for c, v in zip(P.indices[ini_l:fim_l], P.data[ini_l:fim_l]) if c < ini + r and v >= 0.5):
+                        j = idx[c]
+                        if comparar(prep[i], itens[i][1], prep[j], itens[j][1])[0] == "DUPLICADO":
+                            repete[i] = repete[j] if repete[j] is not None else j
+                            break
+        pend = [(i, *self.corrigir(itens[i][0])) for i, r in enumerate(saida) if r["resultado"] == "LIBERAR" and repete[i] is None and n5s[i]]
+        pend = [(i, normalizar(t)["n5"], c) for i, t, c in pend if t]
+        pend = [x for x in pend if x[1]]
+        Qc = self.vec.transform([n for _, n, _ in pend]) if pend else None
+        for ini in range(0, len(pend), bloco):
+            S = (self.X @ Qc[ini:ini + bloco].T).toarray()
+            for j in range(S.shape[1]):
+                i, n5c, correcoes = pend[ini + j]
+                c = self._classificar(n5c, itens[i][1], S[:, j], 3)
+                if c["resultado"] != "LIBERAR":
+                    top = c["candidatos"][0]
+                    trocas = ", ".join(f"{x['de']} → {x['para']}" for x in correcoes)
+                    saida[i].update(resultado="REVISAR", motivo=f"Corrigindo a escrita ({trocas}) fica igual a {top['codigo']} {str(top['descricao']).upper()}",
+                                    candidatos=[{"codigo": top["codigo"], "descricao": top["descricao"], "aderencia": None, "diferencas": []}])
         resultado = []
         for (descricao, unidade), n5, r, rep in zip(itens, n5s, saida, repete):
             _, categoria, nome = self.atributos(descricao, unidade) if n5 else ("", "", "")

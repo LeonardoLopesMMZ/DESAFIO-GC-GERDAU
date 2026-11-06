@@ -131,6 +131,16 @@ Teste 'Seguranca: cabecalhos de protecao' {
   'CSP, nosniff, anti-iframe, sem referrer, camera e microfone so no proprio site, API sem cache'
 }
 
+Teste 'Seguranca: link do grupo (Tailscale)' {
+  $h = @{ 'Tailscale-User-Login' = 'teste@exemplo.com' }
+  $l = (Invoke-RestMethod ($site + '/api/sistema')).local
+  $t = (Invoke-RestMethod ($site + '/api/sistema') -Headers $h).local
+  if ($l -ne $true -or $t -ne $false) { throw "neste computador $l, pelo link $t" }
+  $s = Status 'GET' ($site + '/swagger-ui/index.html') $h
+  if ($s -ne 403) { throw "Swagger pelo link veio $s (esperava 403)" }
+  'pelo link o MOKKA nao se trata como este computador e fecha o Swagger'
+}
+
 Teste 'Seguranca: tentativa de injecao' {
   $h = @{ Authorization = "Bearer $script:token" }
   $antes = (Ler '/api/codigos/resumo').na_base
@@ -325,6 +335,20 @@ Teste 'Planilha em lote (modelo com 14 linhas)' {
   "$($r.resumo.BLOQUEAR) ja existem, $($r.resumo.REVISAR) parecidos, $($r.resumo.LIBERAR) novos, $($r.resumo.REPETIDO) repetidos, $($r.resumo.ERRO) com erro, em $($r.milissegundos) ms"
 }
 
+Teste 'Lote em JSON e em texto' {
+  $sem = New-Object Text.UTF8Encoding $false
+  $json = Join-Path $env:TEMP 'mokka_lote.json'
+  $txt = Join-Path $env:TEMP 'mokka_lote.txt'
+  [IO.File]::WriteAllText($json, '{"itens":[{"descricao":"PEDREIRO HORA NORMAL","unidade":"H"},{"descricao":"PINTOR LETREIRO","unidade":"H"},{"descricao":"SOLDADOR","unidade":"H"}]}', $sem)
+  [IO.File]::WriteAllText($txt, "PEDREIRO HORA NORMAL;H`nPINTOR LETREIRO;H", $sem)
+  $a = (& curl.exe -s -H "Authorization: Bearer $script:token" -F "arquivo=@$json" ($site + '/api/lotes/analisar')) | ConvertFrom-Json
+  $b = (& curl.exe -s -H "Authorization: Bearer $script:token" -F "arquivo=@$txt" ($site + '/api/lotes/analisar')) | ConvertFrom-Json
+  Remove-Item $json, $txt
+  if ($a.resumo.TOTAL -ne 3) { throw "o JSON veio com $($a.resumo.TOTAL) linhas" }
+  if ($b.resumo.TOTAL -ne 2) { throw "o texto veio com $($b.resumo.TOTAL) linhas" }
+  'JSON com 3 servicos e texto com 2 linhas lidos certo'
+}
+
 Teste 'Excel organizado (exportar)' {
   $arq = Join-Path $env:TEMP 'mokka_teste.xlsx'
   $bytes = [Text.Encoding]::UTF8.GetBytes((@{ linhas = $script:lote.linhas } | ConvertTo-Json -Depth 10))
@@ -354,6 +378,12 @@ Teste 'Raio-X do catalogo' {
   $r = Ler '/api/raio-x'
   if ($r.nota_depois -lt $r.nota_antes) { throw "a nota piorou: $($r.nota_antes) -> $($r.nota_depois)" }
   "nota $($r.nota_antes) -> $($r.nota_depois), $($r.familias.Count) familias de duplicados"
+}
+
+Teste 'Tela inicial' {
+  $r = Invoke-WebRequest ($site + '/inicio.html') -UseBasicParsing
+  if ($r.StatusCode -ne 200 -or $r.Content -notmatch 'data-demo="consulta"') { throw "status $($r.StatusCode)" }
+  'abre sem entrar, com as demonstracoes e o tour'
 }
 
 Teste 'Swagger (API)' {
