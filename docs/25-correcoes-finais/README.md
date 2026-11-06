@@ -27,10 +27,10 @@
 
 ## Situação na versão apresentada
 
-- Teste geral: **34 itens** (os 29 da Entrega 3 mais foto do perfil, entrada sem câmera, link do grupo, lote em JSON e texto e tela inicial).
+- Teste geral: **35 itens** (os 29 da Entrega 3 mais foto do perfil, entrada sem câmera, link do grupo, lote em JSON e texto, tutorial e painel do Raio-X).
 - Testes do Python: **9 de 9**, com a base real e os 430 pares rotulados.
 - Nenhum erro conhecido no fluxo da demonstração.
 
 ## Histórico no GitHub
 
-Todas as mudanças estão na `main`, cada uma vinda de uma branch `feature/...` juntada pela `develop`. As versões marcadas são `v1.0` (PostgreSQL, curador que aprende, segurança), `v1.1` (abreviação no padrão do SAP e ganho no serviço) e `v1.2` (Entrega 3 e entrega final) `v1.3` (corretor, unidades, foto do perfil e entrada sem câmera) e `v1.4` (link seguro para o grupo, planilha até 100.000 linhas em vários formatos, tela inicial com demonstração e transições).
+Todas as mudanças estão na `main`, cada uma vinda de uma branch `feature/...` juntada pela `develop`. As versões marcadas são `v1.0` (PostgreSQL, curador que aprende, segurança), `v1.1` (abreviação no padrão do SAP e ganho no serviço) e `v1.2` (Entrega 3 e entrega final) `v1.3` (corretor, unidades, foto do perfil e entrada sem câmera) e `v1.4` (link seguro para o grupo, planilha até 100.000 linhas em vários formatos, tutorial com demonstração, painel do Raio-X e transições).

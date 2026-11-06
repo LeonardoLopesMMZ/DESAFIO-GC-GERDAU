@@ -23,12 +23,12 @@
 
 | Aba | Para quê |
 | --- | --- |
-| Tela inicial | o que o MOKKA faz, com demonstrações animadas e um tour de 7 passos; a entrada fica no fim |
+| Tutorial (botão no topo) | o que o MOKKA faz, com demonstrações animadas e um tour de 7 passos |
 | Consultar e criar | consulta por texto ou voz, resultado, candidatos, decisão |
 | Planilha (lote) | análise de uma planilha inteira, importação e Excel organizado |
 | Unidades | como escrever cada unidade |
 | Catálogo | números da base, oficiais com seus repetidos, ficha de cada código (quem criou, quem usou, com a foto) |
-| Raio-X | nota de saúde da base antes e depois, constelação dos duplicados, ganho no serviço |
+| Raio-X | painel ao vivo de tudo o que acontece (consultas, repetidos barrados, códigos novos, curador, aprendizado, quem usa) e, embaixo, a nota de saúde da base, a constelação dos duplicados e o ganho no serviço |
 | Curador | pedidos agrupados, sugestão com certeza, aprovar ou recusar em grupo, desfazer, o que o MOKKA aprendeu |
 | Pessoas | perfis, desbloqueio e registro de segurança (administrador) |
 
@@ -42,6 +42,6 @@ Java 17 + Spring Boot 3.5, PostgreSQL 16 (com H2 de reserva), Python 3 para a si
 
 ## Evidências
 
-- O teste geral (`MOKKA.bat testar`) passa por todo o fluxo pela API e dá **34 de 34**: `21 - Integração completa\testar.log`.
+- O teste geral (`MOKKA.bat testar`) passa por todo o fluxo pela API e dá **35 de 35**: `21 - Integração completa\testar.log`.
 - Os 6 cenários da pasta 19 foram gravados pela aplicação ligada, com o código novo 9000003 criado na hora e encontrado na consulta seguinte.
 - As telas estão no repositório em `docs/telas/`; a demonstração ao vivo segue o roteiro da pasta `0 - Apresentação`.

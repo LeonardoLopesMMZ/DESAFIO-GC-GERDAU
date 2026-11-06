@@ -47,6 +47,7 @@ h1, h2, h3 { line-height: 1.15; letter-spacing: -.01em; }
 .topo .dentro { display: flex; align-items: center; gap: 24px; min-height: 68px; }
 .marca { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; color: var(--azul); text-decoration: none; letter-spacing: .02em; }
 .selo-marca { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 9px; color: #fff; background: var(--azul); box-shadow: inset 0 -4px 0 var(--amarelo); font-size: 18px; }
+.chip-tutorial { padding: 3px 10px; border-radius: 99px; background: var(--amarelo); color: var(--azul); font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
 .menu { display: flex; gap: 22px; margin-left: 12px; }
 .menu a { color: var(--texto); text-decoration: none; font-weight: 600; font-size: 15px; position: relative; }
 .menu a::after { content: ""; position: absolute; left: 0; right: 0; bottom: -6px; height: 2px; background: var(--amarelo); transform: scaleX(0); transition: transform .25s ease; }
