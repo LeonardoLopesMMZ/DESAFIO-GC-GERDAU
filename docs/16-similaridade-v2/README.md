@@ -17,6 +17,7 @@ A base da V1 continua (TF-IDF de pedaços de 2 a 4 letras, régua de regras e ra
 | 6 | **Dicionário 118 → 136 termos** | Python | INSTRUM, DISPOSI, NOTU... ficavam soltos | entendidos (pasta 15) |
 | 7 | **Entrada no padrão do SAP** | tela + Python | mais de 40 caracteres era recusado | o MOKKA abrevia no padrão da base antes de consultar |
 | 8 | **Modo reserva** | Java | Python fora = sistema fora | o Java consulta direto no banco e continua respondendo |
+| 9 | **Lote mais rápido e maior** | Python | até 5.000 linhas, cada linha comparada com todas as outras | linhas iguais analisadas uma vez, repetidos procurados só na mesma unidade e com os mesmos números (só ali podem ser iguais pela régua) e correções conferidas em bloco. O resultado é o mesmo (conferido linha a linha em 4.000 linhas); 100.000 linhas levam uns 3 minutos e a base inteira uns 7 segundos |
 
 ## Por que os resultados melhoraram: o teste
 

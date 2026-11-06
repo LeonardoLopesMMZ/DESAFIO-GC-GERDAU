@@ -100,7 +100,7 @@ Digitando também: escreva *ENCARREGADO DE MANUTENÇÃO MECÂNICA HORA EXTRA 50%
 
 **Colar a lista:** abra **Ou cole a lista aqui**, cole uma descrição por linha (ou colunas separadas por `;`) e clique em **Analisar**, sem escolher arquivo.
 
-Para testar volume, mande uma planilha com até 5000 linhas: com a base real, 5000 linhas são analisadas em uns 15 segundos.
+Para testar volume, mande uma planilha com até 100.000 linhas, em Excel, CSV, texto ou JSON: a base real inteira é analisada em uns 7 segundos e 100.000 linhas em uns 3 minutos.
 
 ## 9. Swagger (API)
 

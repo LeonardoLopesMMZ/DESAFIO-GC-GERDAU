@@ -45,10 +45,12 @@ import br.com.squad.codigos.catalogo.CodigoServicoRepository;
 import br.com.squad.codigos.catalogo.Unidades;
 import br.com.squad.codigos.consulta.SimilaridadeClient;
 
-@Tag(name = "Lote por Excel", description = "Analisa uma planilha inteira de uma vez, coloca no banco do jeito certo e devolve um Excel organizado")
+@Tag(name = "Lote por Excel", description = "Analisa uma planilha, um CSV, um texto ou um JSON inteiro de uma vez, coloca no banco do jeito certo e devolve um Excel organizado")
 @RestController
 @RequestMapping("/api/lotes")
 public class LoteController {
+
+    static final int MAXIMO = 100_000;
 
     private static final String INSERIR_CODIGO = "INSERT INTO codigo_servico (codigo, descricao, descricao_limpa, descricao_padrao, "
             + "unidade, grupo, categoria, status, codigo_canonico, motivo, criado_por, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -68,7 +70,7 @@ public class LoteController {
     }
 
     @Operation(summary = "Analisar planilha",
-            description = "Recebe um .xlsx ou .csv com as descrições (pode vir sem tratamento) e diz, linha a linha, se o código "
+            description = "Recebe um Excel (.xlsx), CSV, texto ou JSON, até 100.000 linhas, com as descrições (pode vir sem tratamento) e diz, linha a linha, se o código "
                     + "já existe, se é parecido, se é novo ou se repete outra linha da própria planilha. Não grava nada.")
     @PostMapping(value = "/analisar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResultadoAnalise analisar(@RequestPart("arquivo") MultipartFile arquivo,
@@ -313,11 +315,11 @@ public class LoteController {
 
     public record PedidoImportacao(@Size(max = 60, message = "O nome deve ter até 60 caracteres") String solicitante,
                                    @NotEmpty(message = "Nenhuma linha para importar")
-                                   @Size(max = 5000, message = "No máximo 5000 linhas por vez") List<Linha> linhas) {
+                                   @Size(max = MAXIMO, message = "No máximo 100.000 linhas por vez") List<Linha> linhas) {
     }
 
     public record PedidoExportacao(@NotEmpty(message = "Nenhuma linha para exportar")
-                                   @Size(max = 5000, message = "No máximo 5000 linhas por vez") List<Linha> linhas,
+                                   @Size(max = MAXIMO, message = "No máximo 100.000 linhas por vez") List<Linha> linhas,
                                    @Size(max = 200) List<String> relatorio) {
     }
 }

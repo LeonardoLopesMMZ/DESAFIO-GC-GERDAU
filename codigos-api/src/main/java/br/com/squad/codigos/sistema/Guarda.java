@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,6 +30,9 @@ public class Guarda extends OncePerRequestFilter {
     private static final Set<String> ENTRADAS = Set.of("/api/acesso/entrar", "/api/acesso/chave/entrar", "/api/acesso/rosto/entrar",
             "/api/acesso/entrar-local", "/api/acesso/pedir-entrada");
     private static final Set<String> LOCAIS = Set.of("127.0.0.1", "0:0:0:0:0:0:0:1", "::1");
+    private static final List<String> REPASSE = List.of("Tailscale-User-Login", "X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto",
+            "X-Real-IP", "Forwarded", "CF-Connecting-IP", "CF-Ray");
+    private static final Set<String> HOSTS_LOCAIS = Set.of("localhost", "127.0.0.1", "[::1]");
     private static final int MAX_FALHAS = 8;
     private static final Duration JANELA_FALHAS = Duration.ofMinutes(5);
     private static final int MAX_PEDIDOS = 600;
@@ -55,14 +59,15 @@ public class Guarda extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain) throws ServletException, IOException {
         String p = req.getRequestURI();
-        String ip = req.getRemoteAddr();
+        String ip = ip(req);
         boolean ferramenta = p.startsWith("/swagger") || p.startsWith("/v3/api-docs") || p.startsWith("/h2-console");
         cabecalhos(res, ferramenta);
-        if (ferramenta && !LOCAIS.contains(ip)) {
+        if (ferramenta && !local(req)) {
             negar(res, 403, "O Swagger e o console do banco só abrem no computador que liga o MOKKA.");
             return;
         }
         if (!p.startsWith("/api/")) {
+            res.setHeader("Cache-Control", "no-cache");
             chain.doFilter(req, res);
             return;
         }
@@ -93,6 +98,37 @@ public class Guarda extends OncePerRequestFilter {
             int n = vezes(falhas, ip, JANELA_FALHAS, true);
             auditoria.registrar(null, n >= MAX_FALHAS ? "BLOQUEIO_FORCA_BRUTA" : "ENTRADA_RECUSADA", p, "status " + res.getStatus() + ", tentativa " + n);
         }
+    }
+
+    public static boolean repassado(HttpServletRequest req) {
+        return REPASSE.stream().anyMatch(h -> req.getHeader(h) != null);
+    }
+
+    public static boolean local(HttpServletRequest req) {
+        String host = req.getHeader("Host");
+        String nome = host == null ? "" : host.replaceFirst(":\\d+$", "").toLowerCase();
+        return LOCAIS.contains(req.getRemoteAddr()) && !repassado(req) && HOSTS_LOCAIS.contains(nome);
+    }
+
+    public static String ip(HttpServletRequest req) {
+        String direto = req.getRemoteAddr();
+        if (!LOCAIS.contains(direto)) {
+            return direto;
+        }
+        String quem = req.getHeader("Tailscale-User-Login");
+        if (quem != null && !quem.isBlank()) {
+            return corta("ts:" + quem.trim());
+        }
+        String repasse = req.getHeader("X-Forwarded-For");
+        if (repasse != null && !repasse.isBlank()) {
+            String[] partes = repasse.split(",");
+            return corta(partes[partes.length - 1].trim());
+        }
+        return local(req) ? direto : "repassado";
+    }
+
+    private static String corta(String s) {
+        return s.length() > 45 ? s.substring(0, 45) : s;
     }
 
     static String perfilExigido(String p) {

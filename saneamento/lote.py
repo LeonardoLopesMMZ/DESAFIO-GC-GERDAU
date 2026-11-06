@@ -1,4 +1,5 @@
 import io
+import json
 import re
 import unicodedata
 from collections import Counter
@@ -11,7 +12,7 @@ from openpyxl.utils import get_column_letter
 
 from organizar_planilha import _agrupar_rotulos, _limpar_celula, _nome_aba, _normalizar
 
-MAXIMO = 5000
+MAXIMO = 100_000
 ORDEM_GERDAU = ["grupo", "fornecedor", "codigo", "descricao", "unidade"]
 
 
@@ -32,7 +33,7 @@ def _coluna(nome):
         return "fornecedor"
     if n.startswith("UN") or n in ("UM", "MEDIDA", "UNIDADE MEDIDA"):
         return "unidade"
-    if "GRUPO" in n or "CATEGORIA" in n:
+    if "GRUPO" in n or "GROUP" in n or "CATEGORIA" in n:
         return "grupo"
     if "COD" in n:
         return "codigo"
@@ -40,30 +41,70 @@ def _coluna(nome):
 
 
 SEPARADORES = (r"\s*;\s*", r"\s*\|\s*", r"\t")
+ACEITOS = (".xlsx", ".xlsm", ".csv", ".tsv", ".txt", ".json", ".jsonl", ".ndjson", "")
 GRUPOS = {"Civil": ["civil", "civel", "obras civis", "obra civil"],
           "Facilities": ["facilities", "facilites", "facility", "facilidades", "predial"],
           "Eletromecânica": ["eletromecanica", "eletro mecanica", "eletromec", "eletrica e mecanica", "eletromecanico"]}
 CANONICO = {_normalizar(o): k for k, v in GRUPOS.items() for o in v + [k]}
 
 
+def _texto_do_arquivo(dados):
+    for cod in ("utf-8-sig", "cp1252", "latin-1"):
+        try:
+            return dados.decode(cod)
+        except UnicodeDecodeError:
+            continue
+
+
+def _json(texto):
+    try:
+        dados = json.loads(texto)
+    except ValueError:
+        try:
+            dados = [json.loads(l) for l in texto.splitlines() if l.strip()]
+        except ValueError:
+            raise PlanilhaInvalida("O JSON está com erro de escrita. Confira vírgulas, aspas e colchetes.")
+    if isinstance(dados, dict):
+        dados = next((v for v in dados.values() if isinstance(v, list)), [dados])
+    if not isinstance(dados, list) or not dados:
+        raise PlanilhaInvalida("O JSON precisa ter uma lista de serviços.")
+    if all(isinstance(d, dict) for d in dados):
+        df = pd.json_normalize(dados).astype(object)
+        return pd.DataFrame([list(df.columns)] + df.where(df.notna(), None).values.tolist(), dtype=object)
+    if all(isinstance(d, list) for d in dados):
+        return pd.DataFrame(dados, dtype=object)
+    return pd.DataFrame({0: [d if not isinstance(d, (list, dict)) else json.dumps(d, ensure_ascii=False) for d in dados]}, dtype=object)
+
+
+def _csv(texto):
+    linhas = pd.DataFrame({0: texto.splitlines()}, dtype=object)
+    if any(c in texto[:20000] for c in ";\t|"):
+        return linhas
+    try:
+        df = pd.read_csv(io.StringIO(texto), header=None, dtype=object, skip_blank_lines=True)
+    except Exception:
+        return linhas
+    topo = [_coluna(v) for v in df.head(20).values.ravel().tolist() if isinstance(v, str)]
+    return df if df.shape[1] == 5 or "descricao" in topo else linhas
+
+
 def _abas(dados, nome):
     ext = Path(nome or "").suffix.lower()
     if ext == ".xls":
         raise PlanilhaInvalida("Arquivo .xls antigo não é aceito. Abra no Excel e salve como .xlsx.")
-    if ext not in (".xlsx", ".xlsm", ".csv", ".txt", ""):
-        raise PlanilhaInvalida(f"Formato {ext} não aceito. Envie .xlsx, .csv ou cole o texto.")
-    try:
-        if ext in (".xlsx", ".xlsm", ""):
-            return pd.read_excel(io.BytesIO(dados), sheet_name=None, header=None, dtype=object, engine="openpyxl")
-        for cod in ("utf-8-sig", "latin-1"):
-            try:
-                texto = dados.decode(cod)
-                break
-            except UnicodeDecodeError:
-                continue
-        return {"Texto": pd.DataFrame({0: texto.splitlines()}, dtype=object)}
-    except Exception:
-        raise PlanilhaInvalida("Não consegui abrir o arquivo. Confira se é um Excel (.xlsx) ou CSV válido.")
+    if ext not in ACEITOS:
+        raise PlanilhaInvalida(f"Formato {ext} não aceito. Envie Excel (.xlsx), CSV, texto (.txt) ou JSON, ou cole a lista.")
+    if ext in (".xlsx", ".xlsm") or (ext == "" and dados[:2] == b"PK"):
+        try:
+            return pd.read_excel(io.BytesIO(dados), sheet_name=None, header=None, dtype=object, engine="openpyxl"), False
+        except Exception:
+            raise PlanilhaInvalida("Não consegui abrir o Excel. Confira se o arquivo é um .xlsx válido.")
+    texto = _texto_do_arquivo(dados)
+    if ext in (".json", ".jsonl", ".ndjson") or texto.lstrip()[:1] in ("[", "{"):
+        return {"JSON": _json(texto)}, True
+    if ext in (".csv", ".tsv"):
+        return {"CSV": _csv(texto)}, True
+    return {"Texto": pd.DataFrame({0: texto.splitlines()}, dtype=object)}, True
 
 
 def _dividir(serie):
@@ -93,12 +134,13 @@ def _texto(v):
     return str(v).strip()
 
 
-def _aba(raw, nome, log):
+def _aba(raw, nome, log, texto=False):
+    bruto = raw
     raw = raw.map(_limpar_celula).dropna(how="all").dropna(axis=1, how="all")
     if raw.empty:
         return None
     if raw.shape[1] == 1:
-        partes = _dividir(raw.iloc[:, 0])
+        partes = _dividir(bruto.loc[raw.index, raw.columns[0]])
         if partes is not None:
             log.append(f"Aba '{nome}': texto corrido dividido em {partes.shape[1]} colunas")
             raw = partes.map(_limpar_celula).dropna(how="all").dropna(axis=1, how="all")
@@ -120,6 +162,9 @@ def _aba(raw, nome, log):
     elif raw.shape[1] == 1:
         nomes, dados = ["descricao"], raw
         log.append(f"Aba '{nome}': sem cabeçalho, cada linha virou uma descrição")
+    elif texto and raw.shape[1] in (2, 3):
+        nomes, dados = ["descricao", "unidade", "grupo"][:raw.shape[1]], raw
+        log.append(f"Aba '{nome}': sem cabeçalho, usei a ordem descrição, unidade" + (", grupo" if raw.shape[1] == 3 else ""))
     else:
         return None
     usadas = {}
@@ -155,10 +200,10 @@ def _unificar_grupos(df, log):
 
 
 def ler_planilha(dados, nome):
-    abas = _abas(dados, nome)
+    abas, texto = _abas(dados, nome)
     log, partes = [], []
     for aba, raw in abas.items():
-        df = _aba(raw, str(aba), log)
+        df = _aba(raw, str(aba), log, texto)
         if df is not None and not df.empty:
             partes.append(df)
     if not partes:

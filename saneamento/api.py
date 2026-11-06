@@ -9,7 +9,7 @@ from lote import MAXIMO, PlanilhaInvalida, exportar_planilha, ler_planilha
 from similaridade import carregar_buscador
 
 LIMITE = 10_000
-LIMITE_LOTE = 20_000_000
+LIMITE_LOTE = 200_000_000
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 SEGREDO = os.environ.get("MOKKA_SEGREDO", "")
 
@@ -122,7 +122,7 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError:
             corpo = None
         if not corpo:
-            return self._responder(400, {"erro": "corpo vazio ou grande demais (máximo 20 MB)"})
+            return self._responder(400, {"erro": "corpo vazio ou grande demais (máximo 200 MB)"})
         if self.path == "/lote/ler":
             try:
                 return self._responder(200, ler_planilha(corpo, unquote(self.headers.get("X-Arquivo") or "")))

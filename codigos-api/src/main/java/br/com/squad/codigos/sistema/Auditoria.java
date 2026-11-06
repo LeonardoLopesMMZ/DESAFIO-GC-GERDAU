@@ -36,7 +36,7 @@ public class Auditoria {
     }
 
     public static String ip() {
-        return RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes a ? a.getRequest().getRemoteAddr() : null;
+        return RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes a ? Guarda.ip(a.getRequest()) : null;
     }
 
     private static String corta(String s, int n) {

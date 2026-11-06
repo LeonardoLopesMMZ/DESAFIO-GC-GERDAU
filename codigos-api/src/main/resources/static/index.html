@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#003366">
 <title>MOKKA · Códigos de serviço</title>
-<link rel="stylesheet" href="style.css?v=15">
+<link rel="stylesheet" href="style.css?v=19">
 </head>
 <body>
 <div id="carregando" aria-hidden="true"></div>
@@ -22,6 +22,7 @@
   <symbol id="i-baixar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14"/></symbol>
   <symbol id="i-banco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
   <symbol id="i-pessoas" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6"/></symbol>
+  <symbol id="i-casa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10M10 20v-6h4v6"/></symbol>
   <symbol id="i-api" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m8 7-5 5 5 5M16 7l5 5-5 5"/></symbol>
   <symbol id="i-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
   <symbol id="i-mais" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol>
@@ -47,7 +48,8 @@
     </div>
     <div class="topo-acoes">
       <span id="banco" class="banco oculto" role="status"><svg><use href="#i-banco"/></svg><span class="texto" id="banco-nome"></span></span>
-      <a href="/swagger" target="_blank" rel="noopener" title="API (Swagger)"><svg><use href="#i-api"/></svg><span class="texto">API</span></a>
+      <a href="/inicio.html" title="Início"><svg><use href="#i-casa"/></svg><span class="texto">Início</span></a>
+      <a href="/swagger" target="_blank rel="noopener" title="API (Swagger)"><svg><use href="#i-api"/></svg><span class="texto">API</span></a>
       <button type="button" id="usuario"><img id="usuario-foto" class="retrato oculto" alt=""><svg id="usuario-icone"><use href="#i-pessoa"/></svg><span id="usuario-nome">Entrar</span></button>
     </div>
   </div>
@@ -133,7 +135,14 @@
         </div>
         <textarea id="justificativa" maxlength="200" aria-labelledby="rotulo-justificativa" placeholder="Por que é diferente dos que já existem?"></textarea>
       </div>
-      <h2>Parecidos no catálogo</h2>
+      <div class="titulo-parecidos">
+        <h2>Parecidos no catálogo</h2>
+        <div class="paginas oculto" id="paginas">
+          <span id="paginas-texto"></span>
+          <button type="button" id="pag-antes" aria-label="Parecidos anteriores"><svg class="vira"><use href="#i-seta"/></svg></button>
+          <button type="button" id="pag-depois" aria-label="Mais parecidos"><svg><use href="#i-seta"/></svg></button>
+        </div>
+      </div>
       <div class="rolagem"><table>
         <thead><tr><th>Código</th><th>Descrição</th><th>Un.</th><th>Aderência</th><th>O que muda</th><th></th></tr></thead>
         <tbody id="candidatos"></tbody>
@@ -157,11 +166,11 @@
       <a href="/casos_teste.xlsx" download><svg><use href="#i-baixar"/></svg>Casos de teste</a>
     </div>
     <form class="lote-form cartao" id="form-lote">
-      <label>Excel ou CSV (até 5000 linhas)
+      <label>Excel, CSV, texto ou JSON (até 100.000 linhas)
         <span class="arquivo" id="caixa-arquivo">
-          <input type="file" id="arquivo" accept=".xlsx,.xlsm,.csv,.txt">
+          <input type="file" id="arquivo" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.json,.jsonl,.ndjson">
           <span class="arquivo-botao"><svg><use href="#i-planilha"/></svg>Escolher</span>
-          <span class="arquivo-nome" id="arquivo-nome">ou arraste a planilha aqui</span>
+          <span class="arquivo-nome" id="arquivo-nome">ou arraste o arquivo aqui</span>
         </span>
       </label>
       <label>Unidade se faltar
@@ -173,7 +182,7 @@
       <button class="principal com-icone" type="submit" id="analisar"><svg><use href="#i-planilha"/></svg>Analisar</button>
       <details class="colar">
         <summary>Ou cole a lista</summary>
-        <textarea id="lote-texto" rows="5" placeholder="Uma descrição por linha (colunas separadas por ; ou tab)"></textarea>
+        <textarea id="lote-texto" rows="5" placeholder="Uma descrição por linha (colunas separadas por ; ou tab), ou cole um JSON"></textarea>
       </details>
     </form>
     <div id="lote-resultado" class="oculto">
@@ -391,10 +400,10 @@
   <div class="janela-corpo ficha" id="ficha"></div>
 </dialog>
 
-<script src="fala.js?v=15"></script>
-<script src="local.js?v=15"></script>
-<script src="app.js?v=15"></script>
-<script src="rosto.js?v=15"></script>
-<script src="raiox.js?v=15"></script>
+<script src="fala.js?v=19"></script>
+<script src="local.js?v=19"></script>
+<script src="app.js?v=19"></script>
+<script src="rosto.js?v=19"></script>
+<script src="raiox.js?v=19"></script>
 </body>
 </html>

@@ -26,7 +26,7 @@ public class SimilaridadeClient {
         this.reserva = reserva;
         SimpleClientHttpRequestFactory tempo = new SimpleClientHttpRequestFactory();
         tempo.setConnectTimeout(3_000);
-        tempo.setReadTimeout(180_000);
+        tempo.setReadTimeout(900_000);
         this.http = builder.baseUrl(url).requestFactory(tempo).defaultHeader("X-Mokka-Segredo", segredo).build();
     }
 

@@ -333,11 +333,14 @@ addEventListener("resize", moverIndicador);
 function abrir(id) {
   const botao = document.querySelector(`nav.abas button[data-aba="${id}"]`);
   if (botao && botao.offsetParent === null) id = "aba-consulta";
+  const antes = ABAS.find(a => !$(a).classList.contains("oculto"));
+  const lado = antes && antes !== id ? (ABAS.indexOf(id) > ABAS.indexOf(antes) ? "direita" : "esquerda") : "";
   document.querySelectorAll("nav.abas button").forEach(b => b.classList.toggle("ativa", b.dataset.aba === id));
   moverIndicador();
-  ABAS.forEach(a => { $(a).classList.toggle("oculto", a !== id); $(a).classList.remove("entrar"); });
+  ABAS.forEach(a => { $(a).classList.toggle("oculto", a !== id); $(a).classList.remove("entrar", "vem-direita", "vem-esquerda"); });
+  [...$(id).children].forEach((filho, k) => filho.style.setProperty("--k", Math.min(k, 8)));
   void $(id).offsetWidth;
-  $(id).classList.add("entrar");
+  $(id).classList.add(lado ? "vem-" + lado : "entrar");
   esconderAviso();
   if (!sessao) { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
   if (id === "aba-catalogo" && !$("busca").value.trim()) catalogo();
@@ -895,23 +898,16 @@ function aderencia(p) {
   return s;
 }
 
-function mostrar(r) {
-  atual = r;
-  aviso(r.motivo + (r.nota ? " · " + r.nota[0].toUpperCase() + r.nota.slice(1) + "." : ""), r.resultado);
-  if (r.sugestao) {
-    const s = r.sugestao, a = $("aviso");
-    a.className = "REVISAR mostra";
-    a.textContent = `Você quis dizer "${M(s.descricao)}"? ${s.motivo}.`;
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "principal";
-    b.textContent = "Sim, consultar assim";
-    b.onclick = () => { (s.correcoes || []).forEach(c => ensinar(c.de, c.para)); $("descricao").value = s.descricao; contarCaracteres(); enviarFormulario($("consulta")); };
-    a.appendChild(b);
-  }
+const POR_PAGINA = 5;
+let paginaParecidos = 0;
+
+function desenharParecidos(lado) {
+  const r = atual, total = r.candidatos.length, ini = paginaParecidos * POR_PAGINA;
   const corpo = $("candidatos");
   corpo.replaceChildren();
-  r.candidatos.slice(0, 6).forEach((c, i) => {
+  corpo.className = lado ? "de-" + lado : "";
+  r.candidatos.slice(ini, ini + POR_PAGINA).forEach((c, k) => {
+    const i = ini + k;
     const tr = document.createElement("tr");
     celula(tr, botaoCodigo(c.codigo));
     celula(tr, M(c.descricao));
@@ -935,6 +931,31 @@ function mostrar(r) {
     corpo.appendChild(tr);
   });
   rotular(corpo);
+  $("paginas").classList.toggle("oculto", total <= POR_PAGINA);
+  $("paginas-texto").textContent = `${ini + 1}–${Math.min(ini + POR_PAGINA, total)} de ${total}`;
+  $("pag-antes").disabled = paginaParecidos === 0;
+  $("pag-depois").disabled = ini + POR_PAGINA >= total;
+}
+
+$("pag-antes").addEventListener("click", () => { if (paginaParecidos > 0) { paginaParecidos--; desenharParecidos("esquerda"); } });
+$("pag-depois").addEventListener("click", () => { if ((paginaParecidos + 1) * POR_PAGINA < atual.candidatos.length) { paginaParecidos++; desenharParecidos("direita"); } });
+
+function mostrar(r) {
+  atual = r;
+  aviso(r.motivo + (r.nota ? " · " + r.nota[0].toUpperCase() + r.nota.slice(1) + "." : ""), r.resultado);
+  if (r.sugestao) {
+    const s = r.sugestao, a = $("aviso");
+    a.className = "REVISAR mostra";
+    a.textContent = `Você quis dizer "${M(s.descricao)}"? ${s.motivo}.`;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "principal";
+    b.textContent = "Sim, consultar assim";
+    b.onclick = () => { (s.correcoes || []).forEach(c => ensinar(c.de, c.para)); $("descricao").value = s.descricao; contarCaracteres(); enviarFormulario($("consulta")); };
+    a.appendChild(b);
+  }
+  paginaParecidos = 0;
+  desenharParecidos();
   $("resultado").classList.remove("oculto");
   $("justificativa").value = "";
   $("justificativa").required = r.resultado !== "LIBERAR";
@@ -1481,14 +1502,14 @@ $("form-lote").addEventListener("submit", async e => {
   e.preventDefault();
   const colado = $("lote-texto").value.trim();
   const arquivo = $("arquivo").files[0] || (colado ? new File([colado], "colado.txt", { type: "text/plain" }) : null);
-  if (!arquivo) { aviso("Escolha uma planilha ou cole a lista.", "erro"); return; }
+  if (!arquivo) { aviso("Escolha um arquivo ou cole a lista.", "erro"); return; }
   const dados = new FormData();
   dados.append("arquivo", arquivo);
   dados.append("unidadePadrao", $("lote-unidade").value.trim());
   dados.append("grupoPadrao", $("lote-grupo").value);
   try { await pedirEntrada(); } catch (err) { aviso(err.message, "erro"); return; }
   $("analisar").classList.add("ocupado");
-  aviso(`Analisando ${arquivo.name}…`, "");
+  aviso(`Analisando ${arquivo.name}…${arquivo.size > 1_000_000 ? " Arquivo grande: pode levar alguns minutos." : ""}`, "");
   try {
     rede(1);
     const r = await fetch("/api/lotes/analisar", { method: "POST", headers: comToken(), body: dados }).finally(() => rede(-1));
@@ -1563,6 +1584,7 @@ $("fechar-teste").addEventListener("click", () => { history.replaceState(null, "
 
 async function iniciar() {
   const s = guardado.sessao();
+  if (!(s && s.token) && !location.hash) { location.replace("/inicio.html"); return; }
   if (s && s.token) {
     sessao = s;
     try { definirSessao(Object.assign({}, s, await chamar("/api/acesso/eu", null, { silencioso: true }))); } catch (e) { if (!semConexao) definirSessao(null); }
@@ -1582,7 +1604,7 @@ addEventListener("DOMContentLoaded", iniciar);
 const caixaArquivo = $("caixa-arquivo");
 $("arquivo").addEventListener("change", () => {
   const f = $("arquivo").files[0];
-  $("arquivo-nome").textContent = f ? f.name : "ou arraste a planilha aqui";
+  $("arquivo-nome").textContent = f ? f.name : "ou arraste o arquivo aqui";
   caixaArquivo.classList.toggle("escolhido", !!f);
 });
 ["dragenter", "dragover"].forEach(t => caixaArquivo.addEventListener(t, () => caixaArquivo.classList.add("arrastando")));

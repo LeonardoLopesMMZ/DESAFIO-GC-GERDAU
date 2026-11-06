@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#003366">
+<meta name="description" content="MOKKA: antes de criar um código de serviço no SAP, confere se ele já existe, mesmo escrito de outro jeito.">
+<title>MOKKA · Um código para cada serviço</title>
+<link rel="stylesheet" href="inicio.css?v=19">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-busca" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-planilha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/></symbol>
+  <symbol id="i-curador" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+  <symbol id="i-rosto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M9 10v1M15 10v1M12 10v3h-1M9.5 16a4 4 0 0 0 5 0"/></symbol>
+  <symbol id="i-raio" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></symbol>
+  <symbol id="i-baixar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14"/></symbol>
+  <symbol id="i-banco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="i-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-cadeado" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/></symbol>
+  <symbol id="i-relogio" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-brilho" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></symbol>
+  <symbol id="i-igual" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9h12M6 15h12"/></symbol>
+  <symbol id="i-corrige" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13 7 4 4"/></symbol>
+  <symbol id="i-tesoura" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h6"/><path d="m17 15 3 3-3 3"/></symbol>
+  <symbol id="i-escudo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></symbol>
+  <symbol id="i-lista" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></symbol>
+  <symbol id="i-pausa" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></symbol>
+  <symbol id="i-mais" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-arquivo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></symbol>
+</svg>
+
+<header class="topo" id="topo">
+  <div class="dentro">
+    <a class="marca" href="#inicio" aria-label="MOKKA, início">
+      <span class="selo-marca" aria-hidden="true">M</span>
+      <span>MOKKA</span>
+    </a>
+    <nav class="menu" aria-label="Seções">
+      <a href="#tour">Como funciona</a>
+      <a href="#funcionalidades">Funcionalidades</a>
+      <a href="#seguranca">Segurança</a>
+    </nav>
+    <div class="acoes">
+      <a class="botao contorno so-largo" href="#tour"><svg><use href="#i-play"/></svg>Assistir ao tour</a>
+      <a class="botao principal" href="/#entrar">Entrar</a>
+    </div>
+  </div>
+</header>
+
+<main id="inicio">
+  <section class="heroi dentro">
+    <div class="heroi-texto">
+      <p class="sobretitulo">Desafio GC 2026 · Gerdau</p>
+      <h1>Um código para cada serviço. <span>Sem repetição.</span></h1>
+      <p class="lide">Antes de criar um código no SAP, o MOKKA confere se o serviço já existe, mesmo escrito de outro jeito, falado ou com erro de digitação. Os casos difíceis vão para o curador, e o MOKKA aprende com cada decisão.</p>
+      <div class="linha-botoes">
+        <a class="botao principal grande" href="/#entrar">Começar agora<svg><use href="#i-seta"/></svg></a>
+        <a class="botao contorno grande" href="#tour"><svg><use href="#i-play"/></svg>Assistir ao tour</a>
+      </div>
+      <ul class="selos">
+        <li><svg><use href="#i-ok"/></svg>Responde em menos de 1 segundo</li>
+        <li><svg><use href="#i-ok"/></svg>Fala, digita ou manda a planilha</li>
+      </ul>
+    </div>
+    <figure class="video" data-demo="consulta" data-rotulo="Consulta por voz">
+      <figcaption class="oculto-leitor">Demonstração animada: uma consulta por voz encontra o código que já existe.</figcaption>
+    </figure>
+  </section>
+
+  <section class="numeros" aria-label="Resultados na base da Gerdau">
+    <div class="dentro">
+      <div><b data-contar="7937" data-milhar>0</b><span>códigos na base analisada</span></div>
+      <div><b data-contar="883">0</b><span>códigos repetidos encontrados</span></div>
+      <div><b data-contar="0" data-fixo>0</b><span>junções erradas em 430 pares conferidos à mão</span></div>
+      <div><b><span data-contar="77">0</span> → <span data-contar="100">0</span></b><span>nota de saúde do catálogo, antes e depois</span></div>
+    </div>
+  </section>
+
+  <section class="secao" id="tour">
+    <div class="dentro">
+      <h2 class="titulo-secao">Quer entender como o MOKKA funciona?</h2>
+      <p class="sub-secao">Um tour rápido, no seu ritmo. Clique em <b>Próximo</b>.</p>
+      <div class="tour" id="tour-caixa">
+        <div class="janela">
+          <div class="janela-barra"><i></i><i></i><i></i><span class="endereco"><svg><use href="#i-cadeado"/></svg>mokka · códigos de serviço</span></div>
+          <div class="palco-caixa"><div class="palco" id="tour-palco"></div></div>
+        </div>
+        <div class="balao" id="tour-balao" role="dialog" aria-live="polite" aria-labelledby="tour-titulo">
+          <p class="balao-passo" id="tour-passo"></p>
+          <h3 id="tour-titulo"></h3>
+          <p id="tour-texto"></p>
+          <div class="balao-botoes">
+            <button type="button" class="botao contorno pequeno" id="tour-voltar">Voltar</button>
+            <button type="button" class="botao principal pequeno" id="tour-proximo">Próximo</button>
+          </div>
+          <div class="pontos" id="tour-pontos" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="secao clara" id="funcionalidades">
+    <div class="dentro">
+      <h2 class="titulo-secao">Feito para quem cria código todo dia</h2>
+      <p class="sub-secao">Do comprador que pede ao curador que decide, tudo num lugar só.</p>
+      <div class="grade">
+        <article class="recurso"><span class="icone"><svg><use href="#i-mic"/></svg></span><h3>Consulta por voz</h3><p>Fale o serviço. O MOKKA escreve, arruma e consulta sozinho, com anti-ruído.</p></article>
+        <article class="recurso"><span class="icone"><svg><use href="#i-corrige"/></svg></span><h3>Corrige a escrita</h3><p>"SOLDA DOR" vira SOLDADOR. Erros de digitação e de fala não criam código novo.</p></article>
+        <article class="recurso"><span class="icone"><svg><use href="#i-tesoura"/></svg></span><h3>Cabe nos 40 do SAP</h3><p>Escreva à vontade: na hora de consultar, o MOKKA abrevia no padrão da base.</p></article>
+        <article class="recurso"><span class="icone"><svg><use href="#i-curador"/></svg></span><h3>Curador que ensina</h3><p>Pedidos iguais chegam juntos, com a sugestão do MOKKA. Cada decisão vira regra.</p></article>
+        <article class="recurso"><span class="icone"><svg><use href="#i-planilha"/></svg></span><h3>Planilha inteira</h3><p>Até 100.000 linhas em Excel, CSV, texto ou JSON, mesmo bagunçadas.</p></article>
+        <article class="recurso"><span class="icone"><svg><use href="#i-raio"/></svg></span><h3>Raio-X do catálogo</h3><p>Nota de saúde antes e depois, famílias de repetidos e números por grupo.</p></article>
+        <article class="recurso"><span class="icone"><svg><use href="#i-rosto"/></svg></span><h3>Entrada pelo rosto</h3><p>Rosto, chave do Windows ou liberação do curador. Cada código sabe quem criou.</p></article>
+        <article class="recurso"><span class="icone"><svg><use href="#i-banco"/></svg></span><h3>Não para se algo cair</h3><p>Sem o serviço de similaridade ou sem o banco, a consulta continua e nada se perde.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="secao">
+    <div class="dentro">
+      <div class="bloco">
+        <div class="bloco-texto">
+          <h2>Curador com contexto e previsibilidade</h2>
+          <ul class="lista-ok">
+            <li><svg><use href="#i-ok"/></svg>Pedidos iguais de pessoas diferentes chegam juntos, num cartão só.</li>
+            <li><svg><use href="#i-ok"/></svg>O MOKKA mostra a sugestão, a certeza dela e o que muda entre os textos.</li>
+            <li><svg><use href="#i-ok"/></svg>Cada decisão vira regra: a próxima consulta igual já vem com o código certo. E dá para desfazer.</li>
+          </ul>
+          <a class="botao contorno" href="/#curador">Abrir o curador</a>
+        </div>
+        <figure class="video" data-demo="curador" data-rotulo="Curador">
+          <figcaption class="oculto-leitor">Demonstração animada: o curador aprova um grupo de pedidos iguais e o MOKKA aprende.</figcaption>
+        </figure>
+      </div>
+
+      <div class="bloco invertido">
+        <div class="bloco-texto">
+          <h2>Transforme a base em decisão</h2>
+          <ul class="lista-ok">
+            <li><svg><use href="#i-ok"/></svg>Nota de 0 a 100 da base original e do catálogo tratado, com os critérios.</li>
+            <li><svg><use href="#i-ok"/></svg>As maiores famílias de códigos repetidos, com o código oficial de cada uma.</li>
+            <li><svg><use href="#i-ok"/></svg>Números por grupo para mostrar onde a base mais precisa de cuidado.</li>
+          </ul>
+          <a class="botao contorno" href="/#raio-x">Ver o Raio-X</a>
+        </div>
+        <figure class="video" data-demo="raiox" data-rotulo="Raio-X">
+          <figcaption class="oculto-leitor">Demonstração animada: a nota do catálogo sobe de 77 para 100.</figcaption>
+        </figure>
+      </div>
+
+      <div class="bloco">
+        <div class="bloco-texto">
+          <h2>A planilha inteira de uma vez</h2>
+          <ul class="lista-ok">
+            <li><svg><use href="#i-ok"/></svg>Arraste o arquivo: Excel, CSV, texto ou JSON, com até 100.000 linhas.</li>
+            <li><svg><use href="#i-ok"/></svg>O MOKKA arruma títulos, abas e colunas e diz linha a linha o que fazer.</li>
+            <li><svg><use href="#i-ok"/></svg>Importa tudo numa transação só e devolve um Excel pronto para o SAP.</li>
+          </ul>
+          <a class="botao contorno" href="/#planilha">Mandar uma planilha</a>
+        </div>
+        <figure class="video" data-demo="planilha" data-rotulo="Planilha">
+          <figcaption class="oculto-leitor">Demonstração animada: uma planilha é analisada e cada linha ganha um resultado.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="secao escura" id="seguranca">
+    <div class="dentro">
+      <h2 class="titulo-secao">Seguro do jeito que a base da empresa pede</h2>
+      <div class="grade quatro">
+        <article><svg><use href="#i-cadeado"/></svg><h3>Nada abre sem entrar</h3><p>Catálogo, planilha e fotos só aparecem para quem entrou, conforme o perfil.</p></article>
+        <article><svg><use href="#i-lista"/></svg><h3>Tudo fica registrado</h3><p>Quem criou, quem usou, quem aprovou e quem liberou uma entrada, com data e hora.</p></article>
+        <article><svg><use href="#i-escudo"/></svg><h3>Fotos protegidas</h3><p>Guardadas criptografadas. Cada pessoa pode apagar o próprio rosto quando quiser.</p></article>
+        <article><svg><use href="#i-banco"/></svg><h3>Dados em casa</h3><p>O banco e o serviço de similaridade só atendem o próprio computador do MOKKA.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="chamada" id="entrar">
+    <div class="dentro">
+      <h2>Pronto para consultar o primeiro serviço?</h2>
+      <a class="botao amarelo grande" href="/#entrar">Entrar no MOKKA<svg><use href="#i-seta"/></svg></a>
+    </div>
+  </section>
+</main>
+
+<footer class="rodape">
+  <div class="dentro">
+    <span><b>MOKKA</b> · Grupo 17 · Desafio GC 2026 · Gerdau e Instituto Caldeira</span>
+    <a href="https://github.com/LeonardoLopesMMZ/DESAFIO-GC-GERDAU" target="_blank" rel="noopener">Código no GitHub</a>
+  </div>
+</footer>
+
+<template id="tela-consulta">
+  <div class="app">
+    <div class="app-topo"><span class="mini-selo">M</span>MOKKA<span class="app-usuario"><i>L</i>Leonardo</span></div>
+    <div class="app-abas"><span class="ativa"><svg><use href="#i-busca"/></svg>Consultar</span><span><svg><use href="#i-planilha"/></svg>Planilha</span><span><svg><use href="#i-curador"/></svg>Curador</span><span><svg><use href="#i-raio"/></svg>Raio-X</span></div>
+    <div class="app-corpo">
+      <div class="campo-linha">
+        <div class="campo" data-alvo="campo"><span class="digitado" data-digitar="pedreiro hora normal"></span><span class="caret"></span><span class="contador"><b data-tamanho>0</b>/40</span></div>
+        <span class="mic" data-alvo="mic"><svg><use href="#i-mic"/></svg></span>
+        <span class="un">H</span>
+        <span class="btn principal" data-alvo="consultar"><svg><use href="#i-busca"/></svg>Consultar</span>
+      </div>
+      <p class="ouvindo">Ouvindo… pode falar</p>
+      <div class="faixa vermelha"><span class="sinal"><svg><use href="#i-igual"/></svg></span><div><b>Já existe: 7100215</b><small>PEDREIRO - HORA NORMAL · mesma unidade</small></div><span class="btn principal" data-alvo="usar"><svg><use href="#i-ok"/></svg>Usar o 7100215</span></div>
+      <div class="cab-lista"><b>Parecidos no catálogo</b><span class="pager"><span class="pg1">1–5 de 8</span><span class="pg2">6–8 de 8</span><i>‹</i><i data-alvo="proximo">›</i></span></div>
+      <div class="linhas pagina1">
+        <div class="linha"><b>7100215</b><span>PEDREIRO - HORA NORMAL</span><em class="ad" style="--p:100%">100%</em><span class="tag igual">Igual</span></div>
+        <div class="linha"><b>7100341</b><span>PEDREIRO HORA NORMAL ADM</span><em class="ad" style="--p:94%">94%</em><span class="tag quase">Quase igual</span></div>
+        <div class="linha"><b>7100217</b><span>PEDREIRO - HORA EXTRA 50%</span><em class="ad" style="--p:81%">81%</em><span class="tag dif">Diferente</span></div>
+        <div class="linha"><b>7100220</b><span>MEIO OFICIAL PEDREIRO</span><em class="ad" style="--p:72%">72%</em><span class="tag dif">Diferente</span></div>
+        <div class="linha"><b>7100398</b><span>PEDREIRO REFRATARISTA</span><em class="ad" style="--p:68%">68%</em><span class="tag dif">Diferente</span></div>
+      </div>
+      <div class="linhas pagina2">
+        <div class="linha"><b>7100402</b><span>ENCARREGADO PEDREIRO</span><em class="ad" style="--p:61%">61%</em><span class="tag dif">Diferente</span></div>
+        <div class="linha"><b>7100219</b><span>PEDREIRO - HORA EXTRA 100%</span><em class="ad" style="--p:58%">58%</em><span class="tag dif">Diferente</span></div>
+        <div class="linha"><b>7100512</b><span>AJUDANTE PEDREIRO</span><em class="ad" style="--p:55%">55%</em><span class="tag dif">Diferente</span></div>
+      </div>
+      <div class="pronto"><svg><use href="#i-ok"/></svg>Código 7100215 usado. Nenhum código repetido criado.</div>
+    </div>
+  </div>
+</template>
+
+<template id="tela-curador">
+  <div class="app">
+    <div class="app-topo"><span class="mini-selo">M</span>MOKKA<span class="app-usuario"><i>T</i>Thirza · Curadora</span></div>
+    <div class="app-abas"><span><svg><use href="#i-busca"/></svg>Consultar</span><span><svg><use href="#i-planilha"/></svg>Planilha</span><span class="ativa"><svg><use href="#i-curador"/></svg>Curador</span><span><svg><use href="#i-raio"/></svg>Raio-X</span></div>
+    <div class="app-corpo">
+      <div class="kpis">
+        <div><small>Esperando</small><b data-de="4" data-ate="3" data-contar-cena>4</b></div>
+        <div><small>Aprovados hoje</small><b data-de="12" data-ate="15" data-contar-cena>12</b></div>
+        <div><small>Regras aprendidas</small><b data-de="41" data-ate="42" data-contar-cena>41</b></div>
+        <div><small>Repetidos evitados</small><b data-de="208" data-ate="211" data-contar-cena>208</b></div>
+      </div>
+      <div class="caso" data-alvo="caso">
+        <div class="caso-topo">
+          <span class="avatares"><i>B</i><i>L</i><i>K</i></span>
+          <span><b>3 pedidos iguais</b><small>Bárbara, Lukas e Kauã · hoje</small></span>
+          <span class="anel" style="--p:94"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.9"/><circle class="cheio" cx="18" cy="18" r="15.9" pathLength="100"/></svg><b>94%</b></span>
+        </div>
+        <div class="comparar">
+          <div><small>Pedido</small>ELETRICISTA <mark>FORCA</mark> CONTROLE</div>
+          <div><small>Já existe · 7100318</small>ELETRICISTA <mark>FORÇA E</mark> CONTROLE</div>
+        </div>
+        <p class="sugestao"><svg><use href="#i-brilho"/></svg>Sugestão do MOKKA: <b>é o mesmo serviço, usar o 7100318</b></p>
+        <div class="caso-botoes"><span class="btn">Recusar</span><span class="btn principal" data-alvo="aprovar"><svg><use href="#i-ok"/></svg><span class="txt-a">Aprovar o grupo</span><span class="txt-b">Grupo aprovado</span></span></div>
+        <span class="selo-ok" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m7.5 12.5 3 3 6-6.5"/></svg></span>
+      </div>
+      <div class="caso proximo-caso">
+        <div class="caso-topo"><span class="avatares"><i>R</i></span><span><b>1 pedido</b><small>Ricardo · hoje</small></span><span class="anel" style="--p:61"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.9"/><circle class="cheio" cx="18" cy="18" r="15.9" pathLength="100"/></svg><b>61%</b></span></div>
+        <div class="comparar"><div><small>Pedido</small>SOLDADOR TIG INOX</div><div><small>Parecido · 7100604</small>SOLDADOR TIG</div></div>
+      </div>
+      <div class="aprendi"><svg><use href="#i-brilho"/></svg>Aprendido: a próxima consulta igual já vem com o 7100318</div>
+    </div>
+  </div>
+</template>
+
+<template id="tela-raiox">
+  <div class="app">
+    <div class="app-topo"><span class="mini-selo">M</span>MOKKA<span class="app-usuario"><i>L</i>Leonardo</span></div>
+    <div class="app-abas"><span><svg><use href="#i-busca"/></svg>Consultar</span><span><svg><use href="#i-planilha"/></svg>Planilha</span><span><svg><use href="#i-curador"/></svg>Curador</span><span class="ativa"><svg><use href="#i-raio"/></svg>Raio-X</span></div>
+    <div class="app-corpo raiox">
+      <div class="painel nota">
+        <small>Nota de saúde</small>
+        <div class="medidor"><svg viewBox="0 0 120 70"><path class="trilho" d="M10 62a50 50 0 0 1 100 0" pathLength="100"/><path class="arco" d="M10 62a50 50 0 0 1 100 0" pathLength="100"/></svg><b data-de="77" data-ate="100" data-contar-cena>77</b></div>
+        <p><span class="antes">Base original 77</span><span class="depois">Catálogo tratado 100</span></p>
+      </div>
+      <div class="painel barras">
+        <small>Repetidos por grupo</small>
+        <div class="barra"><span>Eletromecânica</span><i style="--p:88%"></i><b>412</b></div>
+        <div class="barra"><span>Civil</span><i style="--p:62%"></i><b>291</b></div>
+        <div class="barra"><span>Facilities</span><i style="--p:38%"></i><b>180</b></div>
+      </div>
+      <div class="painel familias">
+        <small>Maiores famílias de repetidos</small>
+        <div class="familia"><b>ELETRICISTA - HORA NORMAL</b><span>23 códigos → 1</span></div>
+        <div class="familia"><b>AJUDANTE GERAL</b><span>17 códigos → 1</span></div>
+        <div class="familia"><b>PEDREIRO - HORA NORMAL</b><span>12 códigos → 1</span></div>
+      </div>
+      <div class="painel total"><small>Repetidos encontrados</small><b data-de="0" data-ate="883" data-contar-cena>0</b><span>7.937 → 7.054 códigos oficiais</span></div>
+    </div>
+  </div>
+</template>
+
+<template id="tela-planilha">
+  <div class="app">
+    <div class="app-topo"><span class="mini-selo">M</span>MOKKA<span class="app-usuario"><i>L</i>Leonardo</span></div>
+    <div class="app-abas"><span><svg><use href="#i-busca"/></svg>Consultar</span><span class="ativa"><svg><use href="#i-planilha"/></svg>Planilha</span><span><svg><use href="#i-curador"/></svg>Curador</span><span><svg><use href="#i-raio"/></svg>Raio-X</span></div>
+    <div class="app-corpo">
+      <div class="soltar" data-alvo="soltar"><svg><use href="#i-arquivo"/></svg><span class="soltar-texto">Arraste aqui: Excel, CSV, texto ou JSON</span><span class="soltar-nome">pedidos_novembro.xlsx · 12.480 linhas</span><span class="progresso"><i></i></span></div>
+      <span class="arquivo-voando"><svg><use href="#i-arquivo"/></svg>pedidos_novembro.xlsx</span>
+      <div class="chips">
+        <span class="chip vermelho">Já existem <b data-de="0" data-ate="4212" data-contar-cena>0</b></span>
+        <span class="chip amarelo">Parecidos <b data-de="0" data-ate="1033" data-contar-cena>0</b></span>
+        <span class="chip verde">Novos <b data-de="0" data-ate="6980" data-contar-cena>0</b></span>
+        <span class="chip azul">Repetidos <b data-de="0" data-ate="255" data-contar-cena>0</b></span>
+      </div>
+      <div class="tabela">
+        <div class="linha"><span>2</span><span>ELETRICISTA HORA NORMAL</span><span class="res vermelho">Já existe</span><span>7100109</span></div>
+        <div class="linha"><span>3</span><span>MONTADOR ANDAIME</span><span class="res verde">Novo</span><span>—</span></div>
+        <div class="linha"><span>4</span><span>ELETRICISTA - HR NORMAL</span><span class="res azul">Repetido</span><span>linha 2</span></div>
+        <div class="linha"><span>5</span><span>SOLDA DOR TIG</span><span class="res amarelo">Parecido</span><span>7100604</span></div>
+        <div class="linha"><span>6</span><span>PINTOR INDUSTRIAL</span><span class="res vermelho">Já existe</span><span>7100733</span></div>
+      </div>
+      <div class="baixar"><span class="btn principal" data-alvo="importar"><svg><use href="#i-banco"/></svg>Importar no banco</span><span class="btn" data-alvo="baixar"><svg><use href="#i-baixar"/></svg>Baixar Excel organizado</span></div>
+    </div>
+  </div>
+</template>
+
+<script src="inicio.js?v=19"></script>
+</body>
+</html>
