@@ -1,6 +1,8 @@
 package br.com.squad.codigos.catalogo;
 
+import br.com.squad.codigos.acesso.Acesso;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.sql.Date;
@@ -13,6 +15,7 @@ import java.util.function.Predicate;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -22,14 +25,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class RaioXController {
 
     private final JdbcTemplate jdbc;
+    private final Acesso acesso;
 
-    public RaioXController(JdbcTemplate jdbc) {
+    public RaioXController(JdbcTemplate jdbc, Acesso acesso) {
         this.jdbc = jdbc;
+        this.acesso = acesso;
     }
 
     @Operation(summary = "Raio-X do catálogo", description = "Nota de 0 a 100 da base original e do catálogo tratado, com os critérios, as maiores famílias de códigos repetidos e os totais por grupo.")
     @GetMapping
-    public RaioX raioX() {
+    public RaioX raioX(@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String auth) {
+        acesso.exigirPerfil(auth, "CURADOR");
         List<String[]> antes = jdbc.query("select descricao, unidade from codigo_servico "
                         + "where motivo is null or (motivo not like 'criado%' and motivo not like 'importado%')",
                 (r, i) -> new String[]{r.getString(1), r.getString(2)});
@@ -68,7 +74,8 @@ public class RaioXController {
 
     @Operation(summary = "Painel do MOKKA", description = "Tudo o que acontece no MOKKA: consultas por dia e por resultado, decisões, códigos criados, curador, aprendizado, pessoas e as consultas mais recentes.")
     @GetMapping("/painel")
-    public Painel painel() {
+    public Painel painel(@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String auth) {
+        acesso.exigirPerfil(auth, "CURADOR");
         LocalDate hoje = LocalDate.now();
         Date inicio = Date.valueOf(hoje.minusDays(13));
         Map<String, Long> resultados = contagem("select resultado, count(*) from solicitacao where resultado is not null group by resultado");
