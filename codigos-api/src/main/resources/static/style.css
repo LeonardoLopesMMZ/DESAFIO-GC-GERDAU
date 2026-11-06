@@ -892,6 +892,75 @@ button.pequeno svg { width: 14px; height: 14px; }
 @keyframes vem-direita { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
 @keyframes vem-esquerda { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: none; } }
 
+.painel-titulo { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.painel-titulo h2 { margin-bottom: 4px; }
+.ao-vivo { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 99px; background: #effaf3; color: var(--verde); font-size: 12px; font-weight: 700; margin-bottom: 14px; font-variant-numeric: tabular-nums; }
+.ao-vivo i { width: 8px; height: 8px; border-radius: 50%; background: var(--verde); animation: pulsar-vivo 1.6s ease-out infinite; }
+@keyframes pulsar-vivo { 0% { box-shadow: 0 0 0 0 rgba(6, 118, 71, .5); } 100% { box-shadow: 0 0 0 9px rgba(6, 118, 71, 0); } }
+.painel-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+.kpi-p { display: grid; gap: 2px; align-content: start; margin: 0; border-top: 4px solid var(--azul-2); animation: surgir .5s cubic-bezier(.22, 1, .36, 1) both; }
+.kpi-p:nth-child(2) { animation-delay: .05s; } .kpi-p:nth-child(3) { animation-delay: .1s; } .kpi-p:nth-child(4) { animation-delay: .15s; } .kpi-p:nth-child(5) { animation-delay: .2s; } .kpi-p:nth-child(6) { animation-delay: .25s; }
+.kpi-p.vermelho { border-top-color: var(--vermelho); } .kpi-p.verde { border-top-color: var(--verde); } .kpi-p.amarelo { border-top-color: var(--amarelo); }
+.kpi-p .rotulo { color: var(--fraco); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.kpi-p > b { font-size: 30px; line-height: 1.1; color: var(--azul); font-variant-numeric: tabular-nums; }
+.kpi-p small { color: var(--fraco); font-size: 12.5px; }
+.painel-grade { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 26px; }
+.painel-grade .cartao { margin: 0; min-width: 0; animation: surgir .55s cubic-bezier(.22, 1, .36, 1) both; }
+.painel-grade .cartao:nth-child(2) { animation-delay: .06s; } .painel-grade .cartao:nth-child(3) { animation-delay: .12s; } .painel-grade .cartao:nth-child(4) { animation-delay: .18s; } .painel-grade .cartao:nth-child(5) { animation-delay: .24s; } .painel-grade .cartao:nth-child(6) { animation-delay: .3s; }
+.painel-grade h3 { margin: 0 0 12px; font-size: 15px; color: var(--azul); }
+.bloco-largo { grid-column: span 3; }
+.bloco-duplo { grid-column: span 2; }
+.bloco-duplo .feed { grid-template-columns: 1fr 1fr; column-gap: 18px; }
+.colunas { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 8px; align-items: end; height: 190px; }
+.coluna-dia { display: grid; grid-template-rows: 1fr auto auto; height: 100%; text-align: center; gap: 3px; }
+.coluna-dia .pilha { align-self: end; display: flex; flex-direction: column; justify-content: flex-end; height: var(--h); min-height: 3px; border-radius: 6px 6px 2px 2px; overflow: hidden; background: var(--linha); transform-origin: bottom; animation: crescer-coluna .7s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(var(--i) * 35ms); }
+.coluna-dia .pilha i { display: block; min-height: 0; }
+.coluna-dia b { font-size: 12px; color: var(--azul); min-height: 16px; }
+.coluna-dia small { color: var(--fraco); font-size: 11px; }
+@keyframes crescer-coluna { from { transform: scaleY(0); } }
+.BLOQUEAR { --cor: var(--vermelho); } .REVISAR { --cor: #d4a000; } .LIBERAR { --cor: var(--verde); }
+.pilha i.BLOQUEAR, .pilha i.REVISAR, .pilha i.LIBERAR { background: var(--cor); }
+.legenda-painel { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; color: var(--fraco); font-size: 12.5px; font-weight: 600; }
+.legenda-painel.coluna { flex-direction: column; }
+.legenda-painel span { display: inline-flex; align-items: center; gap: 7px; }
+.legenda-painel i { width: 11px; height: 11px; border-radius: 3px; background: var(--cor); }
+.rosca-caixa { position: relative; width: 170px; margin: 0 auto; }
+.rosca { width: 170px; height: 170px; transform: rotate(-90deg); }
+.rosca circle { fill: none; stroke-width: 6; }
+.rosca .fundo { stroke: var(--linha); }
+.rosca .fatia { stroke: var(--cor); stroke-dasharray: var(--parte) 100; stroke-dashoffset: var(--inicio); animation: fatia 1s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(var(--i) * 120ms); }
+@keyframes fatia { from { stroke-dasharray: 0 100; } }
+.rosca-centro { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.rosca-centro b { font-size: 28px; color: var(--azul); line-height: 1; }
+.rosca-centro span { color: var(--fraco); font-size: 12px; }
+.barras-painel { display: grid; gap: 10px; }
+.barra-painel { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; font-size: 13px; animation: surgir .45s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(var(--i) * 60ms); }
+.barra-painel b { color: var(--azul); font-variant-numeric: tabular-nums; }
+.barra-painel .trilho { grid-column: span 2; height: 8px; border-radius: 8px; background: var(--linha); overflow: hidden; }
+.barra-painel .trilho i { display: block; height: 100%; width: 0; border-radius: 8px; background: var(--azul-2); transition: width .9s cubic-bezier(.22, 1, .36, 1); }
+.barra-painel.USOU_EXISTENTE .trilho i, .barra-painel.RECUSADO .trilho i { background: var(--vermelho); }
+.barra-painel.CRIADO .trilho i { background: var(--verde); }
+.barra-painel.AGUARDANDO_CURADOR .trilho i { background: #d4a000; }
+.barra-painel.ROSTO .trilho i { background: var(--azul); }
+.ranking { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; counter-reset: rank; }
+.ranking li { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 8px; background: var(--fundo); font-size: 13px; font-weight: 600; counter-increment: rank; animation: surgir .4s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(var(--i) * 50ms); }
+.ranking li::before { content: counter(rank); width: 22px; height: 22px; display: grid; place-items: center; border-radius: 6px; background: var(--azul); color: #fff; font-size: 11px; }
+.ranking li:first-child::before { background: var(--amarelo); color: var(--azul); }
+.ranking span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ranking b { color: var(--azul-2); }
+.feed { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; max-height: 260px; overflow: auto; }
+.feed li { display: grid; grid-template-columns: 10px 1fr; gap: 10px; align-items: start; padding: 6px 4px; border-bottom: 1px solid var(--linha); animation: surgir .4s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(var(--i) * 45ms); }
+.feed li > i { width: 10px; height: 10px; margin-top: 4px; border-radius: 50%; background: var(--cor, var(--borda)); }
+.feed b { display: block; font-size: 13px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.feed small { color: var(--fraco); font-size: 12px; }
+.feed span { min-width: 0; }
+.pessoas-painel { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+.pessoas-painel b { font-size: 30px; color: var(--azul); }
+.pessoas-painel span { color: var(--fraco); font-size: 13px; }
+@media (max-width: 1100px) { .painel-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } .painel-grade { grid-template-columns: repeat(2, minmax(0, 1fr)); } .bloco-largo, .bloco-duplo { grid-column: span 2; } }
+@media (max-width: 682px) { .painel-kpis, .painel-grade { grid-template-columns: 1fr 1fr; } .bloco-largo { grid-column: span 2; } .colunas { gap: 3px; } .coluna-dia small { font-size: 9px; } }
+@media (max-width: 460px) { .painel-grade { grid-template-columns: 1fr; } .bloco-largo, .bloco-duplo { grid-column: span 1; } .bloco-duplo .feed { grid-template-columns: 1fr; } }
+
 @view-transition { navigation: auto; }
 ::view-transition-old(root) { animation: sair-pagina .35s cubic-bezier(.4, 0, 1, 1) both; }
 ::view-transition-new(root) { animation: entrar-pagina .55s cubic-bezier(.22, 1, .36, 1) both; }

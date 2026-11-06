@@ -21,9 +21,10 @@
 | O grupo só via o sistema no computador de quem liga | ajuste: link seguro pelo Tailscale |
 | Por um túnel, o sistema se achava no próprio computador (Swagger aberto) | bug de segurança, corrigido e testado |
 | Depois de atualizar, o navegador às vezes mostrava a tela antiga | bug, corrigido |
-| Sem uma tela que apresente o sistema | ajuste: tela inicial com demonstração animada e tour |
+| Sem uma tela que apresente o sistema | ajuste: tutorial com demonstração animada e tour, no botão do topo |
+| O Raio-X mostrava só o catálogo | ajuste: virou um painel ao vivo de tudo o que acontece no MOKKA |
 | Documentação da Entrega 3 e da entrega final | feito |
-| Teste geral | 34 de 34 |
+| Teste geral | 35 de 35 |
 
 ## Depende de uma resposta da Gerdau
 
