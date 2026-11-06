@@ -118,8 +118,9 @@ Teste 'Seguranca: perfis (comprador nao decide)' {
   $a = Status 'GET' ($site + '/api/solicitacoes/curador') $h
   $b = Status 'POST' ($site + '/api/solicitacoes/curador/grupo') $h '{"ids":[1],"aprovar":true}'
   $c = Status 'GET' ($site + '/api/admin/auditoria') $h
-  if ($a -ne 403 -or $b -ne 403 -or $c -ne 403) { throw "curador $a, decidir $b, auditoria $c (esperava 403)" }
-  'comprador recebe 403 no curador e na administracao'
+  $d = Status 'GET' ($site + '/api/raio-x/painel') $h
+  if ($a -ne 403 -or $b -ne 403 -or $c -ne 403 -or $d -ne 403) { throw "curador $a, decidir $b, auditoria $c, raio-x $d (esperava 403)" }
+  'comprador recebe 403 no curador, no Raio-X e na administracao'
 }
 
 Teste 'Seguranca: cabecalhos de protecao' {
