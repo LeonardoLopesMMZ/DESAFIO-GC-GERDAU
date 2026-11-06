@@ -68,7 +68,7 @@ public class Erros {
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     ResponseEntity<Erro> grande(HttpServletRequest req) {
-        return erro(HttpStatus.PAYLOAD_TOO_LARGE, "Arquivo maior que 20 MB. Divida a planilha em partes.", req);
+        return erro(HttpStatus.PAYLOAD_TOO_LARGE, "Arquivo maior que 100 MB. Divida em partes.", req);
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)

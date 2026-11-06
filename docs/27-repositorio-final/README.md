@@ -3,7 +3,7 @@
 > **O que pede:** código e artefatos organizados na versão apresentada.
 > **Critério de aceite:** o repositório possui os arquivos necessários para compreender a entrega.
 
-**GitHub:** https://github.com/LeonardoLopesMMZ/DESAFIO-GC-GERDAU · branch `main` · versão apresentada: tag **`v1.2`**.
+**GitHub:** https://github.com/LeonardoLopesMMZ/DESAFIO-GC-GERDAU · branch `main` · versão apresentada: tag **`v1.4`**.
 
 ## O que tem em cada pasta
 

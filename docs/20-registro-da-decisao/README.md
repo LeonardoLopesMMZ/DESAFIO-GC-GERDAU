@@ -21,7 +21,7 @@ Toda consulta vira uma linha na tabela `solicitacao`, antes mesmo da decisão:
 | `curador`, `decidida_em` | quem decidiu e quando | |
 | `criada_em` | quando a consulta foi feita | |
 
-Além disso, a tabela `auditoria` registra **quem fez o quê, quando e de qual IP**: entradas, códigos criados, decisões do curador, desfazer, perfis trocados e fotos apagadas. E a tabela `aprendizado` guarda as regras IGUAL e DIFERENTE com os votos e quem votou por último.
+Além disso, a tabela `auditoria` registra **quem fez o quê, quando e de qual IP**: entradas, códigos criados, decisões do curador, desfazer, perfis trocados e fotos apagadas. Quem entra pelo link do grupo fica registrado pela conta do Tailscale (`ts:email`), não só pelo endereço. E a tabela `aprendizado` guarda as regras IGUAL e DIFERENTE com os votos e quem votou por último.
 
 ## Como verificar uma solicitação
 

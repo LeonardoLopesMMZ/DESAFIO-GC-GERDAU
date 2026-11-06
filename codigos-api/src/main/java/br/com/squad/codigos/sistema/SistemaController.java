@@ -3,6 +3,8 @@ package br.com.squad.codigos.sistema;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -18,10 +20,10 @@ public class SistemaController {
 
     @Operation(summary = "Banco em uso", description = "PostgreSQL guarda tudo entre um dia e outro; H2 é o banco de reserva, na memória.")
     @GetMapping("/api/sistema")
-    public Sistema sistema() {
-        return new Sistema(carga.persistente() ? "PostgreSQL" : "H2", carga.persistente());
+    public Sistema sistema(HttpServletRequest req) {
+        return new Sistema(carga.persistente() ? "PostgreSQL" : "H2", carga.persistente(), Guarda.local(req));
     }
 
-    public record Sistema(String banco, boolean persistente) {
+    public record Sistema(String banco, boolean persistente, boolean local) {
     }
 }
