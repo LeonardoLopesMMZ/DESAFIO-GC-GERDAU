@@ -345,7 +345,7 @@ function abrir(id) {
   if (!sessao) { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
   if (id === "aba-catalogo" && !$("busca").value.trim()) catalogo();
   if (id === "aba-curador") { pendentes(); aprendeu(); }
-  if (id === "aba-raio-x") carregarRaioX();
+  if (id === "aba-raio-x") { carregarPainel(); carregarRaioX(); }
   if (id === "aba-pessoas") pessoas();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -1584,7 +1584,6 @@ $("fechar-teste").addEventListener("click", () => { history.replaceState(null, "
 
 async function iniciar() {
   const s = guardado.sessao();
-  if (!(s && s.token) && !location.hash) { location.replace("/inicio.html"); return; }
   if (s && s.token) {
     sessao = s;
     try { definirSessao(Object.assign({}, s, await chamar("/api/acesso/eu", null, { silencioso: true }))); } catch (e) { if (!semConexao) definirSessao(null); }

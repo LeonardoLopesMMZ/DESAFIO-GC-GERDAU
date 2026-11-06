@@ -380,10 +380,16 @@ Teste 'Raio-X do catalogo' {
   "nota $($r.nota_antes) -> $($r.nota_depois), $($r.familias.Count) familias de duplicados"
 }
 
-Teste 'Tela inicial' {
+Teste 'Painel do Raio-X' {
+  $p = Ler '/api/raio-x/painel'
+  if ($p.consultas -lt 1 -or $p.por_dia.Count -ne 14) { throw "consultas $($p.consultas), dias $($p.por_dia.Count)" }
+  "$($p.consultas) consultas, $($p.codigos_criados) codigos criados, $($p.regras_aprendidas) regras aprendidas, 14 dias no grafico"
+}
+
+Teste 'Tutorial' {
   $r = Invoke-WebRequest ($site + '/inicio.html') -UseBasicParsing
   if ($r.StatusCode -ne 200 -or $r.Content -notmatch 'data-demo="consulta"') { throw "status $($r.StatusCode)" }
-  'abre sem entrar, com as demonstracoes e o tour'
+  'o tutorial abre sem entrar, com as demonstracoes e o tour'
 }
 
 Teste 'Swagger (API)' {

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#003366">
 <title>MOKKA · Códigos de serviço</title>
-<link rel="stylesheet" href="style.css?v=19">
+<link rel="stylesheet" href="style.css?v=20">
 </head>
 <body>
 <div id="carregando" aria-hidden="true"></div>
@@ -22,7 +22,7 @@
   <symbol id="i-baixar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14"/></symbol>
   <symbol id="i-banco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
   <symbol id="i-pessoas" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6"/></symbol>
-  <symbol id="i-casa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10M10 20v-6h4v6"/></symbol>
+  <symbol id="i-casa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m10 8.5 5.5 3.5-5.5 3.5z" fill="currentColor"/></symbol>
   <symbol id="i-api" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m8 7-5 5 5 5M16 7l5 5-5 5"/></symbol>
   <symbol id="i-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
   <symbol id="i-mais" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol>
@@ -48,7 +48,7 @@
     </div>
     <div class="topo-acoes">
       <span id="banco" class="banco oculto" role="status"><svg><use href="#i-banco"/></svg><span class="texto" id="banco-nome"></span></span>
-      <a href="/inicio.html" title="Início"><svg><use href="#i-casa"/></svg><span class="texto">Início</span></a>
+      <a href="/inicio.html" title="Tutorial do MOKKA"><svg><use href="#i-casa"/></svg><span class="texto">Tutorial</span></a>
       <a href="/swagger" target="_blank rel="noopener" title="API (Swagger)"><svg><use href="#i-api"/></svg><span class="texto">API</span></a>
       <button type="button" id="usuario"><img id="usuario-foto" class="retrato oculto" alt=""><svg id="usuario-icone"><use href="#i-pessoa"/></svg><span id="usuario-nome">Entrar</span></button>
     </div>
@@ -231,7 +231,51 @@
   </section>
 
   <section id="aba-raio-x" class="oculto">
-    <h2>Raio-X do catálogo</h2>
+    <div class="painel-titulo">
+      <div><h2>Raio-X do MOKKA</h2><p class="dica">Tudo o que acontece no MOKKA, num painel só. Atualiza sozinho enquanto a aba está aberta.</p></div>
+      <span class="ao-vivo" id="painel-hora"><i></i>ao vivo</span>
+    </div>
+    <div class="painel-kpis">
+      <div class="kpi-p cartao"><span class="rotulo">Consultas</span><b id="p-consultas">0</b><small><span id="p-hoje">0</span> hoje</small></div>
+      <div class="kpi-p cartao vermelho"><span class="rotulo">Repetidos barrados</span><b id="p-barrados">0</b><small>já existia, não criou de novo</small></div>
+      <div class="kpi-p cartao verde"><span class="rotulo">Códigos novos</span><b id="p-criados">0</b><small><span id="p-importados">0</span> por planilha</small></div>
+      <div class="kpi-p cartao"><span class="rotulo">Reuso</span><b><span id="p-reuso">0</span>%</b><small>das decisões usaram um código que já existia</small></div>
+      <div class="kpi-p cartao amarelo"><span class="rotulo">Com o curador</span><b id="p-curador">0</b><small>esperando decisão</small></div>
+      <div class="kpi-p cartao"><span class="rotulo">MOKKA aprendeu</span><b id="p-regras">0</b><small>regras, <span id="p-votos">0</span> votos</small></div>
+    </div>
+    <div class="painel-grade">
+      <div class="cartao bloco-largo">
+        <h3>Consultas nos últimos 14 dias</h3>
+        <div class="colunas" id="p-dias"></div>
+        <div class="legenda-painel"><span><i class="BLOQUEAR"></i>Já existe</span><span><i class="REVISAR"></i>Parecido</span><span><i class="LIBERAR"></i>Novo</span></div>
+      </div>
+      <div class="cartao">
+        <h3>O que o MOKKA respondeu</h3>
+        <div class="rosca-caixa">
+          <svg viewBox="0 0 42 42" class="rosca" id="p-rosca" aria-hidden="true"></svg>
+          <div class="rosca-centro"><b id="p-rosca-total">0</b><span>consultas</span></div>
+        </div>
+        <div class="legenda-painel coluna" id="p-rosca-legenda"></div>
+      </div>
+      <div class="cartao">
+        <h3>O que o comprador decidiu</h3>
+        <div class="barras-painel" id="p-status"></div>
+      </div>
+      <div class="cartao">
+        <h3>Mais consultados</h3>
+        <ol class="ranking" id="p-top"></ol>
+      </div>
+      <div class="cartao bloco-duplo">
+        <h3>Agora há pouco</h3>
+        <ul class="feed" id="p-feed"></ul>
+      </div>
+      <div class="cartao">
+        <h3>Quem usa</h3>
+        <div class="pessoas-painel"><b id="p-pessoas">0</b><span>pessoas cadastradas</span></div>
+        <div class="barras-painel" id="p-entrada"></div>
+      </div>
+    </div>
+    <h2>Saúde do catálogo</h2>
     <p class="dica">A nota mede a saúde da base de códigos de 0 a 100. Antes: a planilha da Gerdau como veio. Depois: o catálogo tratado pelo MOKKA.</p>
     <div class="raio-topo">
       <div class="notas cartao">
@@ -400,10 +444,10 @@
   <div class="janela-corpo ficha" id="ficha"></div>
 </dialog>
 
-<script src="fala.js?v=19"></script>
-<script src="local.js?v=19"></script>
-<script src="app.js?v=19"></script>
-<script src="rosto.js?v=19"></script>
-<script src="raiox.js?v=19"></script>
+<script src="fala.js?v=20"></script>
+<script src="local.js?v=20"></script>
+<script src="app.js?v=20"></script>
+<script src="rosto.js?v=20"></script>
+<script src="raiox.js?v=20"></script>
 </body>
 </html>

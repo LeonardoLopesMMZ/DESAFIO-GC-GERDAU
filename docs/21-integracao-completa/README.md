@@ -46,7 +46,7 @@ Python: o código novo entra na busca na hora
 
 ## Evidência
 
-- `testar.log`: o teste geral do `MOKKA.bat testar` passou **34 de 34**. Ele liga o sistema e passa pelo fluxo inteiro pela API: segurança, consulta BLOQUEAR e LIBERAR, correção de fala, curador em grupo, aprendizado e desfazer, palavra ensinada, lote, Excel, modo reserva, Raio-X, Swagger e os 9 testes do Python (inclusive "nunca junta errado" nos 430 pares).
+- `testar.log`: o teste geral do `MOKKA.bat testar` passou **35 de 35**. Ele liga o sistema e passa pelo fluxo inteiro pela API: segurança, consulta BLOQUEAR e LIBERAR, correção de fala, curador em grupo, aprendizado e desfazer, palavra ensinada, lote, Excel, modo reserva, Raio-X, Swagger e os 9 testes do Python (inclusive "nunca junta errado" nos 430 pares).
 - `banco-em-uso.json`: as evidências foram geradas com o PostgreSQL ligado (`"persistente": true`).
 - Os cenários da pasta 19 foram gravados pela tela de ponta a ponta, sem nenhum passo à mão.
 
