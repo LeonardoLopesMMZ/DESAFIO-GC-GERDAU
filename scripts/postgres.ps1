@@ -3,13 +3,18 @@ param([ValidateSet('ligar', 'parar')][string]$Acao = 'ligar')
 $ErrorActionPreference = 'Continue'
 $Raiz = Split-Path -Parent $PSScriptRoot
 $Ferr = Join-Path $Raiz '.ferramentas'
-$Bin = Join-Path $Ferr 'pgsql\bin'
-$Dados = Join-Path $Ferr 'pgdata'
+$Pg = $Ferr
+if (-not (Test-Path (Join-Path $Ferr 'pgdata\PG_VERSION')) -and ($Raiz -match '[^\x00-\x7F]' -or $Raiz -match 'OneDrive')) {
+  $md5 = [Security.Cryptography.MD5]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes($Raiz.ToLower()))
+  $Pg = Join-Path $env:LOCALAPPDATA ('MOKKA-postgres\' + (-join ($md5[0..3] | ForEach-Object { $_.ToString('x2') })))
+}
+$Bin = Join-Path $Pg 'pgsql\bin'
+$Dados = Join-Path $Pg 'pgdata'
 $Porta = 5433
 $Versao = '16.8-1'
 $SenhaAdmin = Join-Path $Ferr 'pg-admin.txt'
 $SenhaApp = Join-Path $Ferr 'pg-app.txt'
-$Log = Join-Path $Ferr 'postgres.log'
+$Log = Join-Path $Pg 'postgres.log'
 
 function Exe($nome) { Join-Path $Bin "$nome.exe" }
 
@@ -56,13 +61,18 @@ if ($Acao -eq 'parar') {
 
 try {
   New-Item -ItemType Directory -Force -ErrorAction Stop $Ferr | Out-Null
+  New-Item -ItemType Directory -Force -ErrorAction Stop $Pg | Out-Null
+  if (-not (Test-Path (Exe 'pg_ctl')) -and $Pg -ne $Ferr -and (Test-Path (Join-Path $Ferr 'pgsql\bin\pg_ctl.exe'))) {
+    Write-Host '   Copiando o PostgreSQL para uma pasta sem acentos...'
+    Copy-Item -Recurse -Force (Join-Path $Ferr 'pgsql') $Pg
+  }
   if (-not (Test-Path (Exe 'pg_ctl'))) {
     Write-Host '   Primeira vez: baixando o PostgreSQL 16, uns 300 MB, so desta vez...'
-    $zip = Join-Path $Ferr 'pg.zip'
+    $zip = Join-Path $Pg 'pg.zip'
     & curl.exe -fL --retry 3 -o $zip "https://get.enterprisedb.com/postgresql/postgresql-$Versao-windows-x64-binaries.zip"
     if ($LASTEXITCODE -ne 0) { throw 'nao consegui baixar' }
     Write-Host '   Descompactando o PostgreSQL...'
-    & tar.exe -xf $zip -C $Ferr pgsql/bin pgsql/lib pgsql/share
+    & tar.exe -xf $zip -C $Pg pgsql/bin pgsql/lib pgsql/share
     if ($LASTEXITCODE -ne 0) { throw 'o arquivo baixado veio com defeito' }
     Remove-Item -ErrorAction SilentlyContinue $zip
   }
@@ -70,8 +80,12 @@ try {
     if (Test-Path $Dados) { Rename-Item -ErrorAction Stop $Dados ("pgdata-incompleto-" + (Get-Date -Format 'yyyyMMddHHmmss')) }
     Gravar $SenhaAdmin (Aleatorio)
     Write-Host '   Criando o banco PostgreSQL do MOKKA...'
-    & (Exe 'initdb') -D $Dados -U mokka_admin "--pwfile=$SenhaAdmin" -A scram-sha-256 -E UTF8 --locale=C *> (Join-Path $Ferr 'postgres-init.log')
-    if ($LASTEXITCODE -ne 0) { throw 'initdb falhou, veja .ferramentas\postgres-init.log' }
+    $pw = Join-Path $Pg 'pw.tmp'
+    Copy-Item -Force $SenhaAdmin $pw
+    & (Exe 'initdb') -D $Dados -U mokka_admin "--pwfile=$pw" -A scram-sha-256 -E UTF8 --locale=C *> (Join-Path $Ferr 'postgres-init.log')
+    $ok = $LASTEXITCODE -eq 0
+    Remove-Item -Force -ErrorAction SilentlyContinue $pw
+    if (-not $ok) { throw 'initdb falhou, veja .ferramentas\postgres-init.log' }
   }
   if (-not (Test-Path (Join-Path $Dados 'postmaster.pid'))) { PararOutro }
   if (-not (Pronto)) {
