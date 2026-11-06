@@ -34,10 +34,23 @@ function Sql($banco, $comando) {
 
 function Pronto { & (Exe 'pg_isready') -h 127.0.0.1 -p $Porta -q; return $LASTEXITCODE -eq 0 }
 
+function PararOutro {
+  $c = Get-NetTCPConnection -LocalPort $Porta -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+  if (-not $c) { return }
+  $p = Get-CimInstance Win32_Process -Filter "ProcessId=$($c.OwningProcess)" -ErrorAction SilentlyContinue
+  if (-not $p -or $p.Name -notmatch '^postgres') { return }
+  $ctl = Join-Path (Split-Path $p.ExecutablePath) 'pg_ctl.exe'
+  if ($p.CommandLine -match '-D\s+"([^"]+)"' -or $p.CommandLine -match '-D\s+(\S+)') { $outro = $Matches[1] }
+  if ($outro -and (Test-Path $ctl)) { & $ctl -D $outro -m fast stop 2>&1 | Out-Null }
+  for ($i = 0; $i -lt 15 -and (Get-NetTCPConnection -LocalPort $Porta -State Listen -ErrorAction SilentlyContinue); $i++) { Start-Sleep -Seconds 1 }
+  if (Get-NetTCPConnection -LocalPort $Porta -State Listen -ErrorAction SilentlyContinue) { Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2 }
+}
+
 if ($Acao -eq 'parar') {
   if ((Test-Path (Exe 'pg_ctl')) -and (Test-Path (Join-Path $Dados 'PG_VERSION'))) {
     & (Exe 'pg_ctl') -D $Dados -m fast stop 2>&1 | Out-Null
   }
+  PararOutro
   exit 0
 }
 
@@ -60,6 +73,7 @@ try {
     & (Exe 'initdb') -D $Dados -U mokka_admin "--pwfile=$SenhaAdmin" -A scram-sha-256 -E UTF8 --locale=C *> (Join-Path $Ferr 'postgres-init.log')
     if ($LASTEXITCODE -ne 0) { throw 'initdb falhou, veja .ferramentas\postgres-init.log' }
   }
+  if (-not (Test-Path (Join-Path $Dados 'postmaster.pid'))) { PararOutro }
   if (-not (Pronto)) {
     $opcoes = "-p $Porta -c listen_addresses=127.0.0.1"
     Start-Process -FilePath (Exe 'pg_ctl') -ArgumentList @('-D', "`"$Dados`"", '-l', "`"$Log`"", '-o', "`"$opcoes`"", 'start') -WindowStyle Hidden | Out-Null
