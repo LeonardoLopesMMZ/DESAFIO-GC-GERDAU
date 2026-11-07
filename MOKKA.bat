@@ -99,7 +99,7 @@ start "" msedge "%SITE%%~1"
 exit /b 0
 
 :ligar
-where java >nul 2>nul || call :baixar_java || exit /b 1
+call :java_ok || call :baixar_java || exit /b 1
 call :parar
 if not exist "%VENV%\Scripts\python.exe" call :preparar_python || exit /b 1
 echo    Montando o catalogo a partir da base...
@@ -188,6 +188,11 @@ taskkill /f /fi "WINDOWTITLE eq Aplicacao - Java*" >nul 2>&1
 set "PERFIL="
 set "BANCO_USO=H2"
 call :ligar_java
+exit /b 0
+
+:java_ok
+where java >nul 2>nul || exit /b 1
+java -version 2>&1 | findstr /r /c:"version \"1[7-9]" /c:"version \"2[0-9]" >nul || exit /b 1
 exit /b 0
 
 :baixar_java
