@@ -37,6 +37,36 @@ function Sql($banco, $comando) {
   } finally { $env:PGPASSWORD = $null }
 }
 
+function Baixar($url, $destino) {
+  Remove-Item -ErrorAction SilentlyContinue $destino
+  & curl.exe -fL --retry 3 --connect-timeout 20 -o $destino $url 2>$null
+  if ($LASTEXITCODE -eq 0 -and (Test-Path $destino) -and (Get-Item $destino).Length -gt 1MB) { return $true }
+  try {
+    $ProgressPreference = 'SilentlyContinue'
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $destino -ErrorAction Stop
+    if ((Get-Item $destino).Length -gt 1MB) { return $true }
+  } catch {}
+  try {
+    Start-BitsTransfer -Source $url -Destination $destino -ErrorAction Stop
+    if ((Get-Item $destino).Length -gt 1MB) { return $true }
+  } catch {}
+  return $false
+}
+
+function Runtime {
+  $dlls = 'vcruntime140.dll', 'vcruntime140_1.dll', 'msvcp140.dll'
+  $faltam = $dlls | Where-Object { -not (Test-Path (Join-Path $env:SystemRoot "System32\$_")) -and -not (Test-Path (Join-Path $Bin $_)) }
+  if (-not $faltam) { return }
+  $fontes = @()
+  $j = Get-Command java -ErrorAction SilentlyContinue
+  if ($j) { $fontes += Split-Path $j.Source }
+  $fontes += Get-ChildItem -ErrorAction SilentlyContinue -Recurse -Filter vcruntime140.dll (Join-Path $Ferr 'jdk'), (Join-Path $Ferr 'python') | ForEach-Object { $_.DirectoryName }
+  foreach ($d in $faltam) {
+    foreach ($f in $fontes) { $x = Join-Path $f $d; if (Test-Path $x) { Copy-Item -Force $x $Bin -ErrorAction SilentlyContinue; break } }
+  }
+}
+
 function Pronto { & (Exe 'pg_isready') -h 127.0.0.1 -p $Porta -q; return $LASTEXITCODE -eq 0 }
 
 function PararOutro {
@@ -67,15 +97,41 @@ try {
     Copy-Item -Recurse -Force (Join-Path $Ferr 'pgsql') $Pg
   }
   if (-not (Test-Path (Exe 'pg_ctl'))) {
-    Write-Host '   Primeira vez: baixando o PostgreSQL 16, uns 300 MB, so desta vez...'
+    $instalado = Get-ChildItem -ErrorAction SilentlyContinue "$env:ProgramFiles\PostgreSQL\*\bin\pg_ctl.exe" |
+      Where-Object { [int](('0' + $_.Directory.Parent.Name) -replace '[^0-9].*$', '') -ge 12 } |
+      Sort-Object { [int](('0' + $_.Directory.Parent.Name) -replace '[^0-9].*$', '') } -Descending | Select-Object -First 1
+    if ($instalado) {
+      Write-Host "   Usando o PostgreSQL ja instalado neste computador ($($instalado.Directory.Parent.Name))."
+      $script:Bin = $instalado.DirectoryName
+    }
+  }
+  if (-not (Test-Path (Exe 'pg_ctl'))) {
+    Write-Host '   Primeira vez: baixando o PostgreSQL 16, so desta vez...'
     $zip = Join-Path $Pg 'pg.zip'
-    & curl.exe -fL --retry 3 -o $zip "https://get.enterprisedb.com/postgresql/postgresql-$Versao-windows-x64-binaries.zip"
-    if ($LASTEXITCODE -ne 0) { throw 'nao consegui baixar' }
-    Write-Host '   Descompactando o PostgreSQL...'
-    & tar.exe -xf $zip -C $Pg pgsql/bin pgsql/lib pgsql/share
-    if ($LASTEXITCODE -ne 0) { throw 'o arquivo baixado veio com defeito' }
+    if (Baixar "https://get.enterprisedb.com/postgresql/postgresql-$Versao-windows-x64-binaries.zip" $zip) {
+      Write-Host '   Descompactando o PostgreSQL...'
+      & tar.exe -xf $zip -C $Pg pgsql/bin pgsql/lib pgsql/share 2>$null
+      if (-not (Test-Path (Exe 'pg_ctl'))) { try { Expand-Archive -LiteralPath $zip -DestinationPath $Pg -Force } catch {} }
+    }
     Remove-Item -ErrorAction SilentlyContinue $zip
   }
+  if (-not (Test-Path (Exe 'pg_ctl'))) {
+    Write-Host '   Tentando outra fonte do PostgreSQL (GitHub, uns 45 MB)...'
+    $zip = Join-Path $Pg 'pg2.zip'
+    $nome = 'postgresql-16.8.0-x86_64-pc-windows-msvc'
+    if (Baixar "https://github.com/theseus-rs/postgresql-binaries/releases/download/16.8.0/$nome.zip" $zip) {
+      Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $Pg $nome)
+      & tar.exe -xf $zip -C $Pg 2>$null
+      if (-not (Test-Path (Join-Path $Pg "$nome\bin\pg_ctl.exe"))) { try { Expand-Archive -LiteralPath $zip -DestinationPath $Pg -Force } catch {} }
+      if (Test-Path (Join-Path $Pg "$nome\bin\pg_ctl.exe")) {
+        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $Pg 'pgsql')
+        Rename-Item (Join-Path $Pg $nome) 'pgsql'
+      }
+    }
+    Remove-Item -ErrorAction SilentlyContinue $zip
+  }
+  if (-not (Test-Path (Exe 'pg_ctl'))) { throw 'nao consegui baixar (confira a internet)' }
+  Runtime
   if (-not (Test-Path (Join-Path $Dados 'PG_VERSION'))) {
     if (Test-Path $Dados) { Rename-Item -ErrorAction Stop $Dados ("pgdata-incompleto-" + (Get-Date -Format 'yyyyMMddHHmmss')) }
     Gravar $SenhaAdmin (Aleatorio)
@@ -85,7 +141,11 @@ try {
     & (Exe 'initdb') -D $Dados -U mokka_admin "--pwfile=$pw" -A scram-sha-256 -E UTF8 --locale=C *> (Join-Path $Ferr 'postgres-init.log')
     $ok = $LASTEXITCODE -eq 0
     Remove-Item -Force -ErrorAction SilentlyContinue $pw
-    if (-not $ok) { throw 'initdb falhou, veja .ferramentas\postgres-init.log' }
+    if (-not $ok) {
+      Get-Content -Tail 4 -ErrorAction SilentlyContinue (Join-Path $Ferr 'postgres-init.log') | ForEach-Object { Write-Host "      $_" }
+      if (Test-Path $Dados) { Rename-Item -ErrorAction SilentlyContinue $Dados ("pgdata-falhou-" + (Get-Date -Format 'yyyyMMddHHmmss')) }
+      throw 'initdb falhou, veja .ferramentas\postgres-init.log'
+    }
   }
   if (-not (Test-Path (Join-Path $Dados 'postmaster.pid'))) { PararOutro }
   if (-not (Pronto)) {
